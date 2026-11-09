@@ -43,7 +43,10 @@ describe("VideoFetcher", () => {
       progress,
     );
 
-    expect(data).toEqual(new Uint8Array([1, 2, 3, 4, 5]));
+    expect(data).toEqual({
+      main: new Uint8Array([1, 2, 3, 4, 5]),
+      audio: undefined,
+    });
     expect(fetchUrl).toHaveBeenCalledWith("https://x/a.webm", {
       credentials: "include",
     });

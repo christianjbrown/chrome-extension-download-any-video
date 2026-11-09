@@ -1,4 +1,5 @@
 import {
+  AUDIO_INPUT_NAME,
   ConversionPlanner,
   INPUT_NAME,
   NO_VIDEO,
@@ -38,19 +39,50 @@ const encodeVideo = [
 describe("ConversionPlanner", () => {
   it("copies video and audio that already play everywhere", () => {
     expect(
-      planner.plan({
-        video: { codec: "h264", pixelFormat: "yuv420p" },
-        audio: { codec: "aac" },
-      }),
+      planner.plan(
+        {
+          video: { codec: "h264", pixelFormat: "yuv420p" },
+          audio: { codec: "aac" },
+        },
+        undefined,
+      ),
     ).toEqual([...head, "-c:v", "copy", "-c:a", "copy", ...tail]);
+  });
+
+  it("takes the sound from a second input when the stream kept it apart", () => {
+    expect(
+      planner.plan(
+        { video: { codec: "h264", pixelFormat: "yuv420p" } },
+        { audio: { codec: "aac" } },
+      ),
+    ).toEqual([
+      "-threads",
+      "4",
+      "-i",
+      INPUT_NAME,
+      "-i",
+      AUDIO_INPUT_NAME,
+      "-map",
+      "0:v:0",
+      "-map",
+      "1:a:0?",
+      "-c:v",
+      "copy",
+      "-c:a",
+      "copy",
+      ...tail,
+    ]);
   });
 
   it("re-encodes any other video codec, and any other pixel format", () => {
     expect(
-      planner.plan({
-        video: { codec: "vp9", pixelFormat: "yuv420p" },
-        audio: { codec: "opus" },
-      }),
+      planner.plan(
+        {
+          video: { codec: "vp9", pixelFormat: "yuv420p" },
+          audio: { codec: "opus" },
+        },
+        undefined,
+      ),
     ).toEqual([
       ...head,
       ...encodeVideo,
@@ -61,11 +93,16 @@ describe("ConversionPlanner", () => {
       ...tail,
     ]);
     expect(
-      planner.plan({ video: { codec: "h264", pixelFormat: "yuv444p" } }),
+      planner.plan(
+        { video: { codec: "h264", pixelFormat: "yuv444p" } },
+        undefined,
+      ),
     ).toEqual([...head, ...encodeVideo, ...tail]);
   });
 
   it("says no to a file with no picture", () => {
-    expect(() => planner.plan({ audio: { codec: "mp3" } })).toThrow(NO_VIDEO);
+    expect(() => planner.plan({ audio: { codec: "mp3" } }, undefined)).toThrow(
+      NO_VIDEO,
+    );
   });
 });

@@ -3,6 +3,8 @@ import {
   heightHint,
   isWebUrl,
   mediaKind,
+  pathExtension,
+  playlistFormat,
 } from "../../src/shared/media-urls";
 
 describe("mediaKind", () => {
@@ -40,6 +42,21 @@ describe("fileExtension", () => {
   it("is nothing for a playlist or a page", () => {
     expect(fileExtension("https://cdn.example/p.m3u8")).toBeUndefined();
     expect(fileExtension("https://cdn.example/p.html")).toBeUndefined();
+  });
+});
+
+describe("playlistFormat", () => {
+  it("tells HLS from DASH, and neither from a file", () => {
+    expect(playlistFormat("https://cdn.example/v/index.M3U8?x=1")).toBe("hls");
+    expect(playlistFormat("https://cdn.example/v/manifest.mpd")).toBe("dash");
+    expect(playlistFormat("https://cdn.example/v/clip.mp4")).toBeUndefined();
+  });
+});
+
+describe("pathExtension", () => {
+  it("is the extension on the path, whatever the query says", () => {
+    expect(pathExtension("https://cdn.example/a/seg.TS?f=.mp4")).toBe("ts");
+    expect(pathExtension("https://cdn.example/a/seg")).toBeUndefined();
   });
 });
 

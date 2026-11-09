@@ -130,6 +130,52 @@ describe("service worker", () => {
     expect(chrome.offscreen.closeDocument).toHaveBeenCalledTimes(1);
   });
 
+  it("downloads the playlist, not the init piece the page's player fetched from it", async () => {
+    const chrome = await load();
+    const playlist = "https://cdn.example/pb/index.m3u8";
+    chrome.scripting.executeScript.mockReset().mockResolvedValue([
+      {
+        frameId: 0,
+        result: {
+          title: "Clip",
+          candidates: [
+            { url: playlist, origin: "element", height: 0 },
+            {
+              url: "https://cdn.example/pb/init.mp4",
+              origin: "network",
+              height: 0,
+            },
+          ],
+        },
+      },
+    ]);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: () =>
+          Promise.resolve(
+            '#EXTM3U\n#EXT-X-MAP:URI="init.mp4"\n#EXTINF:1,\nseg0.m4s\n#EXT-X-ENDLIST',
+          ),
+      }),
+    );
+
+    chrome.action.onClicked.fire({ id: 6 });
+
+    await vi.waitFor(() => {
+      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
+        type: "convert",
+        jobId: expect.any(String) as string,
+        url: playlist,
+      });
+    });
+    expect(fetch).toHaveBeenCalledWith(
+      playlist,
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
+
   it("downloads the video as it is when the converter could not fetch it", async () => {
     const chrome = await load();
     chrome.runtime.sendMessage.mockResolvedValue({

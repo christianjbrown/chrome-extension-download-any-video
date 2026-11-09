@@ -1,3 +1,5 @@
+import { concatenate } from "./bytes";
+import type { MediaInputs } from "./media-inputs";
 import type { ProgressListener } from "./progress";
 
 // The slice of a fetch Response this reads.
@@ -14,22 +16,12 @@ export type Fetch = (
 ) => Promise<FetchedResponse>;
 
 export interface Fetches {
-  fetch(url: string, onProgress: ProgressListener): Promise<Uint8Array>;
+  fetch(url: string, onProgress: ProgressListener): Promise<MediaInputs>;
 }
 
 const CONTENT_LENGTH = "content-length";
 const UNKNOWN_LENGTH = 0;
 const ALL_DONE = 1;
-
-function join(chunks: readonly Uint8Array[], length: number): Uint8Array {
-  const whole = new Uint8Array(length);
-  let offset = 0;
-  for (const chunk of chunks) {
-    whole.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return whole;
-}
 
 // Pulls the whole video into memory, saying how far along it is when the
 // server said how big the file is. Cookies go along, as they would from the
@@ -37,7 +29,7 @@ function join(chunks: readonly Uint8Array[], length: number): Uint8Array {
 export class VideoFetcher implements Fetches {
   constructor(private readonly fetchUrl: Fetch) {}
 
-  async fetch(url: string, onProgress: ProgressListener): Promise<Uint8Array> {
+  async fetch(url: string, onProgress: ProgressListener): Promise<MediaInputs> {
     const response = await this.fetchUrl(url, { credentials: "include" });
     if (!response.ok) {
       throw new Error(
@@ -64,6 +56,6 @@ export class VideoFetcher implements Fetches {
         onProgress(Math.min(received / total, ALL_DONE));
       }
     }
-    return join(chunks, received);
+    return { main: concatenate(chunks), audio: undefined };
   }
 }

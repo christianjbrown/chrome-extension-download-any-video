@@ -1,7 +1,6 @@
 import {
   CandidateRanker,
   NOTHING_FOUND,
-  ONLY_STREAMS,
 } from "../../src/background/candidate-ranker";
 import type { VideoCandidate } from "../../src/shared/candidates";
 
@@ -62,10 +61,32 @@ describe("CandidateRanker", () => {
     ).toBe("https://cdn.example/n.mp4");
   });
 
-  it("says when there is only a stream, and when there is nothing", () => {
+  it("takes a stream only when there is no whole file, the sharpest and most trusted one", () => {
+    expect(
+      ranker.pick([
+        report(
+          c("https://cdn.example/low.m3u8", "player", 360),
+          c("https://cdn.example/hd.m3u8", "player", 720),
+          c("https://cdn.example/og.mpd", "metadata", 1080),
+          c("https://cdn.example/clip.mp4", "network"),
+        ),
+      ]).url,
+    ).toBe("https://cdn.example/clip.mp4");
+    expect(
+      ranker.pick([
+        report(
+          c("https://cdn.example/low.m3u8", "player", 360),
+          c("https://cdn.example/hd.m3u8", "player", 720),
+          c("https://cdn.example/og.mpd", "metadata", 1080),
+        ),
+      ]).url,
+    ).toBe("https://cdn.example/hd.m3u8");
+  });
+
+  it("says when there is nothing", () => {
     expect(() =>
-      ranker.pick([report(c("https://cdn.example/pl.m3u8", "player"))]),
-    ).toThrow(ONLY_STREAMS);
+      ranker.pick([report(c("https://cdn.example/poster.jpg", "player"))]),
+    ).toThrow(NOTHING_FOUND);
     expect(() => ranker.pick([report(), report()])).toThrow(NOTHING_FOUND);
     expect(() => ranker.pick([])).toThrow(NOTHING_FOUND);
   });

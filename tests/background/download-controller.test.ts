@@ -1,4 +1,5 @@
 import { DownloadController } from "../../src/background/download-controller";
+import type { FrameReport } from "../../src/shared/candidates";
 import { fakeIndicator, plainErrors } from "./fakes";
 
 const best = {
@@ -20,6 +21,11 @@ function setup() {
   };
   const parts = {
     asker: { ask: vi.fn().mockResolvedValue(reports) },
+    filter: {
+      filter: vi.fn((given: readonly FrameReport[]) =>
+        Promise.resolve([...given]),
+      ),
+    },
     ranker: { pick: vi.fn().mockReturnValue(best) },
     converter: { convert: vi.fn().mockResolvedValue(source) },
     names: { name: vi.fn().mockReturnValue("top.mp4") },

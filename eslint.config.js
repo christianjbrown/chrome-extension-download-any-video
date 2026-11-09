@@ -94,6 +94,22 @@ export default tseslint.config(
     },
   },
   {
+    files: ["src/stream/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/background/**", "**/page/**", "**/offscreen/**"],
+              message: "stream reading knows nothing about where it runs",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["src/shared/**/*.ts"],
     rules: {
       "no-restricted-imports": [

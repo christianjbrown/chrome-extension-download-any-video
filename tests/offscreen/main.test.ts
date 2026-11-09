@@ -79,7 +79,14 @@ function fakeResponse(bytes: number[]) {
         controller.close();
       },
     }),
+    text: () => Promise.resolve(""),
+    arrayBuffer: () => Promise.resolve(new Uint8Array(bytes).buffer),
   };
+}
+
+// A playlist, as text.
+function textResponse(text: string) {
+  return { ...fakeResponse([]), text: () => Promise.resolve(text) };
 }
 
 async function load() {
@@ -137,6 +144,107 @@ describe("offscreen document", () => {
     const [blob] = vi.mocked(URL.createObjectURL).mock.calls[0]!;
     expect(blob).toBeInstanceOf(Blob);
     expect((blob as Blob).type).toBe("video/mp4");
+  });
+
+  it("stitches an HLS stream's pieces into one input, with its separate sound", async () => {
+    const chrome = await load();
+    vi.mocked(fetch).mockImplementation((url: string | URL | Request) =>
+      Promise.resolve(
+        {
+          "https://x/master.m3u8": textResponse(
+            '#EXTM3U\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="a",URI="audio.m3u8"\n#EXT-X-STREAM-INF:BANDWIDTH=1,RESOLUTION=640x360,AUDIO="a"\nvideo.m3u8\n',
+          ),
+          "https://x/video.m3u8": textResponse(
+            '#EXTM3U\n#EXT-X-MAP:URI="vinit.mp4"\n#EXTINF:1,\nv0.m4s\n#EXTINF:1,\nv1.m4s\n',
+          ),
+          "https://x/audio.m3u8": textResponse("#EXTM3U\n#EXTINF:1,\na0.m4s\n"),
+          "https://x/vinit.mp4": fakeResponse([1]),
+          "https://x/v0.m4s": fakeResponse([2]),
+          "https://x/v1.m4s": fakeResponse([3]),
+          "https://x/a0.m4s": fakeResponse([9]),
+        }[url as string] as Response,
+      ),
+    );
+    const sendResponse = vi.fn();
+
+    chrome.runtime.onMessage.fire(
+      { type: "convert", jobId: "j2", url: "https://x/master.m3u8" },
+      {},
+      sendResponse,
+    );
+
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledWith({
+        ok: true,
+        url: "blob:chrome-extension://x/9",
+      });
+    });
+    expect(ffmpeg.writeFile).toHaveBeenCalledWith(
+      "input",
+      new Uint8Array([1, 2, 3]),
+    );
+    expect(ffmpeg.writeFile).toHaveBeenCalledWith(
+      "audio-input",
+      new Uint8Array([9]),
+    );
+    expect(ffmpeg.exec).toHaveBeenLastCalledWith(
+      expect.arrayContaining(["-i", "audio-input", "-map", "1:a:0?"]),
+    );
+    expect(fetch).toHaveBeenCalledWith("https://x/v0.m4s", {
+      headers: {},
+      credentials: "include",
+    });
+    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
+      type: "progress",
+      jobId: "j2",
+      stage: "fetch",
+      ratio: 0.75,
+    });
+  });
+
+  it("reads a DASH manifest and fetches the piece it names", async () => {
+    const chrome = await load();
+    const manifest = [
+      '<?xml version="1.0" encoding="utf-8"?>',
+      '<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" type="static">',
+      "<Period>",
+      '<AdaptationSet contentType="video">',
+      '<Representation id="v" bandwidth="1">',
+      "<BaseURL>DASH_720.mp4</BaseURL>",
+      "</Representation>",
+      "</AdaptationSet>",
+      "</Period>",
+      "</MPD>",
+    ].join("\n");
+    vi.mocked(fetch).mockImplementation((url: string | URL | Request) =>
+      Promise.resolve(
+        (url === "https://x/d/manifest.mpd"
+          ? textResponse(manifest)
+          : fakeResponse([4, 2])) as Response,
+      ),
+    );
+    const sendResponse = vi.fn();
+
+    chrome.runtime.onMessage.fire(
+      { type: "convert", jobId: "j3", url: "https://x/d/manifest.mpd" },
+      {},
+      sendResponse,
+    );
+
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledWith({
+        ok: true,
+        url: "blob:chrome-extension://x/9",
+      });
+    });
+    expect(fetch).toHaveBeenCalledWith(
+      "https://x/d/DASH_720.mp4",
+      expect.objectContaining({ credentials: "include" }),
+    );
+    expect(ffmpeg.writeFile).toHaveBeenCalledWith(
+      "input",
+      new Uint8Array([4, 2]),
+    );
   });
 
   it("ignores messages that are not for it", async () => {

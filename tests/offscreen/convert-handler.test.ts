@@ -6,9 +6,11 @@ const request = {
   url: "https://x/a.webm",
 } as const;
 
+const inputs = { main: new Uint8Array([1]), audio: undefined };
+
 function setup() {
   const parts = {
-    fetcher: { fetch: vi.fn().mockResolvedValue(new Uint8Array([1])) },
+    fetcher: { fetch: vi.fn().mockResolvedValue(inputs) },
     transcoder: { transcode: vi.fn().mockResolvedValue(new Uint8Array([2])) },
     urls: { create: vi.fn().mockReturnValue("blob:chrome-extension://x/1") },
     progress: { send: vi.fn() },
@@ -22,7 +24,7 @@ describe("ConvertHandler", () => {
     parts.fetcher.fetch.mockImplementation(
       (_url: string, onProgress: (ratio: number) => void) => {
         onProgress(0.5);
-        return Promise.resolve(new Uint8Array([1]));
+        return Promise.resolve(inputs);
       },
     );
     parts.transcoder.transcode.mockImplementation(
@@ -36,7 +38,7 @@ describe("ConvertHandler", () => {
 
     expect(response).toEqual({ ok: true, url: "blob:chrome-extension://x/1" });
     expect(parts.transcoder.transcode).toHaveBeenCalledWith(
-      new Uint8Array([1]),
+      inputs,
       expect.any(Function),
     );
     expect(parts.urls.create).toHaveBeenCalledWith(new Uint8Array([2]));

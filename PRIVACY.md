@@ -2,7 +2,7 @@
 
 Christian's Download Any Video doesn't collect, store or send any of your data. There are no accounts, no analytics and no servers: everything it does happens in your own browser.
 
-When you click the button, it looks at the page in that tab to find the address of the video it is showing, fetches that video into a hidden page inside Chrome, converts it there into an MP4 that plays everywhere, and asks Chrome to save the result. If the video cannot be fetched, Chrome downloads the original address instead. Either way the video goes straight to your downloads folder.
+When you click the button, it looks at the page in that tab to find the address of the video it is showing, fetches that video into a hidden page inside Chrome (piece by piece, when the site serves it as a stream), converts it there into an MP4 that plays everywhere, and asks Chrome to save the result. If the video cannot be fetched, Chrome downloads the original address instead. Either way the video goes straight to your downloads folder.
 
 The extension can reach any website, which is what lets it fetch the video from wherever the site keeps it. It only ever fetches the one video you clicked the button for, and only when you click.
 

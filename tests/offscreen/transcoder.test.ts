@@ -25,38 +25,70 @@ function setup() {
   };
 }
 
+const single = { main: new Uint8Array([1]), audio: undefined };
+
 describe("Transcoder", () => {
   it("writes, describes, plans, runs and reads back, then tidies up", async () => {
     const { engine, parser, planner, transcoder } = setup();
     const progress = vi.fn();
 
-    const out = await transcoder.transcode(new Uint8Array([1]), progress);
+    const out = await transcoder.transcode(single, progress);
 
     expect(out).toEqual(new Uint8Array([7, 7]));
     expect(engine.ready).toHaveBeenCalled();
-    expect(engine.write).toHaveBeenCalledWith("input", new Uint8Array([1]));
+    expect(engine.write.mock.calls).toEqual([["input", new Uint8Array([1])]]);
     expect(parser.parse).toHaveBeenCalledWith([
       "Stream #0:0: Video: vp9, yuv420p",
     ]);
-    expect(planner.plan).toHaveBeenCalledWith({
-      video: { codec: "vp9", pixelFormat: "yuv420p" },
-    });
+    expect(planner.plan).toHaveBeenCalledWith(
+      { video: { codec: "vp9", pixelFormat: "yuv420p" } },
+      undefined,
+    );
     expect(engine.run).toHaveBeenCalledWith(
       ["-i", "input", "output.mp4"],
       progress,
     );
-    expect(engine.remove.mock.calls).toEqual([["input"], ["output.mp4"]]);
+    expect(engine.remove.mock.calls).toEqual([
+      ["input"],
+      ["audio-input"],
+      ["output.mp4"],
+    ]);
+  });
+
+  it("writes and describes a separate sound track too", async () => {
+    const { engine, parser, planner, transcoder } = setup();
+    engine.describe
+      .mockResolvedValueOnce(["Stream #0:0: Video: h264, yuv420p"])
+      .mockResolvedValueOnce(["Stream #0:0: Audio: aac"]);
+    parser.parse
+      .mockReturnValueOnce({ video: { codec: "h264", pixelFormat: "yuv420p" } })
+      .mockReturnValueOnce({ audio: { codec: "aac" } });
+
+    await transcoder.transcode(
+      { main: new Uint8Array([1]), audio: new Uint8Array([2]) },
+      vi.fn(),
+    );
+
+    expect(engine.write.mock.calls).toEqual([
+      ["input", new Uint8Array([1])],
+      ["audio-input", new Uint8Array([2])],
+    ]);
+    expect(engine.describe.mock.calls).toEqual([["input"], ["audio-input"]]);
+    expect(planner.plan).toHaveBeenCalledWith(
+      { video: { codec: "h264", pixelFormat: "yuv420p" } },
+      { audio: { codec: "aac" } },
+    );
   });
 
   it("says when ffmpeg gave up, and still tidies up", async () => {
     const { engine, transcoder } = setup();
     engine.run.mockResolvedValue(234);
 
-    await expect(
-      transcoder.transcode(new Uint8Array(), vi.fn()),
-    ).rejects.toThrow("ffmpeg gave up on the video (exit code 234)");
+    await expect(transcoder.transcode(single, vi.fn())).rejects.toThrow(
+      "ffmpeg gave up on the video (exit code 234)",
+    );
     expect(engine.read).not.toHaveBeenCalled();
-    expect(engine.remove).toHaveBeenCalledTimes(2);
+    expect(engine.remove).toHaveBeenCalledTimes(3);
   });
 
   it("runs one job at a time, in the order they came, even after a failure", async () => {
@@ -78,8 +110,8 @@ describe("Transcoder", () => {
         return Promise.resolve(0);
       });
 
-    const first = transcoder.transcode(new Uint8Array(), vi.fn());
-    const second = transcoder.transcode(new Uint8Array(), vi.fn());
+    const first = transcoder.transcode(single, vi.fn());
+    const second = transcoder.transcode(single, vi.fn());
     await vi.waitFor(() => {
       expect(engine.run).toHaveBeenCalledTimes(1);
     });
