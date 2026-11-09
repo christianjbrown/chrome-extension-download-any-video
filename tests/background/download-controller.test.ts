@@ -13,9 +13,15 @@ function setup() {
     { title: "Embed", candidates: [] },
   ];
   let release: () => void = () => undefined;
+  const source = {
+    url: "blob:chrome-extension://x/1",
+    extension: "mp4",
+    release: vi.fn().mockResolvedValue(undefined),
+  };
   const parts = {
     asker: { ask: vi.fn().mockResolvedValue(reports) },
     ranker: { pick: vi.fn().mockReturnValue(best) },
+    converter: { convert: vi.fn().mockResolvedValue(source) },
     names: { name: vi.fn().mockReturnValue("top.mp4") },
     saver: {
       save: vi.fn().mockImplementation(
@@ -30,6 +36,7 @@ function setup() {
   };
   return {
     parts,
+    source,
     controller: new DownloadController(parts),
     release: () => {
       release();
@@ -38,27 +45,56 @@ function setup() {
 }
 
 describe("DownloadController", () => {
-  it("finds, names and downloads the video, telling the button as it goes", async () => {
-    const { parts, controller, release } = setup();
+  it("finds, converts, names and downloads the video, telling the button as it goes", async () => {
+    const { parts, source, controller, release } = setup();
+    parts.converter.convert.mockImplementation(
+      (_url: string, onProgress: (stage: string, ratio: number) => void) => {
+        onProgress("convert", 0.5);
+        return Promise.resolve(source);
+      },
+    );
 
     const clicked = controller.clicked({ id: 6 });
     await vi.waitFor(() => {
       expect(parts.saver.save).toHaveBeenCalledWith(
-        "https://cdn.example/hd.mp4",
+        "blob:chrome-extension://x/1",
         "top.mp4",
       );
     });
     expect(parts.indicator.showBusy).toHaveBeenCalledWith(6);
     expect(parts.asker.ask).toHaveBeenCalledWith(6);
-    expect(parts.names.name).toHaveBeenCalledWith(
-      "Top",
+    expect(parts.converter.convert).toHaveBeenCalledWith(
       "https://cdn.example/hd.mp4",
+      expect.any(Function),
     );
+    expect(parts.indicator.showProgress).toHaveBeenCalledWith(
+      6,
+      "convert",
+      0.5,
+    );
+    expect(parts.names.name).toHaveBeenCalledWith("Top", "mp4");
+    expect(source.release).not.toHaveBeenCalled();
     release();
     await clicked;
 
+    expect(source.release).toHaveBeenCalledTimes(1);
     expect(parts.indicator.showDone).toHaveBeenCalledWith(6, "top.mp4");
     expect(parts.indicator.showError).not.toHaveBeenCalled();
+  });
+
+  it("lets the converted video go even when the download fails", async () => {
+    const { parts, source, controller } = setup();
+    parts.saver.save.mockRejectedValue(
+      new Error("Chrome stopped the download"),
+    );
+
+    await controller.clicked({ id: 6 });
+
+    expect(source.release).toHaveBeenCalledTimes(1);
+    expect(parts.indicator.showError).toHaveBeenCalledWith(
+      6,
+      "explained: Chrome stopped the download",
+    );
   });
 
   it("ignores a second click while the first is still downloading, then takes the next", async () => {
@@ -102,10 +138,7 @@ describe("DownloadController", () => {
 
     const clicked = controller.clicked({ id: 6 });
     await vi.waitFor(() => {
-      expect(parts.names.name).toHaveBeenCalledWith(
-        "",
-        "https://cdn.example/hd.mp4",
-      );
+      expect(parts.names.name).toHaveBeenCalledWith("", "mp4");
     });
     release();
     await clicked;

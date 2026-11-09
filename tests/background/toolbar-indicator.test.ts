@@ -23,6 +23,20 @@ describe("ToolbarIndicator", () => {
       title: "Looking for the video and downloading it",
     },
     {
+      show: (indicator: ToolbarIndicator) =>
+        indicator.showProgress(3, "fetch", 0.374),
+      text: "37%",
+      color: "#1a73e8",
+      title: "Fetching the video (37%)",
+    },
+    {
+      show: (indicator: ToolbarIndicator) =>
+        indicator.showProgress(3, "convert", 1),
+      text: "100%",
+      color: "#1a73e8",
+      title: "Converting the video to H.264 (100%)",
+    },
+    {
       show: (indicator: ToolbarIndicator) => indicator.showDone(3, "clip.mp4"),
       text: "✓",
       color: "#1a73e8",
@@ -45,5 +59,27 @@ describe("ToolbarIndicator", () => {
       color,
     });
     expect(toolbar.setTitle).toHaveBeenCalledWith({ tabId: 3, title });
+  });
+
+  it("only redraws progress when the number on the button would change", async () => {
+    const toolbar = action();
+    const indicator = new ToolbarIndicator(toolbar);
+
+    await indicator.showProgress(3, "convert", 0.421);
+    await indicator.showProgress(3, "convert", 0.424);
+    await indicator.showProgress(3, "convert", 0.43);
+    await indicator.showProgress(4, "convert", 0.43);
+    await indicator.showDone(3, "clip.mp4");
+    await indicator.showProgress(3, "convert", 0.43);
+
+    expect(
+      toolbar.setBadgeText.mock.calls.map(([call]: unknown[]) => call),
+    ).toEqual([
+      { tabId: 3, text: "42%" },
+      { tabId: 3, text: "43%" },
+      { tabId: 4, text: "43%" },
+      { tabId: 3, text: "✓" },
+      { tabId: 3, text: "43%" },
+    ]);
   });
 });

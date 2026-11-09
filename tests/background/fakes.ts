@@ -10,6 +10,9 @@ export function fakeIndicator(): Mocked<DownloadIndicator> {
     showBusy: vi
       .fn<DownloadIndicator["showBusy"]>()
       .mockResolvedValue(undefined),
+    showProgress: vi
+      .fn<DownloadIndicator["showProgress"]>()
+      .mockResolvedValue(undefined),
     showDone: vi
       .fn<DownloadIndicator["showDone"]>()
       .mockResolvedValue(undefined),

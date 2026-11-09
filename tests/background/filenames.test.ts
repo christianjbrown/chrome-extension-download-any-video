@@ -22,16 +22,14 @@ describe("VideoFilename", () => {
   const clock = { now: () => new Date(2026, 10, 9, 16, 5) };
   const names = new VideoFilename(clock);
 
-  it("names the file after the time and the page, with the file's own extension", () => {
-    expect(
-      names.name("My Cool Page", "https://cdn.example/x/clip.WebM?x=1"),
-    ).toBe("2026-11-09-16-05-my-cool-page.webm");
+  it("names the file after the time and the page, with the extension it is given", () => {
+    expect(names.name("My Cool Page", "webm")).toBe(
+      "2026-11-09-16-05-my-cool-page.webm",
+    );
   });
 
-  it("falls back to video and mp4 when the page and the address say nothing", () => {
-    expect(names.name("", "https://cdn.example/x/stream")).toBe(
-      "2026-11-09-16-05-video.mp4",
-    );
+  it("falls back to video and mp4 when the page and the source say nothing", () => {
+    expect(names.name("", undefined)).toBe("2026-11-09-16-05-video.mp4");
   });
 });
 

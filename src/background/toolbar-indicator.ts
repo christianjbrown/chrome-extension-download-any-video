@@ -1,3 +1,5 @@
+import { FETCH_STAGE, type Stage } from "../shared/conversion-messages";
+
 export interface ToolbarAction {
   setBadgeText(details: { tabId: number; text: string }): Promise<void>;
   setBadgeBackgroundColor(details: {
@@ -11,6 +13,7 @@ export interface ToolbarAction {
 export interface DownloadIndicator {
   showIdle(tabId: number): Promise<void>;
   showBusy(tabId: number): Promise<void>;
+  showProgress(tabId: number, stage: Stage, ratio: number): Promise<void>;
   showDone(tabId: number, filename: string): Promise<void>;
   showError(tabId: number, message: string): Promise<void>;
 }
@@ -26,9 +29,23 @@ const BLUE = "#1a73e8";
 const GREY = "#5a5a60";
 
 const IDLE_TITLE = "Download the video on this page";
+const PERCENT = 100;
+
+function percent(ratio: number): string {
+  return `${String(Math.round(ratio * PERCENT))}%`;
+}
+
+function stageTitle(stage: Stage, shown: string): string {
+  return stage === FETCH_STAGE
+    ? `Fetching the video (${shown})`
+    : `Converting the video to H.264 (${shown})`;
+}
 
 // Each tab downloads on its own, so each tab's button has its own look.
 export class ToolbarIndicator implements DownloadIndicator {
+  // Progress arrives many times a second; the button only redraws on a change.
+  private readonly lastProgress = new Map<number, string>();
+
   constructor(private readonly action: ToolbarAction) {}
 
   showIdle(tabId: number): Promise<void> {
@@ -40,6 +57,24 @@ export class ToolbarIndicator implements DownloadIndicator {
       badge: "…",
       colour: BLUE,
       title: "Looking for the video and downloading it",
+    });
+  }
+
+  async showProgress(
+    tabId: number,
+    stage: Stage,
+    ratio: number,
+  ): Promise<void> {
+    const shown = percent(ratio);
+    const key = `${stage} ${shown}`;
+    if (this.lastProgress.get(tabId) === key) {
+      return;
+    }
+    this.lastProgress.set(tabId, key);
+    await this.paint(tabId, {
+      badge: shown,
+      colour: BLUE,
+      title: stageTitle(stage, shown),
     });
   }
 
@@ -59,7 +94,12 @@ export class ToolbarIndicator implements DownloadIndicator {
     });
   }
 
-  private async show(tabId: number, look: Look): Promise<void> {
+  private show(tabId: number, look: Look): Promise<void> {
+    this.lastProgress.delete(tabId);
+    return this.paint(tabId, look);
+  }
+
+  private async paint(tabId: number, look: Look): Promise<void> {
     await Promise.all([
       this.action.setBadgeText({ tabId, text: look.badge }),
       this.action.setBadgeBackgroundColor({ tabId, color: look.colour }),
