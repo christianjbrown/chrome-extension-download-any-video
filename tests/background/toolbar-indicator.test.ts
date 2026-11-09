@@ -37,10 +37,19 @@ describe("ToolbarIndicator", () => {
       title: "Converting the video to H.264 (100%)",
     },
     {
-      show: (indicator: ToolbarIndicator) => indicator.showDone(3, "clip.mp4"),
+      show: (indicator: ToolbarIndicator) =>
+        indicator.showDone(3, { filename: "clip.mp4", converted: true }),
       text: "✓",
       color: "#1a73e8",
       title: "Downloaded clip.mp4",
+    },
+    {
+      show: (indicator: ToolbarIndicator) =>
+        indicator.showDone(3, { filename: "clip.webm", converted: false }),
+      text: "✓",
+      color: "#1a73e8",
+      title:
+        "Downloaded clip.webm, as the site served it: it could not be converted",
     },
     {
       show: (indicator: ToolbarIndicator) => indicator.showError(3, "no luck"),
@@ -69,7 +78,7 @@ describe("ToolbarIndicator", () => {
     await indicator.showProgress(3, "convert", 0.424);
     await indicator.showProgress(3, "convert", 0.43);
     await indicator.showProgress(4, "convert", 0.43);
-    await indicator.showDone(3, "clip.mp4");
+    await indicator.showDone(3, { filename: "clip.mp4", converted: true });
     await indicator.showProgress(3, "convert", 0.43);
 
     expect(

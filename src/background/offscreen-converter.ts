@@ -46,6 +46,7 @@ export class OffscreenConverter implements VideoConverter {
       return {
         url: await this.ask(url, onProgress),
         extension: CONVERTED_EXTENSION,
+        converted: true,
         release: () => host.release(),
       };
     } catch (error) {

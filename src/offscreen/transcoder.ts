@@ -1,6 +1,6 @@
 import { AUDIO_INPUT_NAME, INPUT_NAME, OUTPUT_NAME } from "./conversion-plan";
 import type { ConversionPlanning } from "./conversion-plan";
-import type { TranscodeEngine } from "./ffmpeg-engine";
+import type { RunResult, TranscodeEngine } from "./ffmpeg-engine";
 import type { MediaInputs } from "./media-inputs";
 import type { ProgressListener } from "./progress";
 import type { StreamInfo, StreamInfoParsing } from "./stream-info";
@@ -19,6 +19,13 @@ export interface TranscoderParts {
 }
 
 const SUCCESS = 0;
+
+// The badge tooltip is the only place this is read, so ffmpeg's own reason
+// goes in it when there is one.
+function gaveUp(run: RunResult): string {
+  const why = run.complaint ?? `exit code ${String(run.code)}`;
+  return `ffmpeg gave up on the video (${why})`;
+}
 
 // Turns the inputs into one H.264 MP4. ffmpeg runs one command at a time, so
 // jobs queue up behind each other.
@@ -52,11 +59,9 @@ export class Transcoder implements Transcodes {
         inputs.audio === undefined
           ? undefined
           : await this.describe(AUDIO_INPUT_NAME);
-      const code = await engine.run(planner.plan(main, audio), onProgress);
-      if (code !== SUCCESS) {
-        throw new Error(
-          `ffmpeg gave up on the video (exit code ${String(code)})`,
-        );
+      const run = await engine.run(planner.plan(main, audio), onProgress);
+      if (run.code !== SUCCESS) {
+        throw new Error(gaveUp(run));
       }
       return await engine.read(OUTPUT_NAME);
     } finally {

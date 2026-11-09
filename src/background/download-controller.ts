@@ -2,7 +2,7 @@ import type { Ranker } from "./candidate-ranker";
 import type { ErrorExplainer } from "./chrome-errors";
 import type { FrameAsker } from "./page-script";
 import type { CandidateFilter } from "./piece-filter";
-import type { DownloadIndicator } from "./toolbar-indicator";
+import type { DownloadIndicator, FinishedDownload } from "./toolbar-indicator";
 import type { VideoConverter } from "./video-converter";
 import type { Filenames } from "./video-filename";
 import type { VideoDownloader } from "./video-saver";
@@ -50,7 +50,7 @@ export class DownloadController {
   }
 
   // The top frame's title names the file, whichever frame the video was in.
-  private async download(tabId: number): Promise<string> {
+  private async download(tabId: number): Promise<FinishedDownload> {
     const reports = await this.parts.asker.ask(tabId);
     const best = this.parts.ranker.pick(
       await this.parts.filter.filter(reports),
@@ -67,7 +67,7 @@ export class DownloadController {
         source.extension,
       );
       await this.parts.saver.save(source.url, filename);
-      return filename;
+      return { filename, converted: source.converted };
     } finally {
       await source.release();
     }

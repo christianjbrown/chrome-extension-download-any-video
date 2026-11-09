@@ -35,13 +35,19 @@ export interface CoreUrls {
   readonly classWorker: string;
 }
 
+export interface RunResult {
+  readonly code: number;
+  // ffmpeg's last word on what went wrong, when it said anything useful.
+  readonly complaint: string | undefined;
+}
+
 export interface TranscodeEngine {
   ready(): Promise<void>;
   write(name: string, data: Uint8Array): Promise<void>;
   // Everything ffmpeg says about the file when asked to read it.
   describe(name: string): Promise<string[]>;
-  // Runs one ffmpeg command and gives back its exit code.
-  run(args: string[], onProgress: ProgressListener): Promise<number>;
+  // Runs one ffmpeg command and gives back its exit code, with its complaint.
+  run(args: string[], onProgress: ProgressListener): Promise<RunResult>;
   read(name: string): Promise<Uint8Array>;
   // Forgets the file, whether or not it was there.
   remove(name: string): Promise<void>;
@@ -52,6 +58,21 @@ const ALL_DONE = 1;
 
 function clamp(ratio: number): number {
   return Math.min(Math.max(ratio, NO_PROGRESS), ALL_DONE);
+}
+
+// What ffmpeg prints after the real reason: the running counter, the sign-off
+// and the wasm runtime's own exit note.
+const NOISE: readonly RegExp[] = [
+  /^\s*$/,
+  /^(frame|size)=/,
+  /^Conversion failed!$/,
+  /^Aborted\(/,
+];
+
+function complaintIn(lines: readonly string[]): string | undefined {
+  return lines
+    .findLast((line) => !NOISE.some((pattern) => pattern.test(line)))
+    ?.trim();
 }
 
 // ffmpeg.wasm, loaded from the extension's own files on first use.
@@ -91,15 +112,22 @@ export class FfmpegEngine implements TranscodeEngine {
     return lines;
   }
 
-  async run(args: string[], onProgress: ProgressListener): Promise<number> {
-    const listener = (event: ProgressTick): void => {
+  async run(args: string[], onProgress: ProgressListener): Promise<RunResult> {
+    const lines: string[] = [];
+    const log = (event: LogLine): void => {
+      lines.push(event.message);
+    };
+    const progress = (event: ProgressTick): void => {
       onProgress(clamp(event.progress));
     };
-    this.ffmpeg.on("progress", listener);
+    this.ffmpeg.on("log", log);
+    this.ffmpeg.on("progress", progress);
     try {
-      return await this.ffmpeg.exec(args);
+      const code = await this.ffmpeg.exec(args);
+      return { code, complaint: complaintIn(lines) };
     } finally {
-      this.ffmpeg.off("progress", listener);
+      this.ffmpeg.off("log", log);
+      this.ffmpeg.off("progress", progress);
     }
   }
 

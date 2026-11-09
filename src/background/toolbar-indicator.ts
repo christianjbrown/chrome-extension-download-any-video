@@ -9,12 +9,18 @@ export interface ToolbarAction {
   setTitle(details: { tabId: number; title: string }): Promise<void>;
 }
 
+export interface FinishedDownload {
+  readonly filename: string;
+  // False when the file is the site's own, because converting it did not work.
+  readonly converted: boolean;
+}
+
 // What the toolbar button says about the download in one tab.
 export interface DownloadIndicator {
   showIdle(tabId: number): Promise<void>;
   showBusy(tabId: number): Promise<void>;
   showProgress(tabId: number, stage: Stage, ratio: number): Promise<void>;
-  showDone(tabId: number, filename: string): Promise<void>;
+  showDone(tabId: number, download: FinishedDownload): Promise<void>;
   showError(tabId: number, message: string): Promise<void>;
 }
 
@@ -33,6 +39,12 @@ const PERCENT = 100;
 
 function percent(ratio: number): string {
   return `${String(Math.round(ratio * PERCENT))}%`;
+}
+
+function doneTitle(download: FinishedDownload): string {
+  return download.converted
+    ? `Downloaded ${download.filename}`
+    : `Downloaded ${download.filename}, as the site served it: it could not be converted`;
 }
 
 function stageTitle(stage: Stage, shown: string): string {
@@ -78,11 +90,11 @@ export class ToolbarIndicator implements DownloadIndicator {
     });
   }
 
-  showDone(tabId: number, filename: string): Promise<void> {
+  showDone(tabId: number, download: FinishedDownload): Promise<void> {
     return this.show(tabId, {
       badge: "✓",
       colour: BLUE,
-      title: `Downloaded ${filename}`,
+      title: doneTitle(download),
     });
   }
 

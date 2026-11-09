@@ -97,14 +97,41 @@ describe("FfmpegEngine", () => {
       return Promise.resolve(0);
     });
 
-    const code = await new FfmpegEngine(ffmpeg, urls).run(
-      ["-i", "input"],
-      (r) => seen.push(r),
+    const run = await new FfmpegEngine(ffmpeg, urls).run(["-i", "input"], (r) =>
+      seen.push(r),
     );
 
-    expect(code).toBe(0);
+    expect(run).toEqual({ code: 0, complaint: undefined });
     expect(seen).toEqual([0, 0.4, 1]);
     expect(listeners.progress).toEqual([]);
+    expect(listeners.log).toEqual([]);
+  });
+
+  it("keeps ffmpeg's last real complaint, not the counter or the sign-off after it", async () => {
+    const { ffmpeg, listeners } = fakeFfmpeg(true);
+    ffmpeg.exec.mockImplementation(() => {
+      for (const listener of listeners.log) {
+        listener({ message: "Stream mapping:" });
+        listener({ message: "frame=   12 fps=0.0 q=28.0 size=       0kB" });
+        listener({
+          message: "[mp4 @ 0x1] Could not find tag for codec vp8 in stream #0",
+        });
+        listener({ message: "  " });
+        listener({ message: "Conversion failed!" });
+        listener({ message: "Aborted()" });
+      }
+      return Promise.resolve(1);
+    });
+
+    const run = await new FfmpegEngine(ffmpeg, urls).run(
+      ["-i", "input"],
+      vi.fn(),
+    );
+
+    expect(run).toEqual({
+      code: 1,
+      complaint: "[mp4 @ 0x1] Could not find tag for codec vp8 in stream #0",
+    });
   });
 
   it("reads a file back as bytes, and refuses text", async () => {
