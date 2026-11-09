@@ -3,7 +3,7 @@ import type {
   FrameReport,
   VideoCandidate,
 } from "../shared/candidates";
-import { mediaKind } from "../shared/media-urls";
+import { mediaKind, type MediaKind } from "../shared/media-urls";
 
 export interface Ranker {
   // The one to download, or why there is none.
@@ -11,8 +11,10 @@ export interface Ranker {
 }
 
 export const NOTHING_FOUND = "No video found on this page";
-export const ONLY_STREAMS =
-  "The video here is streamed in pieces, which this extension cannot stitch together";
+
+// A whole file first, since Chrome can save it as it is; a stream only when
+// there is no file, since its pieces have to be fetched and stitched first.
+const KINDS: readonly MediaKind[] = ["file", "playlist"];
 
 // Origins that describe the same thing are weighed together: the player's
 // element and its attributes are one video, the metadata is the page's word,
@@ -23,20 +25,33 @@ const TIERS: readonly (readonly CandidateOrigin[])[] = [
   ["network"],
 ];
 
-// Picks the sharpest whole file from the most trustworthy place that has one.
+// Picks the sharpest video from the most trustworthy place that has one.
 // The top frame's word comes first, since that is the page the person is on.
 export class CandidateRanker implements Ranker {
   pick(reports: readonly FrameReport[]): VideoCandidate {
     const candidates = reports.flatMap((report) => report.candidates);
-    const files = candidates.filter((c) => mediaKind(c.url) === "file");
-    for (const tier of TIERS) {
-      const best = sharpest(files.filter((c) => tier.includes(c.origin)));
+    for (const kind of KINDS) {
+      const best = mostTrusted(
+        candidates.filter((c) => mediaKind(c.url) === kind),
+      );
       if (best !== undefined) {
         return best;
       }
     }
-    throw new Error(candidates.length === 0 ? NOTHING_FOUND : ONLY_STREAMS);
+    throw new Error(NOTHING_FOUND);
   }
+}
+
+function mostTrusted(
+  candidates: readonly VideoCandidate[],
+): VideoCandidate | undefined {
+  for (const tier of TIERS) {
+    const best = sharpest(candidates.filter((c) => tier.includes(c.origin)));
+    if (best !== undefined) {
+      return best;
+    }
+  }
+  return undefined;
 }
 
 // The tallest, and among equals the first found, which is the most trusted.

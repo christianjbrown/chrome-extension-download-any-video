@@ -1,6 +1,7 @@
 import type { Ranker } from "./candidate-ranker";
 import type { ErrorExplainer } from "./chrome-errors";
 import type { FrameAsker } from "./page-script";
+import type { CandidateFilter } from "./piece-filter";
 import type { DownloadIndicator } from "./toolbar-indicator";
 import type { VideoConverter } from "./video-converter";
 import type { Filenames } from "./video-filename";
@@ -12,6 +13,7 @@ export interface ClickedTab {
 
 export interface ControllerParts {
   readonly asker: FrameAsker;
+  readonly filter: CandidateFilter;
   readonly ranker: Ranker;
   readonly converter: VideoConverter;
   readonly names: Filenames;
@@ -50,7 +52,9 @@ export class DownloadController {
   // The top frame's title names the file, whichever frame the video was in.
   private async download(tabId: number): Promise<string> {
     const reports = await this.parts.asker.ask(tabId);
-    const best = this.parts.ranker.pick(reports);
+    const best = this.parts.ranker.pick(
+      await this.parts.filter.filter(reports),
+    );
     const source = await this.parts.converter.convert(
       best.url,
       (stage, ratio) => {

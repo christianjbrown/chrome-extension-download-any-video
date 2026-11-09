@@ -1,0 +1,74 @@
+// Fetching the playlists and pieces of a stream.
+import type { ByteRange } from "./tracks";
+
+export interface TextFetcher {
+  text(url: string): Promise<string>;
+}
+
+export interface ByteFetcher {
+  bytes(url: string, range?: ByteRange): Promise<ArrayBuffer>;
+}
+
+interface FetchedResponse {
+  readonly ok: boolean;
+  readonly status: number;
+  text(): Promise<string>;
+  arrayBuffer(): Promise<ArrayBuffer>;
+}
+
+interface FetchInit {
+  readonly headers: Record<string, string>;
+  readonly credentials: "include";
+}
+
+// The one piece of fetch this needs, so it can be swapped for a fake.
+export type FetchLike = (
+  url: string,
+  init: FetchInit,
+) => Promise<FetchedResponse>;
+
+const RANGE_HEADER = "Range";
+const PARTIAL_CONTENT = 206;
+// Cookies go along, as they would from the page, so pieces that need the
+// site's session still arrive.
+const WITH_COOKIES: FetchInit["credentials"] = "include";
+
+export class HttpFetcher implements TextFetcher, ByteFetcher {
+  constructor(private readonly fetch: FetchLike) {}
+
+  async text(url: string): Promise<string> {
+    return (await this.fetched(url, {})).text();
+  }
+
+  // A piece that is a slice of a file is asked for with a Range header. A
+  // server that sends the whole file regardless gets sliced here instead.
+  async bytes(url: string, range?: ByteRange): Promise<ArrayBuffer> {
+    if (range === undefined) {
+      return (await this.fetched(url, {})).arrayBuffer();
+    }
+    const end = range.offset + range.length;
+    const response = await this.fetched(url, {
+      [RANGE_HEADER]: `bytes=${String(range.offset)}-${String(end - 1)}`,
+    });
+    const buffer = await response.arrayBuffer();
+    return response.status === PARTIAL_CONTENT
+      ? buffer
+      : buffer.slice(range.offset, end);
+  }
+
+  private async fetched(
+    url: string,
+    headers: Record<string, string>,
+  ): Promise<FetchedResponse> {
+    const response = await this.fetch(url, {
+      headers,
+      credentials: WITH_COOKIES,
+    });
+    if (!response.ok) {
+      throw new Error(
+        `The server answered HTTP ${String(response.status)} for a piece of the video`,
+      );
+    }
+    return response;
+  }
+}

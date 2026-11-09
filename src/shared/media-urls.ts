@@ -9,10 +9,17 @@ const FILE_EXTENSIONS: ReadonlySet<string> = new Set([
   "ogv",
   "mkv",
 ]);
-// A playlist of pieces: a player streams these, a download gets only the list.
-const PLAYLIST_EXTENSIONS: ReadonlySet<string> = new Set(["m3u8", "mpd"]);
+// A playlist of pieces: a player streams these, and a download has to fetch
+// the pieces and join them.
+const HLS_EXTENSION = "m3u8";
+const DASH_EXTENSION = "mpd";
+const PLAYLIST_EXTENSIONS: ReadonlySet<string> = new Set([
+  HLS_EXTENSION,
+  DASH_EXTENSION,
+]);
 
 export type MediaKind = "file" | "playlist";
+export type PlaylistFormat = "hls" | "dash";
 
 const SMALLEST_HEIGHT = 144;
 const TALLEST_HEIGHT = 4320;
@@ -28,7 +35,8 @@ export function isWebUrl(url: string): boolean {
   return /^https?:\/\//i.test(url);
 }
 
-function pathExtension(url: string): string | undefined {
+// The extension on the URL's path, lower case, or nothing when it has none.
+export function pathExtension(url: string): string | undefined {
   let pathname: string;
   try {
     pathname = new URL(url).pathname;
@@ -49,6 +57,15 @@ export function mediaKind(url: string): MediaKind | undefined {
     return "file";
   }
   return PLAYLIST_EXTENSIONS.has(extension) ? "playlist" : undefined;
+}
+
+// Which kind of playlist a URL names, when it names one.
+export function playlistFormat(url: string): PlaylistFormat | undefined {
+  const extension = pathExtension(url);
+  if (extension === HLS_EXTENSION) {
+    return "hls";
+  }
+  return extension === DASH_EXTENSION ? "dash" : undefined;
 }
 
 // The extension a download of this URL should have.

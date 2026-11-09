@@ -8,6 +8,7 @@ import {
   type Stage,
 } from "../shared/conversion-messages";
 import { errorMessage } from "../shared/error-message";
+import type { MediaInputs } from "./media-inputs";
 import type { ProgressListener } from "./progress";
 import type { Transcodes } from "./transcoder";
 import type { Fetches } from "./video-fetcher";
@@ -41,7 +42,7 @@ export class ConvertHandler implements ConvertHandling {
   constructor(private readonly parts: HandlerParts) {}
 
   async handle(request: ConvertRequest): Promise<ConvertResponse> {
-    let data: Uint8Array;
+    let data: MediaInputs;
     try {
       data = await this.parts.fetcher.fetch(
         request.url,

@@ -28,6 +28,18 @@ describe("FallbackConverter", () => {
     await expect(source.release()).resolves.toBeUndefined();
   });
 
+  it("has nothing to fall back to for a playlist, which is only a list of pieces", async () => {
+    const inner = {
+      convert: vi
+        .fn()
+        .mockRejectedValue(new ConversionError("fetch", "encrypted")),
+    };
+
+    await expect(
+      new FallbackConverter(inner).convert("https://x/v.m3u8", vi.fn()),
+    ).rejects.toThrow("encrypted");
+  });
+
   it("passes on every other failure", async () => {
     const inner = {
       convert: vi.fn().mockRejectedValue(new ConversionError("convert", "no")),

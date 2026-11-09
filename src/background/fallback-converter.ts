@@ -1,5 +1,5 @@
 import { FETCH_STAGE } from "../shared/conversion-messages";
-import { fileExtension } from "../shared/media-urls";
+import { fileExtension, mediaKind } from "../shared/media-urls";
 import {
   ConversionError,
   type StageProgressListener,
@@ -15,8 +15,11 @@ function asItIs(url: string): VideoSource {
   };
 }
 
+const WHOLE_FILE = "file";
+
 // When the extension cannot fetch the video itself (a server that only answers
-// the page, say), Chrome downloads it as it is, the way it always could.
+// the page, say), Chrome downloads it as it is, the way it always could. A
+// playlist is only a list of pieces, so there is nothing to fall back to.
 export class FallbackConverter implements VideoConverter {
   constructor(private readonly inner: VideoConverter) {}
 
@@ -27,7 +30,11 @@ export class FallbackConverter implements VideoConverter {
     try {
       return await this.inner.convert(url, onProgress);
     } catch (error) {
-      if (error instanceof ConversionError && error.stage === FETCH_STAGE) {
+      if (
+        error instanceof ConversionError &&
+        error.stage === FETCH_STAGE &&
+        mediaKind(url) === WHOLE_FILE
+      ) {
         return asItIs(url);
       }
       throw error;

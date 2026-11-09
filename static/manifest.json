@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Christian's Download Any Video",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Download the video on the page you are looking at: one click, and it lands in your downloads folder as an MP4 that plays everywhere.",
   "minimum_chrome_version": "126",
   "permissions": ["activeTab", "scripting", "downloads", "offscreen"],
