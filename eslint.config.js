@@ -43,7 +43,7 @@ export default tseslint.config(
     },
   },
   {
-    // The two contexts only talk through messages, never by importing each other.
+    // The three contexts only talk through messages, never by importing each other.
     files: ["src/background/**/*.ts"],
     rules: {
       "no-restricted-imports": [
@@ -51,8 +51,9 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ["**/page/**"],
-              message: "the service worker talks to the page by message",
+              group: ["**/page/**", "**/offscreen/**"],
+              message:
+                "the service worker talks to the other contexts by message",
             },
           ],
         },
@@ -67,8 +68,25 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ["**/background/**"],
+              group: ["**/background/**", "**/offscreen/**"],
               message: "the page script talks to the service worker by message",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/offscreen/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/background/**", "**/page/**"],
+              message:
+                "the offscreen document talks to the service worker by message",
             },
           ],
         },
@@ -83,7 +101,7 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ["**/background/**", "**/page/**"],
+              group: ["**/background/**", "**/page/**", "**/offscreen/**"],
               message: "shared code depends on nothing",
             },
           ],

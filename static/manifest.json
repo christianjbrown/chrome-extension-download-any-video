@@ -1,10 +1,16 @@
 {
   "manifest_version": 3,
   "name": "Christian's Download Any Video",
-  "version": "1.0.0",
-  "description": "Download the video on the page you are looking at: one click, and it lands in your downloads folder.",
+  "version": "1.1.0",
+  "description": "Download the video on the page you are looking at: one click, and it lands in your downloads folder as an MP4 that plays everywhere.",
   "minimum_chrome_version": "126",
-  "permissions": ["activeTab", "scripting", "downloads"],
+  "permissions": ["activeTab", "scripting", "downloads", "offscreen"],
+  "host_permissions": ["<all_urls>"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "cross_origin_embedder_policy": { "value": "require-corp" },
+  "cross_origin_opener_policy": { "value": "same-origin" },
   "background": {
     "service_worker": "background.js"
   },

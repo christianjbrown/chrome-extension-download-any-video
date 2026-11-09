@@ -13,8 +13,8 @@ export interface VideoDownloader {
   save(url: string, filename: string): Promise<void>;
 }
 
-// Chrome fetches the video itself, with the browser's own cookies and no CORS,
-// so whatever the page could play can be saved.
+// Chrome does the saving, so the file lands like any other download: in the
+// downloads folder, with the download shelf and history to match.
 export class VideoSaver implements VideoDownloader {
   constructor(
     private readonly downloads: DownloadStarter,

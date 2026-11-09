@@ -1,4 +1,3 @@
-import { fileExtension } from "../shared/media-urls";
 import { kebab } from "./filename-text";
 
 export interface Clock {
@@ -6,7 +5,7 @@ export interface Clock {
 }
 
 export interface Filenames {
-  name(title: string, url: string): string;
+  name(title: string, extension: string | undefined): string;
 }
 
 const FALLBACK_STEM = "video";
@@ -27,9 +26,8 @@ function stamp(date: Date): string {
 export class VideoFilename implements Filenames {
   constructor(private readonly clock: Clock) {}
 
-  name(title: string, url: string): string {
+  name(title: string, extension: string | undefined): string {
     const stem = kebab(title) || FALLBACK_STEM;
-    const extension = fileExtension(url) ?? FALLBACK_EXTENSION;
-    return `${stamp(this.clock.now())}-${stem}.${extension}`;
+    return `${stamp(this.clock.now())}-${stem}.${extension ?? FALLBACK_EXTENSION}`;
   }
 }
