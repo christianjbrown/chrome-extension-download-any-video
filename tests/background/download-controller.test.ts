@@ -17,6 +17,7 @@ function setup() {
   const source = {
     url: "blob:chrome-extension://x/1",
     extension: "mp4",
+    converted: true,
     release: vi.fn().mockResolvedValue(undefined),
   };
   const parts = {
@@ -84,7 +85,10 @@ describe("DownloadController", () => {
     await clicked;
 
     expect(source.release).toHaveBeenCalledTimes(1);
-    expect(parts.indicator.showDone).toHaveBeenCalledWith(6, "top.mp4");
+    expect(parts.indicator.showDone).toHaveBeenCalledWith(6, {
+      filename: "top.mp4",
+      converted: true,
+    });
     expect(parts.indicator.showError).not.toHaveBeenCalled();
   });
 

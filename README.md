@@ -14,7 +14,8 @@ One button in your Chrome toolbar. Click it, and the video on the page lands in 
 - **The one you're looking at.** On a feed with many videos it takes the one showing the most of itself on screen.
 - **Embeds count.** A video inside an iframe is found too, as long as Chrome lets the extension into that frame.
 - **Streams too.** 🧩 Some sites never hand out a whole file, only a playlist of little pieces (HLS `.m3u8` or DASH `.mpd`) for their player to fetch one at a time. This reads the playlist, takes the sharpest size, fetches the pieces and stitches them back into one video, with the sound track muxed in when the site keeps it separately. A whole file still wins when the page has one.
-- **It plays everywhere.** 🎞️ Whatever the site served (VP9 in a WebM, AV1, HEVC, 10-bit colour), what lands in your downloads folder is H.264 video with AAC sound in an MP4: QuickTime, iMessage, PowerPoint, your TV, all happy. Video that is already H.264 and AAC is copied as it is, so nothing is lost and it takes no time at all. The conversion happens inside Chrome, with [ffmpeg.wasm](https://ffmpegwasm.netlify.app), and the button counts up the percent while it works.
+- **It plays everywhere.** 🎞️ Whatever the site served (VP9 in a WebM, HEVC, 10-bit colour), what lands in your downloads folder is H.264 video with AAC sound in an MP4: QuickTime, iMessage, PowerPoint, your TV, all happy. Video that is already H.264 and AAC is copied as it is, so nothing is lost and it takes no time at all. The conversion happens inside Chrome, with [ffmpeg.wasm](https://ffmpegwasm.netlify.app), and the button counts up the percent while it works.
+- **You always get the video.** 🪂 If the conversion cannot be done (AV1, say, which the bundled ffmpeg has no software decoder for) or the site will only hand the file to its own player, you get the file exactly as the site serves it instead of an error. The tooltip says so, so you know why that one is a `.webm`.
 - **Good names.** Servers call video files things like `m2-res_720p.mp4`, which tells you nothing a week later. Downloads are named after the date, the time and the page title instead: `2026-11-09-16-05-my-cool-page.mp4`.
 
 ## Install it 🔧
@@ -62,7 +63,7 @@ That's it. There is no step three. 🎉
 - **Protected video is off limits.** Anything behind DRM never exists as a file you could save, and this doesn't pretend otherwise.
 - **Chrome's own pages** (`chrome://` anything, the Web Store) are off limits to every extension. Red `!` again.
 - **Getting a save dialog every time?** That's Chrome's **Ask where to save each file before downloading** setting. Turn it off in `chrome://settings/downloads`.
-- **A red `!` on the button** means something went wrong. Hover over it and the tooltip says what. It clears when the tab loads a new page.
+- **A red `!` on the button** means something went wrong. Hover over it and the tooltip says what, in ffmpeg's own words when ffmpeg is the one complaining. It clears when the tab loads a new page.
 - **It asks for a few permissions:** `activeTab` and `scripting` to look at the tab you clicked on (and only that tab, only when you click), `downloads` to save the file, `offscreen` for the hidden page the converter runs in, and access to all sites so that page can fetch the video from wherever the site keeps it. It only ever fetches the one video you clicked for, and only when you click. If a site refuses to hand the video to anyone but its own player, you still get the download, just as the site served it.
 
 ## No tracking 🔒

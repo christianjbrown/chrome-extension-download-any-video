@@ -1,4 +1,4 @@
-import { FETCH_STAGE } from "../shared/conversion-messages";
+import { CONVERT_STAGE, FETCH_STAGE } from "../shared/conversion-messages";
 import { fileExtension, mediaKind } from "../shared/media-urls";
 import {
   ConversionError,
@@ -11,15 +11,27 @@ function asItIs(url: string): VideoSource {
   return {
     url,
     extension: fileExtension(url),
+    converted: false,
     release: () => Promise.resolve(),
   };
 }
 
 const WHOLE_FILE = "file";
+// Both steps can fail on a video that is nonetheless a perfectly good file:
+// a server that only answers its own player, or a codec ffmpeg cannot read.
+const RECOVERABLE: readonly string[] = [FETCH_STAGE, CONVERT_STAGE];
 
-// When the extension cannot fetch the video itself (a server that only answers
-// the page, say), Chrome downloads it as it is, the way it always could. A
-// playlist is only a list of pieces, so there is nothing to fall back to.
+function worthFallingBackOn(error: unknown, url: string): boolean {
+  return (
+    error instanceof ConversionError &&
+    RECOVERABLE.includes(error.stage) &&
+    mediaKind(url) === WHOLE_FILE
+  );
+}
+
+// When the video cannot be fetched or cannot be converted, Chrome downloads it
+// as it is, the way it always could, rather than the click coming to nothing.
+// A playlist is only a list of pieces, so there is nothing to fall back to.
 export class FallbackConverter implements VideoConverter {
   constructor(private readonly inner: VideoConverter) {}
 
@@ -30,11 +42,7 @@ export class FallbackConverter implements VideoConverter {
     try {
       return await this.inner.convert(url, onProgress);
     } catch (error) {
-      if (
-        error instanceof ConversionError &&
-        error.stage === FETCH_STAGE &&
-        mediaKind(url) === WHOLE_FILE
-      ) {
+      if (worthFallingBackOn(error, url)) {
         return asItIs(url);
       }
       throw error;

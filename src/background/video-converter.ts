@@ -5,6 +5,8 @@ export interface VideoSource {
   readonly url: string;
   // What the filename should end in, when the source knows.
   readonly extension: string | undefined;
+  // False when this is the site's own file because converting it did not work.
+  readonly converted: boolean;
   release(): Promise<void>;
 }
 

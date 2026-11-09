@@ -1,3 +1,4 @@
+import type { RunResult } from "../../src/offscreen/ffmpeg-engine";
 import { Transcoder } from "../../src/offscreen/transcoder";
 
 function setup() {
@@ -5,7 +6,7 @@ function setup() {
     ready: vi.fn().mockResolvedValue(undefined),
     write: vi.fn().mockResolvedValue(undefined),
     describe: vi.fn().mockResolvedValue(["Stream #0:0: Video: vp9, yuv420p"]),
-    run: vi.fn().mockResolvedValue(0),
+    run: vi.fn().mockResolvedValue({ code: 0, complaint: undefined }),
     read: vi.fn().mockResolvedValue(new Uint8Array([7, 7])),
     remove: vi.fn().mockResolvedValue(undefined),
   };
@@ -82,7 +83,7 @@ describe("Transcoder", () => {
 
   it("says when ffmpeg gave up, and still tidies up", async () => {
     const { engine, transcoder } = setup();
-    engine.run.mockResolvedValue(234);
+    engine.run.mockResolvedValue({ code: 234, complaint: undefined });
 
     await expect(transcoder.transcode(single, vi.fn())).rejects.toThrow(
       "ffmpeg gave up on the video (exit code 234)",
@@ -98,16 +99,19 @@ describe("Transcoder", () => {
     engine.run
       .mockImplementationOnce(
         () =>
-          new Promise<number>((resolve) => {
+          new Promise<RunResult>((resolve) => {
             finishFirst = () => {
               order.push("first ran");
-              resolve(1);
+              resolve({
+                code: 1,
+                complaint: "Invalid data found when processing input",
+              });
             };
           }),
       )
       .mockImplementationOnce(() => {
         order.push("second ran");
-        return Promise.resolve(0);
+        return Promise.resolve({ code: 0, complaint: undefined });
       });
 
     const first = transcoder.transcode(single, vi.fn());
@@ -118,7 +122,9 @@ describe("Transcoder", () => {
     expect(order).toEqual([]);
     finishFirst();
 
-    await expect(first).rejects.toThrow("exit code 1");
+    await expect(first).rejects.toThrow(
+      "ffmpeg gave up on the video (Invalid data found when processing input)",
+    );
     await expect(second).resolves.toEqual(new Uint8Array([7, 7]));
     expect(order).toEqual(["first ran", "second ran"]);
   });
