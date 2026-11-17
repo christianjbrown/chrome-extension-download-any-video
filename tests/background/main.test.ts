@@ -1,6 +1,12 @@
 // Drives the service worker's wiring through a fake chrome, end to end.
 type Listener = (...args: unknown[]) => unknown;
 
+// The worker is imported fresh for each test, so its function is not the one
+// this file could import: it is told apart by name.
+const asksScheme = (injection: { func?: unknown }): boolean =>
+  typeof injection.func === "function" &&
+  injection.func.name === "tabPrefersDark";
+
 function chromeEvent() {
   const listeners: Listener[] = [];
   return {
@@ -37,10 +43,28 @@ function fakeChrome() {
       setTitle: vi.fn().mockResolvedValue(undefined),
     },
     scripting: {
-      executeScript: vi
-        .fn()
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ frameId: 0, result: report }]),
+      // Three kinds of call arrive, in no fixed order: the page script going
+      // in, its report coming back, and the scheme read beside the download.
+      executeScript: vi.fn(
+        (injection: {
+          files?: string[];
+          func?: unknown;
+        }): Promise<{ frameId?: number; result?: unknown }[]> => {
+          if (injection.files !== undefined) {
+            return Promise.resolve([]);
+          }
+          if (asksScheme(injection)) {
+            return Promise.resolve([{ result: true }]);
+          }
+          return Promise.resolve([{ frameId: 0, result: report }]);
+        },
+      ),
+    },
+    storage: {
+      local: {
+        get: vi.fn().mockResolvedValue({}),
+        set: vi.fn().mockResolvedValue(undefined),
+      },
     },
     tabs: { onUpdated: chromeEvent() },
     downloads: {
@@ -278,6 +302,45 @@ describe("service worker", () => {
         title:
           "Download failed: Chrome does not let extensions into its own pages",
       });
+    });
+  });
+
+  it("learns Chrome's own colour scheme from the tab that was clicked", async () => {
+    const chrome = await load();
+    const answer = chrome.scripting.executeScript.getMockImplementation();
+    chrome.scripting.executeScript.mockImplementation((injection) =>
+      asksScheme(injection)
+        ? Promise.resolve([{ result: false }])
+        : (answer?.(injection) ?? Promise.resolve([])),
+    );
+
+    chrome.action.onClicked.fire({ id: 6 });
+
+    await vi.waitFor(() => {
+      expect(chrome.storage.local.set).toHaveBeenCalledWith({
+        toolbarScheme: { device: "dark", chrome: "light" },
+      });
+    });
+    expect(chrome.action.setIcon).toHaveBeenCalledWith({
+      path: expect.objectContaining({
+        "16": "icons/on-light/icon-16.png",
+      }) as unknown,
+    });
+  });
+
+  it("downloads even when the tab never answers the colour scheme question", async () => {
+    const chrome = await load();
+    const answer = chrome.scripting.executeScript.getMockImplementation();
+    chrome.scripting.executeScript.mockImplementation((injection) =>
+      asksScheme(injection)
+        ? new Promise(() => undefined)
+        : (answer?.(injection) ?? Promise.resolve([])),
+    );
+
+    chrome.action.onClicked.fire({ id: 6 });
+
+    await vi.waitFor(() => {
+      expect(chrome.downloads.download).toHaveBeenCalled();
     });
   });
 
