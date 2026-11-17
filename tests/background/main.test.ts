@@ -26,8 +26,11 @@ const report = {
 };
 
 function fakeChrome() {
+  // Chrome's one offscreen document: there or not.
+  let documentOpen = false;
   return {
     action: {
+      setIcon: vi.fn().mockResolvedValue(undefined),
       onClicked: chromeEvent(),
       setBadgeText: vi.fn().mockResolvedValue(undefined),
       setBadgeBackgroundColor: vi.fn().mockResolvedValue(undefined),
@@ -45,11 +48,22 @@ function fakeChrome() {
       onChanged: chromeEvent(),
     },
     offscreen: {
-      createDocument: vi.fn().mockResolvedValue(undefined),
-      closeDocument: vi.fn().mockResolvedValue(undefined),
+      createDocument: vi.fn(() => {
+        documentOpen = true;
+        return Promise.resolve();
+      }),
+      closeDocument: vi.fn(() => {
+        documentOpen = false;
+        return Promise.resolve();
+      }),
     },
     runtime: {
-      getContexts: vi.fn().mockResolvedValue([]),
+      getContexts: vi.fn(() =>
+        Promise.resolve(
+          documentOpen ? [{ contextType: "OFFSCREEN_DOCUMENT" }] : [],
+        ),
+      ),
+      onStartup: chromeEvent(),
       sendMessage: vi
         .fn()
         .mockResolvedValue({ ok: true, url: "blob:chrome-extension://x/1" }),
@@ -127,7 +141,60 @@ describe("service worker", () => {
         text: "✓",
       });
     });
+    // The page the video was made in is swapped for a fresh one, so the
+    // colour scheme is still watched.
+    await vi.waitFor(() => {
+      expect(chrome.offscreen.createDocument).toHaveBeenCalledTimes(2);
+    });
     expect(chrome.offscreen.closeDocument).toHaveBeenCalledTimes(1);
+    expect(await chrome.runtime.getContexts()).toHaveLength(1);
+  });
+
+  it("opens the hidden page when the service worker starts", async () => {
+    const chrome = await load();
+
+    await vi.waitFor(() => {
+      expect(chrome.offscreen.createDocument).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: "offscreen.html",
+          reasons: ["WORKERS", "MATCH_MEDIA"],
+        }),
+      );
+    });
+  });
+
+  it("opens the hidden page only once when Chrome starts", async () => {
+    const chrome = await load();
+
+    chrome.runtime.onStartup.fire();
+    chrome.action.onClicked.fire({ id: 6 });
+
+    await vi.waitFor(() => {
+      expect(chrome.runtime.sendMessage).toHaveBeenCalled();
+    });
+    expect(chrome.offscreen.createDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it("repaints the button when the colour scheme changes", async () => {
+    const chrome = await load();
+
+    chrome.runtime.onMessage.fire({ type: "scheme", scheme: "light" });
+
+    await vi.waitFor(() => {
+      expect(chrome.action.setIcon).toHaveBeenCalledWith({
+        path: expect.objectContaining({
+          "16": "icons/on-light/icon-16.png",
+        }) as unknown,
+      });
+    });
+  });
+
+  it("leaves the icon alone for messages about anything else", async () => {
+    const chrome = await load();
+
+    chrome.runtime.onMessage.fire({ type: "progress" });
+
+    expect(chrome.action.setIcon).not.toHaveBeenCalled();
   });
 
   it("downloads the playlist, not the init piece the page's player fetched from it", async () => {

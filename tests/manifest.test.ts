@@ -10,8 +10,9 @@ describe("manifest", () => {
 
   // activeTab and scripting put the finder into the clicked tab, and only that
   // tab, on a click. downloads saves the video. offscreen is the hidden page
-  // that converts it, and the host permission is what lets that page fetch
-  // the video from wherever the site keeps it.
+  // that converts it and reads Chrome's colour scheme for the toolbar icon,
+  // and the host permission is what lets that page fetch the video from
+  // wherever the site keeps it.
   it("asks for the tab it is clicked on, downloads, the offscreen page and fetching the video", () => {
     expect(manifest.permissions).toEqual([
       "activeTab",
@@ -35,6 +36,13 @@ describe("manifest", () => {
     expect(manifest.cross_origin_opener_policy).toEqual({
       value: "same-origin",
     });
+  });
+
+  it("starts with the icon for a dark toolbar until the scheme is known", () => {
+    expect(manifest.action.default_icon["16"]).toBe(
+      "icons/on-dark/icon-16.png",
+    );
+    expect(manifest.icons["128"]).toBe("icons/on-dark/icon-128.png");
   });
 
   it("has no keyboard shortcut and no options page", () => {

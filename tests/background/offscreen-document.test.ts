@@ -1,71 +1,134 @@
 import { OffscreenDocument } from "../../src/background/offscreen-document";
 
-function setup(existing: unknown[] = []) {
+// A fake Chrome that keeps track of whether its one offscreen document is
+// there, and refuses a second one the way the real one does.
+function setup(alreadyOpen = false) {
+  let open = alreadyOpen;
   const offscreen = {
-    createDocument: vi.fn().mockResolvedValue(undefined),
-    closeDocument: vi.fn().mockResolvedValue(undefined),
+    createDocument: vi.fn(() => {
+      if (open) {
+        return Promise.reject(new Error("Only a single offscreen document"));
+      }
+      open = true;
+      return Promise.resolve();
+    }),
+    closeDocument: vi.fn(() => {
+      open = false;
+      return Promise.resolve();
+    }),
   };
-  const runtime = { getContexts: vi.fn().mockResolvedValue(existing) };
+  const runtime = {
+    getContexts: vi.fn(() =>
+      Promise.resolve(open ? [{ contextType: "OFFSCREEN_DOCUMENT" }] : []),
+    ),
+  };
   return {
     offscreen,
     runtime,
+    isOpen: () => open,
     document: new OffscreenDocument(offscreen, runtime),
   };
 }
 
 describe("OffscreenDocument", () => {
-  it("creates the document for the first user and closes it after the last", async () => {
+  it("creates the document with every reason it is used for", async () => {
     const { offscreen, runtime, document } = setup();
 
     await document.open();
-    await document.open();
-    await document.release();
-    expect(offscreen.closeDocument).not.toHaveBeenCalled();
-    await document.release();
 
     expect(runtime.getContexts).toHaveBeenCalledWith({
       contextTypes: ["OFFSCREEN_DOCUMENT"],
     });
-    expect(offscreen.createDocument).toHaveBeenCalledTimes(1);
-    expect(offscreen.createDocument).toHaveBeenCalledWith({
+    expect(offscreen.createDocument).toHaveBeenCalledExactlyOnceWith({
       url: "offscreen.html",
-      reasons: ["WORKERS"],
-      justification: expect.stringContaining("H.264") as string,
+      reasons: ["WORKERS", "MATCH_MEDIA"],
+      justification: expect.stringMatching(/H\.264.*colour scheme/) as string,
     });
-    expect(offscreen.closeDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves a document that is already open alone", async () => {
+    const { offscreen, document } = setup();
+
+    await document.open();
+    await document.open();
+
+    expect(offscreen.createDocument).toHaveBeenCalledTimes(1);
+    expect(offscreen.closeDocument).not.toHaveBeenCalled();
   });
 
   it("reuses a document left over from before the service worker restarted", async () => {
-    const { offscreen, document } = setup([
-      { contextType: "OFFSCREEN_DOCUMENT" },
-    ]);
+    const { offscreen, document } = setup(true);
 
     await document.open();
 
     expect(offscreen.createDocument).not.toHaveBeenCalled();
   });
 
-  it("opens again after closing", async () => {
+  it("creates only one document when several events ask at once", async () => {
     const { offscreen, document } = setup();
 
+    await Promise.all([document.open(), document.open(), document.open()]);
+
+    expect(offscreen.createDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it("swaps an open document for a fresh one", async () => {
+    const { offscreen, document, isOpen } = setup();
     await document.open();
-    await document.release();
+
+    await document.renew();
+
+    expect(offscreen.closeDocument).toHaveBeenCalledTimes(1);
+    expect(offscreen.createDocument).toHaveBeenCalledTimes(2);
+    expect(isOpen()).toBe(true);
+  });
+
+  it("creates the document when asked for a fresh one and there is none", async () => {
+    const { offscreen, document, isOpen } = setup();
+
+    await document.renew();
+
+    expect(offscreen.closeDocument).not.toHaveBeenCalled();
+    expect(offscreen.createDocument).toHaveBeenCalledTimes(1);
+    expect(isOpen()).toBe(true);
+  });
+
+  it("ends with one open document when opening and swapping overlap", async () => {
+    const { offscreen, document, isOpen } = setup();
+
+    await Promise.all([
+      document.open(),
+      document.renew(),
+      document.open(),
+      document.renew(),
+      document.open(),
+    ]);
+
+    expect(offscreen.createDocument).toHaveBeenCalledTimes(3);
+    expect(offscreen.closeDocument).toHaveBeenCalledTimes(2);
+    expect(isOpen()).toBe(true);
+  });
+
+  it("opens again after the document was closed behind its back", async () => {
+    const { offscreen, document } = setup();
+    await document.open();
+    await offscreen.closeDocument();
+
     await document.open();
 
     expect(offscreen.createDocument).toHaveBeenCalledTimes(2);
   });
 
-  it("passes on a refusal and forgets the attempt", async () => {
-    const { offscreen, document } = setup();
+  it("passes on a refusal and tries again the next time", async () => {
+    const { offscreen, document, isOpen } = setup();
     offscreen.createDocument.mockRejectedValueOnce(
       new Error("no offscreen for you"),
     );
 
     await expect(document.open()).rejects.toThrow("no offscreen for you");
     await document.open();
-    await document.release();
 
     expect(offscreen.createDocument).toHaveBeenCalledTimes(2);
-    expect(offscreen.closeDocument).toHaveBeenCalledTimes(1);
+    expect(isOpen()).toBe(true);
   });
 });

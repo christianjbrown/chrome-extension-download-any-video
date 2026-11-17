@@ -6,6 +6,8 @@ When you click the button, it looks at the page in that tab to find the address 
 
 The extension can reach any website, which is what lets it fetch the video from wherever the site keeps it. It only ever fetches the one video you clicked the button for, and only when you click.
 
+That hidden page also checks whether Chrome is in its light or dark colour scheme, so the toolbar button can be drawn to match. It reads nothing else while it waits.
+
 Nothing it sees leaves your computer, and none of it is shared with anyone.
 
 Questions? Open an issue at https://github.com/christianjbrown/chrome-extension-download-any-video/issues.

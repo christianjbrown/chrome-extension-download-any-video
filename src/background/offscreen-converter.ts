@@ -4,7 +4,7 @@ import {
   isProgressReport,
   type ConvertRequest,
 } from "../shared/conversion-messages";
-import type { OffscreenHost } from "./offscreen-document";
+import type { OffscreenHost } from "./conversion-host";
 import {
   ConversionError,
   type StageProgressListener,
