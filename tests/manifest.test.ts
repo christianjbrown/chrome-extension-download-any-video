@@ -10,15 +10,16 @@ describe("manifest", () => {
 
   // activeTab and scripting put the finder into the clicked tab, and only that
   // tab, on a click. downloads saves the video. offscreen is the hidden page
-  // that converts it and reads Chrome's colour scheme for the toolbar icon,
-  // and the host permission is what lets that page fetch the video from
-  // wherever the site keeps it.
-  it("asks for the tab it is clicked on, downloads, the offscreen page and fetching the video", () => {
+  // that converts it and reads the device's colour scheme for the toolbar icon,
+  // storage remembers the scheme Chrome itself is in, and the host permission
+  // is what lets that page fetch the video from wherever the site keeps it.
+  it("asks for the tab it is clicked on, downloads, the offscreen page, storage and fetching the video", () => {
     expect(manifest.permissions).toEqual([
       "activeTab",
       "scripting",
       "downloads",
       "offscreen",
+      "storage",
     ]);
     expect(manifest.host_permissions).toEqual(["<all_urls>"]);
     expect(manifest).not.toHaveProperty("optional_permissions");

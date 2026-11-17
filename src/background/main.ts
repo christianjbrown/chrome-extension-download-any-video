@@ -9,6 +9,7 @@ import {
 import { parseXml } from "../stream/xml-parser";
 import { CandidateRanker } from "./candidate-ranker";
 import { ChromeErrorExplainer } from "./chrome-errors";
+import { ClickScheme } from "./click-scheme";
 import { ConversionHost } from "./conversion-host";
 import { DownloadWatcher } from "./download-completion";
 import { DownloadController } from "./download-controller";
@@ -18,14 +19,24 @@ import { OffscreenConverter } from "./offscreen-converter";
 import { OffscreenDocument } from "./offscreen-document";
 import { PageScript } from "./page-script";
 import { PieceFilter } from "./piece-filter";
+import { SchemeStore } from "./scheme-store";
 import { SystemClock } from "./system-clock";
+import { TabScheme } from "./tab-scheme";
 import { ToolbarIcon } from "./toolbar-icon";
 import { ToolbarIndicator } from "./toolbar-indicator";
+import { ToolbarScheme } from "./toolbar-scheme";
 import { VideoFilename } from "./video-filename";
 import { VideoSaver } from "./video-saver";
 
 const indicator = new ToolbarIndicator(chrome.action);
-const icon = new ToolbarIcon(chrome.action);
+const toolbarScheme = new ToolbarScheme(
+  new SchemeStore(chrome.storage.local),
+  new ToolbarIcon(chrome.action),
+);
+const clickScheme = new ClickScheme(
+  new TabScheme(chrome.scripting),
+  toolbarScheme,
+);
 // One hidden page does two jobs: it converts videos, and it watches Chrome's
 // colour scheme for the toolbar icon.
 const hiddenPage = new OffscreenDocument(chrome.offscreen, chrome.runtime);
@@ -58,13 +69,16 @@ const navigation = new NavigationReset(indicator);
 
 chrome.action.onClicked.addListener((tab) => {
   void controller.clicked(tab);
+  // Beside the download, not part of it: whatever the read does, the download
+  // neither waits for it nor hears about it.
+  void clickScheme.clicked(tab);
 });
 chrome.tabs.onUpdated.addListener((tabId, change) => {
   void navigation.changed(tabId, change);
 });
 chrome.runtime.onMessage.addListener((message: unknown) => {
   if (isSchemeReport(message)) {
-    void icon.show(message.scheme);
+    void toolbarScheme.deviceIs(message.scheme);
   }
 });
 // The hidden page is open for as long as Chrome runs, so a change of colour
