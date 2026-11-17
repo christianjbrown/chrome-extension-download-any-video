@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Christian's Download Any Video",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Download the video on the page you are looking at: one click, and it lands in your downloads folder as an MP4 that plays everywhere.",
   "minimum_chrome_version": "126",
   "permissions": ["activeTab", "scripting", "downloads", "offscreen"],
@@ -17,16 +17,16 @@
   "action": {
     "default_title": "Download the video on this page",
     "default_icon": {
-      "16": "icons/icon-16.png",
-      "32": "icons/icon-32.png",
-      "48": "icons/icon-48.png",
-      "128": "icons/icon-128.png"
+      "16": "icons/on-dark/icon-16.png",
+      "32": "icons/on-dark/icon-32.png",
+      "48": "icons/on-dark/icon-48.png",
+      "128": "icons/on-dark/icon-128.png"
     }
   },
   "icons": {
-    "16": "icons/icon-16.png",
-    "32": "icons/icon-32.png",
-    "48": "icons/icon-48.png",
-    "128": "icons/icon-128.png"
+    "16": "icons/on-dark/icon-16.png",
+    "32": "icons/on-dark/icon-32.png",
+    "48": "icons/on-dark/icon-48.png",
+    "128": "icons/on-dark/icon-128.png"
   }
 }

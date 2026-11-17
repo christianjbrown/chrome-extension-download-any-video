@@ -89,10 +89,19 @@ function textResponse(text: string) {
   return { ...fakeResponse([]), text: () => Promise.resolve(text) };
 }
 
+// The colour scheme the fake window is in, and the timer it was asked for.
+const scheme = { matches: true };
+const matchMedia = vi.fn(() => scheme);
+const setInterval = vi.fn();
+
 async function load() {
   vi.resetModules();
+  scheme.matches = true;
+  matchMedia.mockClear();
+  setInterval.mockClear();
   const chrome = fakeChrome();
   vi.stubGlobal("chrome", chrome);
+  vi.stubGlobal("window", { matchMedia, setInterval });
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(fakeResponse([5, 6, 7])));
   vi.spyOn(URL, "createObjectURL").mockReturnValue(
     "blob:chrome-extension://x/9",
@@ -245,6 +254,23 @@ describe("offscreen document", () => {
       "input",
       new Uint8Array([4, 2]),
     );
+  });
+
+  it("tells the service worker the colour scheme, and keeps looking", async () => {
+    const chrome = await load();
+
+    expect(matchMedia).toHaveBeenCalledWith("(prefers-color-scheme: dark)");
+    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
+      type: "scheme",
+      scheme: "dark",
+    });
+    const [look] = setInterval.mock.calls[0] as [() => void, number];
+    scheme.matches = false;
+    look();
+    expect(chrome.runtime.sendMessage).toHaveBeenLastCalledWith({
+      type: "scheme",
+      scheme: "light",
+    });
   });
 
   it("ignores messages that are not for it", async () => {

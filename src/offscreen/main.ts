@@ -1,6 +1,7 @@
-// The offscreen document: a hidden extension page with ffmpeg.wasm in it,
-// opened by the service worker when a video needs converting and closed when
-// the download has landed.
+// The offscreen document: a hidden extension page, open for as long as Chrome
+// runs. It has ffmpeg.wasm in it for converting videos, and it watches
+// Chrome's colour scheme for the service worker, which swaps it for a fresh
+// page once the last download has landed.
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { isConvertRequest } from "../shared/conversion-messages";
 import { DashTracks } from "../stream/dash-tracks";
@@ -12,6 +13,7 @@ import { parseXml } from "../stream/xml-parser";
 import { ConversionPlanner } from "./conversion-plan";
 import { ConvertHandler } from "./convert-handler";
 import { FfmpegEngine } from "./ffmpeg-engine";
+import { DARK_SCHEME_QUERY, SchemeReporter } from "./scheme-reporter";
 import { SourceFetcher } from "./source-fetcher";
 import { StreamFetcher } from "./stream-fetcher";
 import { StreamInfoParser } from "./stream-info";
@@ -63,3 +65,11 @@ chrome.runtime.onMessage.addListener(
     return true;
   },
 );
+
+new SchemeReporter(
+  window.matchMedia(DARK_SCHEME_QUERY),
+  chrome.runtime,
+  (work, everyMs) => {
+    window.setInterval(work, everyMs);
+  },
+).start();

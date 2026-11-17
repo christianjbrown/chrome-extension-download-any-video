@@ -1,4 +1,5 @@
 // The service worker: builds the object graph and connects it to Chrome's events.
+import { isSchemeReport } from "../shared/scheme-messages";
 import { HttpFetcher } from "../stream/fetching";
 import {
   DashReferences,
@@ -8,6 +9,7 @@ import {
 import { parseXml } from "../stream/xml-parser";
 import { CandidateRanker } from "./candidate-ranker";
 import { ChromeErrorExplainer } from "./chrome-errors";
+import { ConversionHost } from "./conversion-host";
 import { DownloadWatcher } from "./download-completion";
 import { DownloadController } from "./download-controller";
 import { FallbackConverter } from "./fallback-converter";
@@ -17,11 +19,16 @@ import { OffscreenDocument } from "./offscreen-document";
 import { PageScript } from "./page-script";
 import { PieceFilter } from "./piece-filter";
 import { SystemClock } from "./system-clock";
+import { ToolbarIcon } from "./toolbar-icon";
 import { ToolbarIndicator } from "./toolbar-indicator";
 import { VideoFilename } from "./video-filename";
 import { VideoSaver } from "./video-saver";
 
 const indicator = new ToolbarIndicator(chrome.action);
+const icon = new ToolbarIcon(chrome.action);
+// One hidden page does two jobs: it converts videos, and it watches Chrome's
+// colour scheme for the toolbar icon.
+const hiddenPage = new OffscreenDocument(chrome.offscreen, chrome.runtime);
 const playlists = new HttpFetcher((url, init) => fetch(url, init));
 const controller = new DownloadController({
   asker: new PageScript(chrome.scripting, "page.js"),
@@ -34,7 +41,7 @@ const controller = new DownloadController({
   ranker: new CandidateRanker(),
   converter: new FallbackConverter(
     new OffscreenConverter({
-      host: new OffscreenDocument(chrome.offscreen, chrome.runtime),
+      host: new ConversionHost(hiddenPage),
       runtime: chrome.runtime,
       nextId: () => crypto.randomUUID(),
     }),
@@ -55,3 +62,15 @@ chrome.action.onClicked.addListener((tab) => {
 chrome.tabs.onUpdated.addListener((tabId, change) => {
   void navigation.changed(tabId, change);
 });
+chrome.runtime.onMessage.addListener((message: unknown) => {
+  if (isSchemeReport(message)) {
+    void icon.show(message.scheme);
+  }
+});
+// The hidden page is open for as long as Chrome runs, so a change of colour
+// scheme reaches a sleeping service worker. Chrome starts without the page,
+// and nothing else wakes the service worker then.
+chrome.runtime.onStartup.addListener(() => {
+  void hiddenPage.open();
+});
+void hiddenPage.open();
