@@ -96,6 +96,41 @@ function fakeChrome() {
   };
 }
 
+// Chrome refuses every call about the tab's button once the tab has closed.
+function closeTab(chrome: ReturnType<typeof fakeChrome>): void {
+  const closed = new Error("No tab with id: 6.");
+  chrome.action.setBadgeText.mockRejectedValue(closed);
+  chrome.action.setBadgeBackgroundColor.mockRejectedValue(closed);
+  chrome.action.setTitle.mockRejectedValue(closed);
+}
+
+// Taken before the tests fake the timers, so it really waits a turn.
+const realSetTimeout = setTimeout;
+
+type RejectionListener = (reason: unknown) => void;
+
+// The one part of Node's process the tests need, which this project's types
+// leave out because the extension never runs in Node.
+interface RejectionEvents {
+  on(event: "unhandledRejection", listener: RejectionListener): void;
+  off(event: "unhandledRejection", listener: RejectionListener): void;
+}
+
+const node = (globalThis as unknown as { process: RejectionEvents }).process;
+
+// Collects the rejections nothing caught, which Chrome lists as the
+// extension's errors.
+function watchUnhandled(): () => Promise<unknown[]> {
+  const reasons: unknown[] = [];
+  const listener: RejectionListener = (reason) => reasons.push(reason);
+  node.on("unhandledRejection", listener);
+  return async () => {
+    await new Promise((resolve) => realSetTimeout(resolve));
+    node.off("unhandledRejection", listener);
+    return reasons;
+  };
+}
+
 async function load() {
   vi.resetModules();
   const chrome = fakeChrome();
@@ -342,6 +377,39 @@ describe("service worker", () => {
     await vi.waitFor(() => {
       expect(chrome.downloads.download).toHaveBeenCalled();
     });
+  });
+
+  it("stays quiet when the tab closes as it starts loading a page", async () => {
+    const chrome = await load();
+    const unhandled = watchUnhandled();
+    closeTab(chrome);
+
+    chrome.tabs.onUpdated.fire(6, { status: "loading" });
+
+    await vi.waitFor(() => {
+      expect(chrome.action.setTitle).toHaveBeenCalled();
+    });
+    expect(await unhandled()).toEqual([]);
+  });
+
+  it("stays quiet when the tab closes during a download", async () => {
+    const chrome = await load();
+    const unhandled = watchUnhandled();
+    closeTab(chrome);
+
+    chrome.action.onClicked.fire({ id: 6 });
+
+    await vi.waitFor(() => {
+      expect(chrome.downloads.download).toHaveBeenCalled();
+    });
+    chrome.downloads.onChanged.fire({ id: 31, state: { current: "complete" } });
+    await vi.waitFor(() => {
+      expect(chrome.action.setBadgeText).toHaveBeenCalledWith({
+        tabId: 6,
+        text: "✓",
+      });
+    });
+    expect(await unhandled()).toEqual([]);
   });
 
   it("clears the button when the tab loads a new page", async () => {
