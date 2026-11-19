@@ -10,6 +10,7 @@ import { parseXml } from "../stream/xml-parser";
 import { CandidateRanker } from "./candidate-ranker";
 import { ChromeErrorExplainer } from "./chrome-errors";
 import { ClickScheme } from "./click-scheme";
+import { ClosedTabAction } from "./closed-tab-action";
 import { ConversionHost } from "./conversion-host";
 import { DownloadWatcher } from "./download-completion";
 import { DownloadController } from "./download-controller";
@@ -28,7 +29,7 @@ import { ToolbarScheme } from "./toolbar-scheme";
 import { VideoFilename } from "./video-filename";
 import { VideoSaver } from "./video-saver";
 
-const indicator = new ToolbarIndicator(chrome.action);
+const indicator = new ToolbarIndicator(new ClosedTabAction(chrome.action));
 const toolbarScheme = new ToolbarScheme(
   new SchemeStore(chrome.storage.local),
   new ToolbarIcon(chrome.action),
