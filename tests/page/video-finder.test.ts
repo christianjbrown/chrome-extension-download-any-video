@@ -1,6 +1,5 @@
 import type { VideoCandidate } from "../../src/shared/candidates";
 import { VideoFinder } from "../../src/page/video-finder";
-import { tree, video } from "./fakes";
 
 const candidate = (
   url: string,
@@ -11,53 +10,28 @@ const candidate = (
   height: 0,
 });
 
-function setup(found: ReturnType<typeof video>[]) {
-  const videos = found.map((element) => ({
-    element,
-    candidates: [candidate(`https://cdn.example/${element.src}`, "element")],
-  }));
-  const parts = {
-    tree: tree(),
-    title: () => "A Page",
-    elements: { find: vi.fn().mockReturnValue(videos) },
-    chooser: { choose: vi.fn().mockReturnValue(videos[0]) },
-    player: {
-      find: vi
-        .fn()
-        .mockReturnValue([
-          candidate("https://cdn.example/player.mp4", "player"),
-          candidate("https://cdn.example/first.mp4", "player"),
-        ]),
-    },
-    metadata: {
-      find: vi
-        .fn()
-        .mockReturnValue([candidate("https://cdn.example/og.mp4", "metadata")]),
-    },
-    network: {
-      find: vi
-        .fn()
-        .mockReturnValue([
-          candidate("https://cdn.example/og.mp4", "network"),
-          candidate("https://cdn.example/net.mp4", "network"),
-        ]),
-    },
-  };
-  return { parts, finder: new VideoFinder(parts), videos };
-}
+const source = (...found: VideoCandidate[]) => ({
+  find: vi.fn().mockReturnValue(found),
+});
 
 describe("VideoFinder", () => {
-  it("reports the chosen video, its player, the metadata and the network, each address once", () => {
-    const { finder, parts, videos } = setup([
-      video({ src: "first.mp4" }),
-      video({ src: "second.mp4" }),
-    ]);
+  it("reports every source in order, each address once", () => {
+    const finder = new VideoFinder(
+      () => "A Page",
+      [
+        source(
+          candidate("https://cdn.example/first.mp4", "element"),
+          candidate("https://cdn.example/player.mp4", "player"),
+        ),
+        source(candidate("https://cdn.example/og.mp4", "metadata")),
+        source(
+          candidate("https://cdn.example/og.mp4", "network"),
+          candidate("https://cdn.example/net.mp4", "network"),
+        ),
+      ],
+    );
 
-    const report = finder.find();
-
-    expect(parts.chooser.choose).toHaveBeenCalledWith(videos);
-    expect(parts.player.find).toHaveBeenCalledWith(videos[0]!.element);
-    expect(report).toEqual({
+    expect(finder.find()).toEqual({
       title: "A Page",
       candidates: [
         candidate("https://cdn.example/first.mp4", "element"),
@@ -68,15 +42,9 @@ describe("VideoFinder", () => {
     });
   });
 
-  it("still reports the page's metadata and network when there is no video element", () => {
-    const { finder, parts } = setup([]);
+  it("reports only the title when no source names anything", () => {
+    const finder = new VideoFinder(() => "Empty", [source()]);
 
-    const report = finder.find();
-
-    expect(parts.player.find).not.toHaveBeenCalled();
-    expect(report.candidates.map((found) => found.url)).toEqual([
-      "https://cdn.example/og.mp4",
-      "https://cdn.example/net.mp4",
-    ]);
+    expect(finder.find()).toEqual({ title: "Empty", candidates: [] });
   });
 });
