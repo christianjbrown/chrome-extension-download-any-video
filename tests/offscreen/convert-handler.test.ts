@@ -1,3 +1,10 @@
+import { NamedStage, StageChain } from "../../src/offscreen/conversion-stages";
+import {
+  FetchStep,
+  ObjectUrlStep,
+  StepChain,
+  TranscodeStep,
+} from "../../src/offscreen/conversion-steps";
 import { ConvertHandler } from "../../src/offscreen/convert-handler";
 
 const request = {
@@ -15,7 +22,18 @@ function setup() {
     urls: { create: vi.fn().mockReturnValue("blob:chrome-extension://x/1") },
     progress: { send: vi.fn() },
   };
-  return { parts, handler: new ConvertHandler(parts) };
+  // The stages as the offscreen entry point chains them.
+  const stages = new StageChain(
+    new NamedStage("fetch", new FetchStep(parts.fetcher)),
+    new NamedStage(
+      "convert",
+      new StepChain(
+        new TranscodeStep(parts.transcoder),
+        new ObjectUrlStep(parts.urls),
+      ),
+    ),
+  );
+  return { parts, handler: new ConvertHandler(stages, parts.progress) };
 }
 
 describe("ConvertHandler", () => {
@@ -68,6 +86,19 @@ describe("ConvertHandler", () => {
       ok: false,
       stage: "convert",
       message: "out of memory",
+    });
+  });
+
+  it("counts a URL that cannot be made as part of the conversion", async () => {
+    const { parts, handler } = setup();
+    parts.urls.create.mockImplementation(() => {
+      throw new Error("no room for the blob");
+    });
+
+    await expect(handler.handle(request)).resolves.toEqual({
+      ok: false,
+      stage: "convert",
+      message: "no room for the blob",
     });
   });
 });
