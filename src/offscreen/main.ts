@@ -19,6 +19,7 @@ import { HttpFetcher } from "../stream/fetching";
 import { HlsPlaylistParser } from "../stream/hls-playlist";
 import { HlsTracks } from "../stream/hls-tracks";
 import { PieceFetcher } from "../stream/piece-fetcher";
+import { SharpestFirst } from "../stream/sharpest-first";
 import type { StreamReader } from "../stream/playlists";
 import { PlaylistReader } from "../stream/stream-reader";
 import { parseXml } from "../stream/xml-parser";
@@ -38,6 +39,7 @@ import { VideoFetcher } from "./video-fetcher";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 
 const media = new ExtensionMedia(MEDIA_EXTENSIONS);
+const sizes = new SharpestFirst();
 const pieces = new HttpFetcher((url, init) => fetch(url, init));
 const listener = new ConvertListener(
   new ConvertHandler({
@@ -47,10 +49,15 @@ const listener = new ConvertListener(
         [PLAYLIST_KIND]: new StreamFetcher(
           new PlaylistReader(
             new ByFormat<StreamReader>(media, {
-              [HLS_FORMAT]: new HlsTracks(pieces, new HlsPlaylistParser()),
+              [HLS_FORMAT]: new HlsTracks(
+                pieces,
+                new HlsPlaylistParser(),
+                sizes,
+              ),
               [DASH_FORMAT]: new DashTracks(
                 pieces,
                 new DashManifestParser(parseXml, DASH_PIECE_SOURCES),
+                sizes,
               ),
             }),
           ),

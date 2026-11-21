@@ -7,8 +7,8 @@ import {
   ENCRYPTED_STREAM,
   LIVE_STREAM,
   NO_STREAMS,
-  sharpest,
   VIDEO_TRACK,
+  type SizeChoice,
   type Track,
 } from "./tracks";
 
@@ -17,6 +17,7 @@ export class DashTracks implements StreamReader {
   constructor(
     private readonly fetcher: TextFetcher,
     private readonly dash: DashParsing,
+    private readonly sizes: SizeChoice,
   ) {}
 
   async tracks(url: string): Promise<Track[]> {
@@ -27,11 +28,15 @@ export class DashTracks implements StreamReader {
     if (manifest.encrypted) {
       throw new Error(ENCRYPTED_STREAM);
     }
-    const video = sharpest(ofRole(manifest.representations, VIDEO_TRACK));
+    const video = this.sizes.best(
+      ofRole(manifest.representations, VIDEO_TRACK),
+    );
     if (video === undefined) {
       throw new Error(NO_STREAMS);
     }
-    const audio = sharpest(ofRole(manifest.representations, AUDIO_TRACK));
+    const audio = this.sizes.best(
+      ofRole(manifest.representations, AUDIO_TRACK),
+    );
     return [video, ...(audio === undefined ? [] : [audio])].map(track);
   }
 }

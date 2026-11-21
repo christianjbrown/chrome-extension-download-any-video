@@ -1,6 +1,7 @@
 import { DashManifestParser } from "../../src/stream/dash-manifest";
 import { DASH_PIECE_SOURCES } from "../../src/stream/dash-pieces";
 import { DashTracks } from "../../src/stream/dash-tracks";
+import { SharpestFirst } from "../../src/stream/sharpest-first";
 import {
   EMPTY_PLAYLIST,
   ENCRYPTED_STREAM,
@@ -49,6 +50,7 @@ function reader(root: XmlElement) {
     tracks: new DashTracks(
       fetcher,
       new DashManifestParser(parse, DASH_PIECE_SOURCES),
+      new SharpestFirst(),
     ),
   };
 }

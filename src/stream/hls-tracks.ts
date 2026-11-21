@@ -7,8 +7,8 @@ import {
   ENCRYPTED_STREAM,
   MUXED_TRACK,
   NO_STREAMS,
-  sharpest,
   VIDEO_TRACK,
+  type SizeChoice,
   type Track,
   type TrackRole,
 } from "./tracks";
@@ -19,6 +19,7 @@ export class HlsTracks implements StreamReader {
   constructor(
     private readonly fetcher: TextFetcher,
     private readonly hls: HlsParsing,
+    private readonly sizes: SizeChoice,
   ) {}
 
   async tracks(url: string): Promise<Track[]> {
@@ -27,7 +28,7 @@ export class HlsTracks implements StreamReader {
       return [trackOf(MUXED_TRACK, this.hls.media(text, url))];
     }
     const master = this.hls.master(text, url);
-    const chosen = sharpest(master.variants);
+    const chosen = this.sizes.best(master.variants);
     if (chosen === undefined) {
       throw new Error(NO_STREAMS);
     }
