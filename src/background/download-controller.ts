@@ -1,3 +1,4 @@
+import type { FrameReport } from "../shared/candidates";
 import type {
   CandidateFilter,
   ErrorExplainer,
@@ -29,6 +30,10 @@ const TOP_FRAME = 0;
 // A page with no title, which leaves the filename to fall back on its own.
 const UNTITLED = "";
 
+function topTitle(reports: readonly FrameReport[]): string | undefined {
+  return reports[TOP_FRAME]?.title;
+}
+
 // A click on the toolbar button: find the video on that tab, make it an MP4
 // that plays everywhere, and download it.
 export class DownloadController {
@@ -38,11 +43,26 @@ export class DownloadController {
 
   async clicked(tab: ClickedTab): Promise<void> {
     const tabId = tab.id;
-    // A click while the last one is still downloading does nothing.
-    if (tabId === undefined || this.busy.has(tabId)) {
-      return;
+    if (this.isFree(tabId)) {
+      await this.run(tabId);
     }
+  }
+
+  // A click while the last one is still downloading does nothing.
+  private isFree(tabId: number | undefined): tabId is number {
+    return tabId !== undefined && !this.busy.has(tabId);
+  }
+
+  private async run(tabId: number): Promise<void> {
     this.busy.add(tabId);
+    try {
+      await this.attempt(tabId);
+    } finally {
+      this.busy.delete(tabId);
+    }
+  }
+
+  private async attempt(tabId: number): Promise<void> {
     try {
       await this.parts.indicator.showBusy(tabId);
       await this.parts.indicator.showDone(tabId, await this.download(tabId));
@@ -51,8 +71,6 @@ export class DownloadController {
         tabId,
         this.parts.errors.explain(error),
       );
-    } finally {
-      this.busy.delete(tabId);
     }
   }
 
@@ -70,7 +88,7 @@ export class DownloadController {
     );
     try {
       const filename = this.parts.names.name(
-        reports[TOP_FRAME]?.title ?? UNTITLED,
+        topTitle(reports) ?? UNTITLED,
         source.extension,
       );
       await this.parts.saver.save(source.url, filename);

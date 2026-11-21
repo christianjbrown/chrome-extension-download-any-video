@@ -1,3 +1,4 @@
+import type { ColourScheme } from "../shared/colour-scheme";
 import type { SchemeReader, TabSchemeSink } from "./scheme-parts";
 
 // A click on the button lets the extension into that tab, which is the one
@@ -12,7 +13,11 @@ export class ClickScheme {
     if (tab.id === undefined) {
       return;
     }
-    const scheme = await this.reader.read(tab.id);
+    await this.show(await this.reader.read(tab.id));
+  }
+
+  // A tab that could not be read says nothing.
+  private async show(scheme: ColourScheme | undefined): Promise<void> {
     if (scheme !== undefined) {
       await this.sink.tabShows(scheme);
     }

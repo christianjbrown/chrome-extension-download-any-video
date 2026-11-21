@@ -1,4 +1,5 @@
 import type { FrameReport } from "../shared/candidates";
+import { fits, isArray, isRecord, isString } from "../shared/shape";
 import type { FrameAsker } from "./download-steps";
 
 interface FrameResult {
@@ -58,11 +59,8 @@ export class PageScript implements FrameAsker {
   }
 }
 
+const REPORT_SHAPE = { title: isString, candidates: isArray };
+
 function isReport(value: unknown): value is FrameReport {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as { title?: unknown }).title === "string" &&
-    Array.isArray((value as { candidates?: unknown }).candidates)
-  );
+  return isRecord(value) && fits(value, REPORT_SHAPE);
 }

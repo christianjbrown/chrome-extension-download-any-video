@@ -23,16 +23,24 @@ export class TabScheme implements SchemeReader {
   // Chrome's own pages, and tabs that have closed, cannot be asked.
   async read(tabId: number): Promise<ColourScheme | undefined> {
     try {
-      const [frame] = await this.scripting.executeScript({
-        target: { tabId },
-        func: tabPrefersDark,
-      });
-      if (typeof frame?.result !== "boolean") {
-        return undefined;
-      }
-      return schemeFor(frame.result);
+      return schemeOf(firstResult(await this.frames(tabId)));
     } catch {
       return undefined;
     }
   }
+
+  private frames(tabId: number): Promise<{ result?: unknown }[]> {
+    return this.scripting.executeScript({
+      target: { tabId },
+      func: tabPrefersDark,
+    });
+  }
+}
+
+function firstResult(frames: readonly { result?: unknown }[]): unknown {
+  return frames[0]?.result;
+}
+
+function schemeOf(result: unknown): ColourScheme | undefined {
+  return typeof result === "boolean" ? schemeFor(result) : undefined;
 }
