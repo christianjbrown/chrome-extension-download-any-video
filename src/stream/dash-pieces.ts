@@ -1,6 +1,6 @@
-// The ways a DASH manifest names a representation's pieces, most specific
-// first. Another way is another entry in DASH_PIECE_SOURCES.
-import type { PieceSource } from "./dash";
+// The ways a DASH manifest names a representation's pieces. Another way is
+// another class here and one more entry where the entry points list them.
+import type { PieceSource, TemplateContext } from "./dash";
 import { ATTRIBUTES, ELEMENTS } from "./dash-names";
 import { templatePieces } from "./dash-template";
 import type { Piece } from "./tracks";
@@ -69,19 +69,27 @@ function merged(set: XmlElement, own: XmlElement | undefined): XmlElement {
 }
 
 // A list on the representation, or else on its set.
-const SEGMENT_LIST: PieceSource = {
-  pieces(set, representation, context) {
+export class SegmentListSource implements PieceSource {
+  pieces(
+    set: XmlElement,
+    representation: XmlElement,
+    context: TemplateContext,
+  ): Piece[] | undefined {
     const list =
       childNamed(representation, ELEMENTS.segmentList) ??
       childNamed(set, ELEMENTS.segmentList);
     return list === undefined ? undefined : listPieces(list, context.baseUrl);
-  },
-};
+  }
+}
 
 // The set's template with the representation's own laid over it, or either
 // one alone.
-const SEGMENT_TEMPLATE: PieceSource = {
-  pieces(set, representation, context) {
+export class SegmentTemplateSource implements PieceSource {
+  pieces(
+    set: XmlElement,
+    representation: XmlElement,
+    context: TemplateContext,
+  ): Piece[] | undefined {
     const setTemplate = childNamed(set, ELEMENTS.segmentTemplate);
     const ownTemplate = childNamed(representation, ELEMENTS.segmentTemplate);
     const template =
@@ -91,10 +99,5 @@ const SEGMENT_TEMPLATE: PieceSource = {
     return template === undefined
       ? undefined
       : templatePieces(template, context);
-  },
-};
-
-export const DASH_PIECE_SOURCES: readonly PieceSource[] = [
-  SEGMENT_LIST,
-  SEGMENT_TEMPLATE,
-];
+  }
+}

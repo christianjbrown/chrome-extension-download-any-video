@@ -13,7 +13,10 @@ import {
 } from "../shared/media-types";
 import { ByFormat } from "../stream/by-format";
 import { DashManifestParser } from "../stream/dash-manifest";
-import { DASH_PIECE_SOURCES } from "../stream/dash-pieces";
+import {
+  SegmentListSource,
+  SegmentTemplateSource,
+} from "../stream/dash-pieces";
 import { DashTracks } from "../stream/dash-tracks";
 import { HttpFetcher } from "../stream/fetching";
 import { HlsPlaylistParser } from "../stream/hls-playlist";
@@ -40,6 +43,9 @@ import { VideoFetcher } from "./video-fetcher";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 
 const media = new ExtensionMedia(MEDIA_EXTENSIONS);
+// The ways a DASH manifest names its pieces, most specific first. Another way
+// is another entry here.
+const pieceSources = [new SegmentListSource(), new SegmentTemplateSource()];
 const sizes = new SharpestFirst();
 const pieces = new HttpFetcher((url, init) => fetch(url, init));
 // Another copyable codec is another entry here.
@@ -62,7 +68,7 @@ const listener = new ConvertListener(
               ),
               [DASH_FORMAT]: new DashTracks(
                 pieces,
-                new DashManifestParser(parseXml, DASH_PIECE_SOURCES),
+                new DashManifestParser(parseXml, pieceSources),
                 sizes,
               ),
             }),

@@ -4,7 +4,10 @@ import { ExtensionMedia, MEDIA_EXTENSIONS } from "../shared/extension-media";
 import { DASH_FORMAT, HLS_FORMAT } from "../shared/media-types";
 import { ByFormat } from "../stream/by-format";
 import { DashManifestParser } from "../stream/dash-manifest";
-import { DASH_PIECE_SOURCES } from "../stream/dash-pieces";
+import {
+  SegmentListSource,
+  SegmentTemplateSource,
+} from "../stream/dash-pieces";
 import { DashReferences } from "../stream/dash-references";
 import { HttpFetcher } from "../stream/fetching";
 import { HlsPlaylistParser } from "../stream/hls-playlist";
@@ -61,6 +64,9 @@ const hiddenPage = new OffscreenDocument(
   OFFSCREEN_PAGE,
 );
 const media = new ExtensionMedia(MEDIA_EXTENSIONS);
+// The ways a DASH manifest names its pieces, most specific first. Another way
+// is another entry here.
+const pieceSources = [new SegmentListSource(), new SegmentTemplateSource()];
 const playlists = new HttpFetcher((url, init) => fetch(url, init));
 const controller = new DownloadController({
   asker: new PageScript(chrome.scripting, PAGE_SCRIPT_FILE),
@@ -70,7 +76,7 @@ const controller = new DownloadController({
         [HLS_FORMAT]: new HlsReferences(playlists, new HlsPlaylistParser()),
         [DASH_FORMAT]: new DashReferences(
           playlists,
-          new DashManifestParser(parseXml, DASH_PIECE_SOURCES),
+          new DashManifestParser(parseXml, pieceSources),
         ),
       }),
     ),
