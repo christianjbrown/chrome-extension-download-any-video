@@ -6,6 +6,7 @@ import { DARK_SCHEME_QUERY } from "../shared/colour-scheme";
 import { FFMPEG_FILES } from "../shared/extension-files";
 import { ExtensionMedia } from "../shared/extension-media";
 import { MEDIA_EXTENSIONS } from "../shared/media-extensions";
+import { SerialQueue } from "../shared/serial-queue";
 import {
   DASH_FORMAT,
   FILE_KIND,
@@ -97,6 +98,7 @@ const listener = new ConvertListener(
       }),
       parser: new StreamInfoParser(),
       planner: new ConversionPlanner(OFFSCREEN_CONFIG.encoding, shortcuts),
+      queue: new SerialQueue(),
     }),
     urls: new BlobUrls(URL),
     progress: new RuntimeProgress(chrome.runtime),

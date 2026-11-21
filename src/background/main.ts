@@ -11,6 +11,7 @@ import { ExtensionMedia } from "../shared/extension-media";
 import { KindTest } from "../shared/kind-test";
 import { MEDIA_EXTENSIONS } from "../shared/media-extensions";
 import { PathExtensions } from "../shared/path-extensions";
+import { SerialQueue } from "../shared/serial-queue";
 import {
   DASH_FORMAT,
   FILE_KIND,
@@ -75,6 +76,7 @@ const toolbarScheme = new ToolbarScheme(
   new SchemeStore(chrome.storage.local, UNKNOWN_SCHEME),
   new ToolbarIcon(chrome.action),
   SCHEME_POLICY,
+  new SerialQueue(),
 );
 const clickScheme = new ClickScheme(
   new TabScheme(chrome.scripting),
@@ -86,6 +88,7 @@ const hiddenPage = new OffscreenDocument(
   chrome.offscreen,
   chrome.runtime,
   OFFSCREEN_PAGE,
+  new SerialQueue(),
 );
 const media = new ExtensionMedia(MEDIA_EXTENSIONS);
 // Which kinds Chrome can save as they are, and which are playlists of pieces.

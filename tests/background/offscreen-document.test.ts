@@ -1,4 +1,5 @@
 import { OffscreenDocument } from "../../src/background/offscreen-document";
+import { SerialQueue } from "../../src/shared/serial-queue";
 
 // A fake Chrome that keeps track of whether its one offscreen document is
 // there, and refuses a second one the way the real one does.
@@ -26,7 +27,12 @@ function setup(alreadyOpen = false) {
     offscreen,
     runtime,
     isOpen: () => open,
-    document: new OffscreenDocument(offscreen, runtime, "converter.html"),
+    document: new OffscreenDocument(
+      offscreen,
+      runtime,
+      "converter.html",
+      new SerialQueue(),
+    ),
   };
 }
 

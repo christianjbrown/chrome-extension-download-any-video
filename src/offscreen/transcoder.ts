@@ -7,6 +7,7 @@ import type {
   Transcodes,
 } from "./conversion-parts";
 import { AUDIO_INPUT_NAME, INPUT_NAME, OUTPUT_NAME } from "./conversion-plan";
+import type { Sequencer } from "../shared/sequencer";
 import type { MediaInputs } from "./media-inputs";
 import type { ProgressListener } from "./progress";
 
@@ -14,6 +15,8 @@ export interface TranscoderParts {
   readonly engine: TranscodeEngine;
   readonly parser: StreamInfoParsing;
   readonly planner: ConversionPlanning;
+  // ffmpeg runs one command at a time, so jobs wait their turn here.
+  readonly queue: Sequencer;
 }
 
 const SUCCESS = 0;
@@ -28,17 +31,13 @@ function gaveUp(run: RunResult): string {
 // Turns the inputs into one H.264 MP4. ffmpeg runs one command at a time, so
 // jobs queue up behind each other.
 export class Transcoder implements Transcodes {
-  private last: Promise<unknown> = Promise.resolve();
-
   constructor(private readonly parts: TranscoderParts) {}
 
   transcode(
     inputs: MediaInputs,
     onProgress: ProgressListener,
   ): Promise<Uint8Array> {
-    const turn = this.last.then(() => this.convert(inputs, onProgress));
-    this.last = turn.catch(() => undefined);
-    return turn;
+    return this.parts.queue.run(() => this.convert(inputs, onProgress));
   }
 
   private async convert(

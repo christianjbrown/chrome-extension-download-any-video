@@ -1,5 +1,6 @@
 import type { RunResult } from "../../src/offscreen/conversion-parts";
 import { Transcoder } from "../../src/offscreen/transcoder";
+import { SerialQueue } from "../../src/shared/serial-queue";
 
 function setup() {
   const engine = {
@@ -22,7 +23,12 @@ function setup() {
     engine,
     parser,
     planner,
-    transcoder: new Transcoder({ engine, parser, planner }),
+    transcoder: new Transcoder({
+      engine,
+      parser,
+      planner,
+      queue: new SerialQueue(),
+    }),
   };
 }
 

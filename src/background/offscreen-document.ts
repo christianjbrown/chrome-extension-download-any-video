@@ -1,3 +1,4 @@
+import type { Sequencer } from "../shared/sequencer";
 import type { HiddenPage } from "./hidden-page";
 
 export interface OffscreenApi {
@@ -29,17 +30,16 @@ const JUSTIFICATION =
 // takes its steps one at a time, so several events waking the worker at once
 // cannot create two, or close one that is still being created.
 export class OffscreenDocument implements HiddenPage {
-  private last: Promise<unknown> = Promise.resolve();
-
   constructor(
     private readonly offscreen: OffscreenApi,
     private readonly runtime: ContextsApi,
     // The extension's page to open.
     private readonly page: string,
+    private readonly queue: Sequencer,
   ) {}
 
   open(): Promise<void> {
-    return this.inTurn(async () => {
+    return this.queue.run(async () => {
       if (!(await this.exists())) {
         await this.create();
       }
@@ -47,18 +47,12 @@ export class OffscreenDocument implements HiddenPage {
   }
 
   renew(): Promise<void> {
-    return this.inTurn(async () => {
+    return this.queue.run(async () => {
       if (await this.exists()) {
         await this.offscreen.closeDocument();
       }
       await this.create();
     });
-  }
-
-  private inTurn(step: () => Promise<void>): Promise<void> {
-    const turn = this.last.then(step);
-    this.last = turn.catch(() => undefined);
-    return turn;
   }
 
   private async exists(): Promise<boolean> {
