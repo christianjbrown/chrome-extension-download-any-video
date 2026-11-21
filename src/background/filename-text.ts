@@ -1,5 +1,6 @@
 // Page titles are somebody else's text, so nothing reaches a filename until
 // it has been through this.
+import { trimEndWhere } from "../shared/text-ends";
 import type { Slugger } from "./download-steps";
 
 // Latin accents only (é to e); other scripts' marks, like Japanese ペ, recombine.
@@ -21,11 +22,7 @@ function kebab(text: string, maxLength: number): string {
 
 // Cutting to length can leave a dash on the end, and a name never ends on one.
 function trimDashes(text: string): string {
-  let end = text.length;
-  while (end > 0 && text.charAt(end - 1) === SEPARATOR) {
-    end -= 1;
-  }
-  return text.slice(0, end);
+  return trimEndWhere(text, (char) => char === SEPARATOR);
 }
 
 export class KebabSlugger implements Slugger {

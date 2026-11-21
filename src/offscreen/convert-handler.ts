@@ -42,10 +42,17 @@ export class ConvertHandler implements ConvertHandling {
     } catch (error) {
       return failure(FETCH_STAGE, error);
     }
+    return this.converted(request.jobId, data);
+  }
+
+  private async converted(
+    jobId: string,
+    data: MediaInputs,
+  ): Promise<ConvertResponse> {
     try {
       const converted = await this.parts.transcoder.transcode(
         data,
-        this.reporter(request.jobId, CONVERT_STAGE),
+        this.reporter(jobId, CONVERT_STAGE),
       );
       return { ok: true, url: this.parts.urls.create(converted) };
     } catch (error) {

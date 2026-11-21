@@ -1,4 +1,5 @@
-import { isColourScheme } from "../shared/colour-scheme";
+import { isColourScheme, type ColourScheme } from "../shared/colour-scheme";
+import { isRecord } from "../shared/shape";
 import type { SchemeMemory, SchemeState } from "./scheme-parts";
 
 export interface StorageArea {
@@ -19,17 +20,25 @@ export class SchemeStore implements SchemeMemory {
 
   async load(): Promise<SchemeState> {
     const stored = (await this.area.get(STORAGE_KEY))[STORAGE_KEY];
-    if (typeof stored !== "object" || stored === null) {
-      return this.unknown;
-    }
-    const { device, chrome } = stored as Record<string, unknown>;
-    return {
-      device: isColourScheme(device) ? device : this.unknown.device,
-      chrome: isColourScheme(chrome) ? chrome : null,
-    };
+    return isRecord(stored) ? this.read(stored) : this.unknown;
   }
 
   save(state: SchemeState): Promise<void> {
     return this.area.set({ [STORAGE_KEY]: state });
   }
+
+  private read(stored: Record<string, unknown>): SchemeState {
+    return {
+      device: this.deviceIn(stored.device),
+      chrome: chromeIn(stored.chrome),
+    };
+  }
+
+  private deviceIn(value: unknown): ColourScheme {
+    return isColourScheme(value) ? value : this.unknown.device;
+  }
+}
+
+function chromeIn(value: unknown): ColourScheme | null {
+  return isColourScheme(value) ? value : null;
 }

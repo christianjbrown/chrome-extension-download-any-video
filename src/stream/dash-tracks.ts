@@ -1,4 +1,5 @@
-import type { DashParsing, DashRepresentation } from "./dash";
+import { asList, required } from "../shared/optional";
+import type { DashManifest, DashParsing, DashRepresentation } from "./dash";
 import type { TextFetcher } from "./fetchers";
 import type { StreamReader } from "./playlists";
 import {
@@ -22,22 +23,28 @@ export class DashTracks implements StreamReader {
 
   async tracks(url: string): Promise<Track[]> {
     const manifest = this.dash.parse(await this.fetcher.text(url), url);
-    if (manifest.live) {
-      throw new Error(LIVE_STREAM);
-    }
-    if (manifest.encrypted) {
-      throw new Error(ENCRYPTED_STREAM);
-    }
-    const video = this.sizes.best(
-      ofRole(manifest.representations, VIDEO_TRACK),
+    checkNotLive(manifest);
+    const video = required(
+      this.sizes.best(ofRole(manifest.representations, VIDEO_TRACK)),
+      NO_STREAMS,
     );
-    if (video === undefined) {
-      throw new Error(NO_STREAMS);
-    }
     const audio = this.sizes.best(
       ofRole(manifest.representations, AUDIO_TRACK),
     );
-    return [video, ...(audio === undefined ? [] : [audio])].map(track);
+    return [video, ...asList(audio)].map(track);
+  }
+}
+
+function checkNotLive(manifest: DashManifest): void {
+  if (manifest.live) {
+    throw new Error(LIVE_STREAM);
+  }
+  checkNotEncrypted(manifest);
+}
+
+function checkNotEncrypted(manifest: DashManifest): void {
+  if (manifest.encrypted) {
+    throw new Error(ENCRYPTED_STREAM);
   }
 }
 

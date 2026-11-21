@@ -1,4 +1,5 @@
 import { PLAYER_ORIGIN, type VideoCandidate } from "../shared/candidates";
+import { trimEndWhere } from "../shared/text-ends";
 import type { PlayerElement } from "./dom";
 import type { PlayerAttributes, UrlCandidates } from "./finder-parts";
 import { ancestors } from "./tree-walk";
@@ -19,14 +20,15 @@ export class PlayerAttributeFinder implements PlayerAttributes {
   constructor(private readonly found: UrlCandidates) {}
 
   find(video: PlayerElement): VideoCandidate[] {
-    const urls: string[] = [];
-    for (const element of [video, ...ancestors(video)]) {
-      for (const attribute of element.attributes) {
-        urls.push(...urlsIn(attribute.value));
-      }
-    }
+    const urls = [video, ...ancestors(video)].flatMap(attributeUrls);
     return this.found.candidates(urls, PLAYER_ORIGIN);
   }
+}
+
+function attributeUrls(element: PlayerElement): string[] {
+  return Array.from(element.attributes).flatMap((attribute) =>
+    urlsIn(attribute.value),
+  );
 }
 
 function urlsIn(text: string): string[] {
@@ -40,9 +42,5 @@ function urlsIn(text: string): string[] {
 
 // A URL quoted in prose or JSON can end on the sentence's full stop.
 function withoutTrailingPunctuation(url: string): string {
-  let end = url.length;
-  while (end > 0 && TRAILING_PUNCTUATION.has(url.charAt(end - 1))) {
-    end -= 1;
-  }
-  return url.slice(0, end);
+  return trimEndWhere(url, (char) => TRAILING_PUNCTUATION.has(char));
 }

@@ -4,6 +4,8 @@ import {
   isConvertResponse,
   isProgressReport,
   type ConvertRequest,
+  type ConvertResponse,
+  type ProgressReport,
 } from "../shared/conversion-messages";
 import type { OffscreenHost } from "./hidden-page";
 import {
@@ -59,30 +61,47 @@ export class OffscreenConverter implements VideoConverter {
     url: string,
     onProgress: StageProgressListener,
   ): Promise<string> {
+    return urlOf(await this.answer(this.parts.nextId(), url, onProgress));
+  }
+
+  // Hears the job's progress until the offscreen document answers.
+  private async answer(
+    jobId: string,
+    url: string,
+    onProgress: StageProgressListener,
+  ): Promise<unknown> {
     const { runtime } = this.parts;
-    const jobId = this.parts.nextId();
     const listener: MessageListener = (message) => {
-      if (isProgressReport(message) && message.jobId === jobId) {
+      if (isProgressFor(message, jobId)) {
         onProgress(message.stage, message.ratio);
       }
     };
     runtime.onMessage.addListener(listener);
-    let response: unknown;
     try {
-      response = await runtime.sendMessage({
-        type: CONVERT_REQUEST,
-        jobId,
-        url,
-      });
+      return await runtime.sendMessage({ type: CONVERT_REQUEST, jobId, url });
     } finally {
       runtime.onMessage.removeListener(listener);
     }
-    if (!isConvertResponse(response)) {
-      throw new Error(NO_ANSWER);
-    }
-    if (!response.ok) {
-      throw new ConversionError(response.stage, response.message);
-    }
-    return response.url;
   }
+}
+
+function isProgressFor(
+  message: unknown,
+  jobId: string,
+): message is ProgressReport {
+  return isProgressReport(message) && message.jobId === jobId;
+}
+
+function urlOf(response: unknown): string {
+  if (!isConvertResponse(response)) {
+    throw new Error(NO_ANSWER);
+  }
+  return convertedUrl(response);
+}
+
+function convertedUrl(response: ConvertResponse): string {
+  if (!response.ok) {
+    throw new ConversionError(response.stage, response.message);
+  }
+  return response.url;
 }

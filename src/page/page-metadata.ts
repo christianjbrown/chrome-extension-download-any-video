@@ -1,4 +1,5 @@
 import { METADATA_ORIGIN, type VideoCandidate } from "../shared/candidates";
+import { isRecord } from "../shared/shape";
 import type { ElementTree, MetadataElement } from "./dom";
 import type { PageMetadata, UrlCandidates } from "./finder-parts";
 
@@ -24,8 +25,9 @@ const NO_ADDRESS = "";
 
 type JsonObject = Record<string, unknown>;
 
-const isObject = (value: unknown): value is JsonObject =>
-  typeof value === "object" && value !== null;
+function metaContent(meta: MetadataElement): string {
+  return meta.getAttribute(CONTENT_ATTRIBUTE) ?? NO_ADDRESS;
+}
 
 // A page's own word on what its video is: the Open Graph tags and any
 // schema.org VideoObject in its structured data.
@@ -36,20 +38,21 @@ export class MetadataFinder implements PageMetadata {
   ) {}
 
   find(tree: ElementTree<MetadataElement>): VideoCandidate[] {
-    const urls: string[] = [];
-    for (const meta of tree.querySelectorAll(META_SELECTOR)) {
-      urls.push(meta.getAttribute(CONTENT_ATTRIBUTE) ?? NO_ADDRESS);
-    }
-    for (const script of tree.querySelectorAll(JSON_LD_SELECTOR)) {
-      urls.push(...this.contentUrls(script.textContent));
-    }
+    const urls = [
+      ...Array.from(tree.querySelectorAll(META_SELECTOR), metaContent),
+      ...Array.from(tree.querySelectorAll(JSON_LD_SELECTOR)).flatMap((script) =>
+        this.contentUrls(script.textContent),
+      ),
+    ];
     return this.found.candidates(urls, METADATA_ORIGIN);
   }
 
   private contentUrls(text: string | null): string[] {
-    if (text === null) {
-      return [];
-    }
+    return text === null ? [] : this.parsedUrls(text);
+  }
+
+  // Structured data that is not JSON names no video.
+  private parsedUrls(text: string): string[] {
     try {
       return videoContentUrls(this.parseJson(text));
     } catch {
@@ -65,17 +68,28 @@ function isVideoObject(value: JsonObject): boolean {
     : type === VIDEO_OBJECT;
 }
 
+function hasContentUrl(
+  value: JsonObject,
+): value is JsonObject & { contentUrl: string } {
+  return isVideoObject(value) && typeof value.contentUrl === "string";
+}
+
+function ownContentUrl(value: JsonObject): string[] {
+  return hasContentUrl(value) ? [value.contentUrl] : [];
+}
+
 // Every VideoObject's contentUrl, wherever it sits in the structured data.
 function videoContentUrls(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.flatMap(videoContentUrls);
-  }
-  if (!isObject(value)) {
-    return [];
-  }
-  const own =
-    isVideoObject(value) && typeof value.contentUrl === "string"
-      ? [value.contentUrl]
-      : [];
-  return [...own, ...Object.values(value).flatMap(videoContentUrls)];
+  return Array.isArray(value)
+    ? value.flatMap(videoContentUrls)
+    : objectContentUrls(value);
+}
+
+function objectContentUrls(value: unknown): string[] {
+  return isRecord(value)
+    ? [
+        ...ownContentUrl(value),
+        ...Object.values(value).flatMap(videoContentUrls),
+      ]
+    : [];
 }

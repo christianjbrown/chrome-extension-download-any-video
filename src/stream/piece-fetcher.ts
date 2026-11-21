@@ -18,21 +18,35 @@ export class PieceFetcher implements TrackFetcher {
     const total = tracks.reduce((sum, track) => sum + track.pieces.length, 0);
     let done = 0;
     progress.report(done, total);
+    const advance = (count: number): void => {
+      done += count;
+      progress.report(done, total);
+    };
     const fetched: FetchedTrack[] = [];
     for (const track of tracks) {
-      const parts: ArrayBuffer[] = [];
-      for (let start = 0; start < track.pieces.length; start += this.parallel) {
-        const batch = track.pieces.slice(start, start + this.parallel);
-        parts.push(
-          ...(await Promise.all(
-            batch.map((piece) => this.fetcher.bytes(piece.url, piece.range)),
-          )),
-        );
-        done += batch.length;
-        progress.report(done, total);
-      }
-      fetched.push({ role: track.role, parts });
+      fetched.push({
+        role: track.role,
+        parts: await this.parts(track, advance),
+      });
     }
     return fetched;
+  }
+
+  // One track's pieces in order, a batch at a time, counting each batch.
+  private async parts(
+    track: Track,
+    advance: (count: number) => void,
+  ): Promise<ArrayBuffer[]> {
+    const parts: ArrayBuffer[] = [];
+    for (let start = 0; start < track.pieces.length; start += this.parallel) {
+      const batch = track.pieces.slice(start, start + this.parallel);
+      parts.push(
+        ...(await Promise.all(
+          batch.map((piece) => this.fetcher.bytes(piece.url, piece.range)),
+        )),
+      );
+      advance(batch.length);
+    }
+    return parts;
   }
 }

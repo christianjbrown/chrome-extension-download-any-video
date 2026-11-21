@@ -8,9 +8,13 @@ async function unlessClosed(call: Promise<void>): Promise<void> {
   try {
     await call;
   } catch (error) {
-    if (!CLOSED_TAB_ERROR.test(errorMessage(error))) {
-      throw error;
-    }
+    rethrowUnlessClosed(error);
+  }
+}
+
+function rethrowUnlessClosed(error: unknown): void {
+  if (!CLOSED_TAB_ERROR.test(errorMessage(error))) {
+    throw error;
   }
 }
 

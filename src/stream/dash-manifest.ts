@@ -1,5 +1,6 @@
 // Reads a DASH manifest (an MPD): the representations of its first period,
 // each with the pieces that make it up.
+import { firstFound } from "../shared/optional";
 import {
   DASH_ROLES,
   type DashManifest,
@@ -16,6 +17,7 @@ import {
   childNamed,
   childrenNamed,
   hasDescendantNamed,
+  numberAttribute,
   type XmlElement,
   type XmlParser,
 } from "./xml";
@@ -29,8 +31,12 @@ const NO_TYPE = "";
 
 // A BaseURL child narrows the address everything below it is relative to.
 function baseUrlOf(element: XmlElement, parent: string): string {
-  const base = childNamed(element, ELEMENTS.baseUrl)?.text.trim();
+  const base = baseTextOf(element);
   return base === undefined ? parent : new URL(base, parent).href;
+}
+
+function baseTextOf(element: XmlElement): string | undefined {
+  return childNamed(element, ELEMENTS.baseUrl)?.text.trim();
 }
 
 // Picture or sound, from the set's or the representation's own word. Anything
@@ -39,12 +45,29 @@ function roleOf(
   set: XmlElement,
   representation: XmlElement,
 ): DashRole | undefined {
-  const type =
-    set.attribute(ATTRIBUTES.contentType) ??
-    representation.attribute(ATTRIBUTES.mimeType) ??
-    set.attribute(ATTRIBUTES.mimeType) ??
-    NO_TYPE;
+  const type = typeOf(set, representation);
   return DASH_ROLES.find((role) => type.startsWith(role));
+}
+
+// The set's content type, or else the representation's MIME type, or else
+// the set's.
+function typeOf(set: XmlElement, representation: XmlElement): string {
+  const said = [
+    set.attribute(ATTRIBUTES.contentType),
+    representation.attribute(ATTRIBUTES.mimeType),
+    set.attribute(ATTRIBUTES.mimeType),
+  ];
+  return said.find((type) => type !== undefined) ?? NO_TYPE;
+}
+
+function periodSeconds(
+  root: XmlElement,
+  period: XmlElement,
+): number | undefined {
+  return (
+    durationSeconds(period.attribute(ATTRIBUTES.duration)) ??
+    durationSeconds(root.attribute(ATTRIBUTES.presentationDuration))
+  );
 }
 
 // Where the period's representations sit and how long it runs.
@@ -65,59 +88,76 @@ export class DashManifestParser implements DashParsing {
 
   parse(text: string, url: string): DashManifest {
     const root = this.xml(text);
-    const live = root.attribute(ATTRIBUTES.type) === DYNAMIC;
-    const encrypted = hasDescendantNamed(root, ELEMENTS.contentProtection);
     const period = childNamed(root, ELEMENTS.period);
-    if (period === undefined) {
-      return { live, encrypted, representations: [] };
-    }
+    return {
+      live: root.attribute(ATTRIBUTES.type) === DYNAMIC,
+      encrypted: hasDescendantNamed(root, ELEMENTS.contentProtection),
+      representations:
+        period === undefined
+          ? []
+          : this.periodRepresentations(root, period, url),
+    };
+  }
+
+  private periodRepresentations(
+    root: XmlElement,
+    period: XmlElement,
+    url: string,
+  ): DashRepresentation[] {
     const where: Period = {
       baseUrl: baseUrlOf(period, baseUrlOf(root, url)),
-      seconds:
-        durationSeconds(period.attribute(ATTRIBUTES.duration)) ??
-        durationSeconds(root.attribute(ATTRIBUTES.presentationDuration)),
+      seconds: periodSeconds(root, period),
     };
-    return {
-      live,
-      encrypted,
-      representations: childrenNamed(period, ELEMENTS.adaptationSet).flatMap(
-        (set) => this.setRepresentations(set, where),
-      ),
-    };
+    return childrenNamed(period, ELEMENTS.adaptationSet).flatMap((set) =>
+      this.setRepresentations(set, where),
+    );
   }
 
   private setRepresentations(
     set: XmlElement,
     period: Period,
   ): DashRepresentation[] {
-    const setBase = baseUrlOf(set, period.baseUrl);
+    const where = { ...period, baseUrl: baseUrlOf(set, period.baseUrl) };
     return childrenNamed(set, ELEMENTS.representation).flatMap(
-      (representation) => {
-        const role = roleOf(set, representation);
-        if (role === undefined) {
-          return [];
-        }
-        const bandwidth = Number(
-          representation.attribute(ATTRIBUTES.bandwidth) ?? UNKNOWN_SIZE,
-        );
-        const context: TemplateContext = {
-          representationId: representation.attribute(ATTRIBUTES.id) ?? NO_ID,
-          bandwidth,
-          baseUrl: baseUrlOf(representation, setBase),
-          periodSeconds: period.seconds,
-        };
-        return [
-          {
-            role,
-            bandwidth,
-            height: Number(
-              representation.attribute(ATTRIBUTES.height) ?? UNKNOWN_SIZE,
-            ),
-            pieces: this.pieces(set, representation, context),
-          },
-        ];
-      },
+      (representation) => this.representation(set, representation, where),
     );
+  }
+
+  // Nothing for a representation that is neither picture nor sound.
+  private representation(
+    set: XmlElement,
+    representation: XmlElement,
+    where: Period,
+  ): DashRepresentation[] {
+    const role = roleOf(set, representation);
+    return role === undefined
+      ? []
+      : [this.described(set, representation, role, where)];
+  }
+
+  private described(
+    set: XmlElement,
+    representation: XmlElement,
+    role: DashRole,
+    where: Period,
+  ): DashRepresentation {
+    const bandwidth = numberAttribute(
+      representation,
+      ATTRIBUTES.bandwidth,
+      UNKNOWN_SIZE,
+    );
+    const context: TemplateContext = {
+      representationId: representation.attribute(ATTRIBUTES.id) ?? NO_ID,
+      bandwidth,
+      baseUrl: baseUrlOf(representation, where.baseUrl),
+      periodSeconds: where.seconds,
+    };
+    return {
+      role,
+      bandwidth,
+      height: numberAttribute(representation, ATTRIBUTES.height, UNKNOWN_SIZE),
+      pieces: this.pieces(set, representation, context),
+    };
   }
 
   private pieces(
@@ -125,12 +165,10 @@ export class DashManifestParser implements DashParsing {
     representation: XmlElement,
     context: TemplateContext,
   ): Piece[] {
-    for (const source of this.sources) {
-      const pieces = source.pieces(set, representation, context);
-      if (pieces !== undefined) {
-        return pieces;
-      }
-    }
-    return [{ url: context.baseUrl, range: undefined }];
+    return (
+      firstFound(this.sources, (source) =>
+        source.pieces(set, representation, context),
+      ) ?? [{ url: context.baseUrl, range: undefined }]
+    );
   }
 }

@@ -1,6 +1,7 @@
 // An ISO 8601 duration as DASH writes it: "PT1H2M3.5S", "P0DT0H3M30.000S".
 // Years and months have no fixed length and never appear in a video's
 // duration, so they are not read.
+import { ifDefined } from "../shared/optional";
 import { NOT_FOUND } from "../shared/search";
 
 const DATE_PART = /^P(?:(\d+)D)?$/;
@@ -38,15 +39,25 @@ function count(group: string | undefined): number {
 
 // The duration in seconds, or nothing when the text is not one.
 export function durationSeconds(text: string | undefined): number | undefined {
-  if (text === undefined) {
-    return undefined;
-  }
+  return ifDefined(text, secondsOf);
+}
+
+function secondsOf(text: string): number | undefined {
   const { date, time } = parts(text);
   const dateMatch = DATE_PART.exec(date);
-  const timeMatch = TIME_PART.exec(time);
-  if (dateMatch === null || timeMatch === null) {
-    return undefined;
-  }
+  return dateMatch === null
+    ? undefined
+    : withTime(dateMatch, TIME_PART.exec(time));
+}
+
+function withTime(
+  dateMatch: RegExpExecArray,
+  timeMatch: RegExpExecArray | null,
+): number | undefined {
+  return timeMatch === null ? undefined : total(dateMatch, timeMatch);
+}
+
+function total(dateMatch: RegExpExecArray, timeMatch: RegExpExecArray): number {
   return (
     count(dateMatch[DAYS_GROUP]) * SECONDS_IN_DAY +
     count(timeMatch[HOURS_GROUP]) * SECONDS_IN_HOUR +

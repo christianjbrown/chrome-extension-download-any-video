@@ -18,7 +18,9 @@ export default tseslint.config(
     },
     plugins: { "import-x": importX },
     rules: {
-      complexity: ["error", 8],
+      // At most one decision per function, so 100% branch coverage is also
+      // 100% path coverage.
+      complexity: ["error", 2],
       "max-depth": ["error", 3],
       "max-params": ["error", 4],
       "max-lines-per-function": [
@@ -128,6 +130,7 @@ export default tseslint.config(
   {
     files: ["tests/**/*.ts"],
     rules: {
+      complexity: ["error", 8],
       "max-lines-per-function": "off",
       "max-lines": "off",
       "@typescript-eslint/no-non-null-assertion": "off",

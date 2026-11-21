@@ -39,10 +39,15 @@ export class HttpFetcher implements TextFetcher, ByteFetcher {
 
   // A piece that is a slice of a file is asked for with a Range header. A
   // server that sends the whole file regardless gets sliced here instead.
-  async bytes(url: string, range?: ByteRange): Promise<ArrayBuffer> {
-    if (range === undefined) {
-      return (await this.fetched(url, {})).arrayBuffer();
-    }
+  bytes(url: string, range?: ByteRange): Promise<ArrayBuffer> {
+    return range === undefined ? this.whole(url) : this.slice(url, range);
+  }
+
+  private async whole(url: string): Promise<ArrayBuffer> {
+    return (await this.fetched(url, {})).arrayBuffer();
+  }
+
+  private async slice(url: string, range: ByteRange): Promise<ArrayBuffer> {
     const end = range.offset + range.length;
     const response = await this.fetched(url, {
       [RANGE_HEADER]: `${RANGE_UNIT}=${String(range.offset)}-${String(end - 1)}`,

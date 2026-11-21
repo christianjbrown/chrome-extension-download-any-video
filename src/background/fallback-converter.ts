@@ -36,11 +36,19 @@ export class FallbackConverter implements VideoConverter {
     try {
       return await this.inner.convert(url, onProgress);
     } catch (error) {
-      if (this.worthFallingBackOn(error) && this.saveable.matches(url)) {
-        return asItIs(url, this.media);
-      }
-      throw error;
+      return this.recovered(url, error);
     }
+  }
+
+  private recovered(url: string, error: unknown): VideoSource {
+    if (this.canFallBack(url, error)) {
+      return asItIs(url, this.media);
+    }
+    throw error;
+  }
+
+  private canFallBack(url: string, error: unknown): boolean {
+    return this.worthFallingBackOn(error) && this.saveable.matches(url);
   }
 
   private worthFallingBackOn(error: unknown): boolean {

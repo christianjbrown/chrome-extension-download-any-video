@@ -1,4 +1,5 @@
 // Reads HLS playlists (RFC 8216) line by line.
+import { ifDefined } from "../shared/optional";
 import type {
   AudioRendition,
   HlsParsing,
@@ -35,9 +36,13 @@ type Attributes = ReadonlyMap<string, string>;
 
 const TAG_END = ":";
 const QUOTE = '"';
-const COMMA = ",";
 const EQUALS = "=";
+// One attribute of a list: characters up to a comma outside quotes, where a
+// quoted part runs to its closing quote, or to the end when it has none.
+const PAIR = /(?:[^,"]|"[^"]*(?:"|$))+/g;
 const RESOLUTION = /^\d+x(\d+)$/;
+// Where the height sits in a resolution.
+const HEIGHT_GROUP = 1;
 const LINE_BREAK = /\r?\n/;
 // "length@offset" in a byte range.
 const OFFSET_MARK = "@";
@@ -56,36 +61,33 @@ function lines(text: string): string[] {
 // The attribute list after the tag's colon, split on the commas that sit
 // outside quotes, since a quoted value may hold one.
 function pairs(line: string): string[] {
-  const found: string[] = [];
-  let current = "";
-  let quoted = false;
-  for (const char of line.slice(line.indexOf(TAG_END) + 1)) {
-    if (char === QUOTE) {
-      quoted = !quoted;
-    }
-    if (char === COMMA && !quoted) {
-      found.push(current);
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-  found.push(current);
-  return found.filter((pair) => pair.includes(EQUALS));
+  const list = line.slice(line.indexOf(TAG_END) + 1);
+  return Array.from(list.matchAll(PAIR), (match) => match[0]).filter((pair) =>
+    pair.includes(EQUALS),
+  );
+}
+
+function unquoted(value: string): string {
+  return value.startsWith(QUOTE) ? value.slice(1, -1) : value;
+}
+
+function nameAndValue(pair: string): [string, string] {
+  const equals = pair.indexOf(EQUALS);
+  return [pair.slice(0, equals), unquoted(pair.slice(equals + 1))];
 }
 
 // NAME=value pairs, the quotes taken off a quoted value.
 function attributes(line: string): Attributes {
-  const found = new Map<string, string>();
-  for (const pair of pairs(line)) {
-    const equals = pair.indexOf(EQUALS);
-    const value = pair.slice(equals + 1);
-    found.set(
-      pair.slice(0, equals),
-      value.startsWith(QUOTE) ? value.slice(1, -1) : value,
-    );
-  }
-  return found;
+  return new Map(pairs(line).map(nameAndValue));
+}
+
+// An attribute's value, or an empty one when the line leaves it out.
+function given(found: Attributes, name: string): string {
+  return found.get(name) ?? NONE_GIVEN;
+}
+
+function sizeOf(value: string | undefined): number {
+  return Number(value ?? UNKNOWN_SIZE);
 }
 
 function resolve(uri: string, baseUrl: string): string {
@@ -103,23 +105,38 @@ function readLines(
   onUri: (uri: string) => void,
 ): void {
   for (const line of lines(text)) {
-    const handler = handlers.find(([tag]) => line.startsWith(tag));
-    if (handler !== undefined) {
-      handler[1](line);
-    } else if (!line.startsWith(COMMENT)) {
-      onUri(line);
-    }
+    readLine(line, handlers, onUri);
   }
 }
 
+function readLine(
+  line: string,
+  handlers: TagHandlers,
+  onUri: (uri: string) => void,
+): void {
+  const handler = handlers.find(([tag]) => line.startsWith(tag));
+  if (handler !== undefined) {
+    handler[1](line);
+    return;
+  }
+  uriUnlessComment(line, onUri);
+}
+
+function uriUnlessComment(line: string, onUri: (uri: string) => void): void {
+  if (!line.startsWith(COMMENT)) {
+    onUri(line);
+  }
+}
+
+function resolutionHeight(found: Attributes): string | undefined {
+  return RESOLUTION.exec(given(found, ATTRIBUTES.resolution))?.[HEIGHT_GROUP];
+}
+
 function variant(found: Attributes, url: string): Variant {
-  const resolution = RESOLUTION.exec(
-    found.get(ATTRIBUTES.resolution) ?? NONE_GIVEN,
-  );
   return {
     url,
-    height: Number(resolution?.[1] ?? UNKNOWN_SIZE),
-    bandwidth: Number(found.get(ATTRIBUTES.bandwidth) ?? UNKNOWN_SIZE),
+    height: sizeOf(resolutionHeight(found)),
+    bandwidth: sizeOf(found.get(ATTRIBUTES.bandwidth)),
     audioGroup: found.get(ATTRIBUTES.audio),
   };
 }
@@ -130,13 +147,17 @@ function audioRendition(
   found: Attributes,
   baseUrl: string,
 ): AudioRendition | undefined {
-  const uri = found.get(ATTRIBUTES.uri);
-  if (found.get(ATTRIBUTES.type) !== AUDIO_TYPE || uri === undefined) {
-    return undefined;
-  }
+  return found.get(ATTRIBUTES.type) === AUDIO_TYPE
+    ? ifDefined(found.get(ATTRIBUTES.uri), (uri) =>
+        rendition(found, resolve(uri, baseUrl)),
+      )
+    : undefined;
+}
+
+function rendition(found: Attributes, url: string): AudioRendition {
   return {
-    group: found.get(ATTRIBUTES.groupId) ?? NONE_GIVEN,
-    url: resolve(uri, baseUrl),
+    group: given(found, ATTRIBUTES.groupId),
+    url,
     isDefault: found.get(ATTRIBUTES.isDefault) === YES,
   };
 }
@@ -194,6 +215,12 @@ function byteRange(spec: string, previousEnd: number): ByteRange {
   };
 }
 
+// Where a piece ends, which is where the next one starts when its range only
+// gives a length. A piece without a range is a whole file.
+function endOf(range: ByteRange | undefined): number {
+  return range === undefined ? FILE_START : range.offset + range.length;
+}
+
 class MediaPlaylistReader {
   private init: Piece | undefined;
   private readonly segments: Piece[] = [];
@@ -241,21 +268,20 @@ class MediaPlaylistReader {
   }
 
   private map(found: Attributes): void {
-    const spec = found.get(ATTRIBUTES.byteRange);
     this.init = {
-      url: resolve(found.get(ATTRIBUTES.uri) ?? NONE_GIVEN, this.baseUrl),
-      range: spec === undefined ? undefined : byteRange(spec, FILE_START),
+      url: resolve(given(found, ATTRIBUTES.uri), this.baseUrl),
+      range: ifDefined(found.get(ATTRIBUTES.byteRange), (spec) =>
+        byteRange(spec, FILE_START),
+      ),
     };
   }
 
   private segment(uri: string): void {
-    const range =
-      this.pendingRange === undefined
-        ? undefined
-        : byteRange(this.pendingRange, this.previousEnd);
+    const range = ifDefined(this.pendingRange, (spec) =>
+      byteRange(spec, this.previousEnd),
+    );
     this.segments.push({ url: resolve(uri, this.baseUrl), range });
-    this.previousEnd =
-      range === undefined ? FILE_START : range.offset + range.length;
+    this.previousEnd = endOf(range);
     this.pendingRange = undefined;
   }
 }

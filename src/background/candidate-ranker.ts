@@ -4,6 +4,7 @@ import type {
   VideoCandidate,
 } from "../shared/candidates";
 import type { MediaTest } from "../shared/media-types";
+import { firstFound, required } from "../shared/optional";
 import type { Ranker } from "./download-steps";
 
 export const NOTHING_FOUND = "No video found on this page";
@@ -23,16 +24,15 @@ export class CandidateRanker implements Ranker {
 
   pick(reports: readonly FrameReport[]): VideoCandidate {
     const candidates = reports.flatMap((report) => report.candidates);
-    for (const kind of this.policy.kinds) {
-      const best = mostTrusted(
-        candidates.filter((c) => kind.matches(c.url)),
-        this.policy.tiers,
-      );
-      if (best !== undefined) {
-        return best;
-      }
-    }
-    throw new Error(NOTHING_FOUND);
+    return required(
+      firstFound(this.policy.kinds, (kind) =>
+        mostTrusted(
+          candidates.filter((c) => kind.matches(c.url)),
+          this.policy.tiers,
+        ),
+      ),
+      NOTHING_FOUND,
+    );
   }
 }
 
@@ -40,13 +40,9 @@ function mostTrusted(
   candidates: readonly VideoCandidate[],
   tiers: RankingPolicy["tiers"],
 ): VideoCandidate | undefined {
-  for (const tier of tiers) {
-    const best = sharpest(candidates.filter((c) => tier.includes(c.origin)));
-    if (best !== undefined) {
-      return best;
-    }
-  }
-  return undefined;
+  return firstFound(tiers, (tier) =>
+    sharpest(candidates.filter((c) => tier.includes(c.origin))),
+  );
 }
 
 // The tallest, and among equals the first found, which is the most trusted.
@@ -54,8 +50,14 @@ function sharpest(
   candidates: readonly VideoCandidate[],
 ): VideoCandidate | undefined {
   return candidates.reduce<VideoCandidate | undefined>(
-    (best, candidate) =>
-      best === undefined || candidate.height > best.height ? candidate : best,
+    (best, candidate) => (isSharper(candidate, best) ? candidate : best),
     undefined,
   );
+}
+
+function isSharper(
+  candidate: VideoCandidate,
+  best: VideoCandidate | undefined,
+): boolean {
+  return best === undefined || candidate.height > best.height;
 }

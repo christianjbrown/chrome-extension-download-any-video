@@ -1,3 +1,4 @@
+import { firstFound } from "../shared/optional";
 import type {
   AudioStream,
   StreamInfo,
@@ -19,32 +20,29 @@ function firstMatch(
   lines: readonly string[],
   pattern: RegExp,
 ): Groups | undefined {
-  for (const line of lines) {
-    const groups = pattern.exec(line)?.groups;
-    if (groups !== undefined) {
-      return groups;
-    }
-  }
-  return undefined;
+  return firstFound(lines, (line) => pattern.exec(line)?.groups);
 }
 
-function asVideo(groups: Groups): VideoStream {
-  return groups as unknown as VideoStream;
+// A stream the file does not have is left out, rather than set to nothing.
+function videoPart(groups: Groups | undefined): Partial<StreamInfo> {
+  return groups === undefined
+    ? {}
+    : { video: groups as unknown as VideoStream };
 }
 
-function asAudio(groups: Groups): AudioStream {
-  return groups as unknown as AudioStream;
+function audioPart(groups: Groups | undefined): Partial<StreamInfo> {
+  return groups === undefined
+    ? {}
+    : { audio: groups as unknown as AudioStream };
 }
 
 // Reads the codecs out of what ffmpeg prints about a file. The first video
 // stream is the picture; a later one is usually cover art.
 export class StreamInfoParser implements StreamInfoParsing {
   parse(lines: readonly string[]): StreamInfo {
-    const video = firstMatch(lines, VIDEO_LINE);
-    const audio = firstMatch(lines, AUDIO_LINE);
     return {
-      ...(video === undefined ? {} : { video: asVideo(video) }),
-      ...(audio === undefined ? {} : { audio: asAudio(audio) }),
+      ...videoPart(firstMatch(lines, VIDEO_LINE)),
+      ...audioPart(firstMatch(lines, AUDIO_LINE)),
     };
   }
 }

@@ -217,6 +217,9 @@ describe("service worker", () => {
         expect.objectContaining({
           url: "offscreen.html",
           reasons: ["WORKERS", "MATCH_MEDIA"],
+          justification: expect.stringMatching(
+            /H\.264.*colour scheme/,
+          ) as string,
         }),
       );
     });

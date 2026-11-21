@@ -28,7 +28,12 @@ export class VideoFilename implements Filenames {
   ) {}
 
   name(title: string, extension: string | undefined): string {
-    const stem = this.slugger.slug(title, this.maxStem) || FALLBACK_STEM;
+    const stem = this.stem(title);
     return `${stamp(this.clock.now())}-${stem}.${extension ?? FALLBACK_EXTENSION}`;
+  }
+
+  // A title with no words in it leaves the name a stem of its own.
+  private stem(title: string): string {
+    return this.slugger.slug(title, this.maxStem) || FALLBACK_STEM;
   }
 }

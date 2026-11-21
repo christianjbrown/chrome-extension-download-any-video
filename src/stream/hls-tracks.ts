@@ -1,3 +1,4 @@
+import { asList, required } from "../shared/optional";
 import type { TextFetcher } from "./fetchers";
 import type { AudioRendition, HlsParsing, MediaPlaylist, Variant } from "./hls";
 import type { StreamReader } from "./playlists";
@@ -24,18 +25,25 @@ export class HlsTracks implements StreamReader {
 
   async tracks(url: string): Promise<Track[]> {
     const text = await this.fetcher.text(url);
-    if (!this.hls.isMaster(text)) {
-      return [trackOf(MUXED_TRACK, this.hls.media(text, url))];
-    }
+    return this.hls.isMaster(text)
+      ? this.fromMaster(text, url)
+      : [trackOf(MUXED_TRACK, this.hls.media(text, url))];
+  }
+
+  private async fromMaster(text: string, url: string): Promise<Track[]> {
     const master = this.hls.master(text, url);
-    const chosen = this.sizes.best(master.variants);
-    if (chosen === undefined) {
-      throw new Error(NO_STREAMS);
-    }
+    const chosen = required(this.sizes.best(master.variants), NO_STREAMS);
     const audio = renditionFor(chosen, master.audio);
-    if (audio === undefined) {
-      return [await this.media(MUXED_TRACK, chosen.url)];
-    }
+    return audio === undefined
+      ? [await this.media(MUXED_TRACK, chosen.url)]
+      : this.apart(chosen, audio);
+  }
+
+  // The picture and the sound, each fetched from its own playlist.
+  private async apart(
+    chosen: Variant,
+    audio: AudioRendition,
+  ): Promise<Track[]> {
     return [
       await this.media(VIDEO_TRACK, chosen.url),
       await this.media(AUDIO_TRACK, audio.url),
@@ -48,14 +56,21 @@ export class HlsTracks implements StreamReader {
 }
 
 function trackOf(role: TrackRole, playlist: MediaPlaylist): Track {
+  checkNotEncrypted(playlist);
+  return { role, pieces: [...asList(playlist.init), ...playlist.segments] };
+}
+
+function checkNotEncrypted(playlist: MediaPlaylist): void {
   if (playlist.encrypted) {
     throw new Error(ENCRYPTED_STREAM);
   }
+  checkNotEmpty(playlist);
+}
+
+function checkNotEmpty(playlist: MediaPlaylist): void {
   if (playlist.segments.length === 0) {
     throw new Error(EMPTY_PLAYLIST);
   }
-  const { init, segments } = playlist;
-  return { role, pieces: init === undefined ? segments : [init, ...segments] };
 }
 
 // The sound track a variant names, preferring the one marked default. A
