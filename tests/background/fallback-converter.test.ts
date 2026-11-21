@@ -1,6 +1,13 @@
+import {
+  CONVERT_STAGE,
+  FETCH_STAGE,
+  type Stage,
+} from "../../src/shared/conversion-messages";
 import { FallbackConverter } from "../../src/background/fallback-converter";
 import { ConversionError } from "../../src/background/video-converter";
 import { media } from "../shared/media";
+
+const recoverable: readonly Stage[] = [FETCH_STAGE, CONVERT_STAGE];
 
 describe("FallbackConverter", () => {
   it("hands back whatever the real converter made", async () => {
@@ -14,7 +21,7 @@ describe("FallbackConverter", () => {
     const onProgress = vi.fn();
 
     await expect(
-      new FallbackConverter(inner, media).convert(
+      new FallbackConverter(inner, media, recoverable).convert(
         "https://x/a.webm",
         onProgress,
       ),
@@ -34,10 +41,11 @@ describe("FallbackConverter", () => {
   ])("downloads the file as it is when it %s", async (_what, failure) => {
     const inner = { convert: vi.fn().mockRejectedValue(failure) };
 
-    const source = await new FallbackConverter(inner, media).convert(
-      "https://x/a.WebM?x=1",
-      vi.fn(),
-    );
+    const source = await new FallbackConverter(
+      inner,
+      media,
+      recoverable,
+    ).convert("https://x/a.WebM?x=1", vi.fn());
 
     expect(source.url).toBe("https://x/a.WebM?x=1");
     expect(source.extension).toBe("webm");
@@ -53,7 +61,10 @@ describe("FallbackConverter", () => {
     };
 
     await expect(
-      new FallbackConverter(inner, media).convert("https://x/v.m3u8", vi.fn()),
+      new FallbackConverter(inner, media, recoverable).convert(
+        "https://x/v.m3u8",
+        vi.fn(),
+      ),
     ).rejects.toThrow("encrypted");
   });
 
@@ -65,7 +76,10 @@ describe("FallbackConverter", () => {
     };
 
     await expect(
-      new FallbackConverter(inner, media).convert("https://x/v.mpd", vi.fn()),
+      new FallbackConverter(inner, media, recoverable).convert(
+        "https://x/v.mpd",
+        vi.fn(),
+      ),
     ).rejects.toThrow("no pieces");
   });
 
@@ -73,7 +87,25 @@ describe("FallbackConverter", () => {
     const broken = { convert: vi.fn().mockRejectedValue(new Error("boom")) };
 
     await expect(
-      new FallbackConverter(broken, media).convert("https://x/a.webm", vi.fn()),
+      new FallbackConverter(broken, media, recoverable).convert(
+        "https://x/a.webm",
+        vi.fn(),
+      ),
     ).rejects.toThrow("boom");
+  });
+
+  it("passes on a stage it was not told to recover from", async () => {
+    const inner = {
+      convert: vi
+        .fn()
+        .mockRejectedValue(new ConversionError(CONVERT_STAGE, "bad codec")),
+    };
+
+    await expect(
+      new FallbackConverter(inner, media, [FETCH_STAGE]).convert(
+        "https://x/a.webm",
+        vi.fn(),
+      ),
+    ).rejects.toThrow("bad codec");
   });
 });

@@ -99,6 +99,10 @@ const controller = new DownloadController({
       nextId: () => crypto.randomUUID(),
     }),
     media,
+    // Both steps can fail on a video that is nonetheless a perfectly good
+    // file: a server that only answers its own player, or a codec ffmpeg
+    // cannot read.
+    [FETCH_STAGE, CONVERT_STAGE],
   ),
   names: new VideoFilename(
     new SystemClock(),
