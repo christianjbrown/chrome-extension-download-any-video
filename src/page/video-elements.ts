@@ -27,27 +27,35 @@ export class VideoElementFinder implements VideoElements {
   }
 
   private describe(video: VideoElement): FoundVideo {
-    const candidates: VideoCandidate[] = [];
-    // currentSrc is what the browser actually chose among the sources.
-    for (const url of [video.currentSrc, video.src]) {
-      if (isWebUrl(url)) {
-        candidates.push({
-          url,
-          origin: ELEMENT_ORIGIN,
-          height: video.videoHeight,
-        });
-      }
-    }
-    for (const source of video.querySelectorAll(SOURCE_SELECTOR)) {
-      candidates.push(...this.source(source));
-    }
-    return { element: video, candidates };
+    const sources = Array.from(video.querySelectorAll(SOURCE_SELECTOR));
+    return {
+      element: video,
+      candidates: [
+        ...this.playing(video),
+        ...sources.flatMap((source) => this.source(source)),
+      ],
+    };
+  }
+
+  // currentSrc is what the browser actually chose among the sources.
+  private playing(video: VideoElement): VideoCandidate[] {
+    return [video.currentSrc, video.src]
+      .filter((url) => isWebUrl(url))
+      .map((url) => ({
+        url,
+        origin: ELEMENT_ORIGIN,
+        height: video.videoHeight,
+      }));
   }
 
   private source(source: Attributed): VideoCandidate[] {
-    const url = source.getAttribute(SOURCE_ATTRIBUTE) ?? NO_ADDRESS;
+    const url = addressOf(source);
     return isWebUrl(url)
       ? [{ url, origin: ELEMENT_ORIGIN, height: UNKNOWN_HEIGHT }]
       : [];
   }
+}
+
+function addressOf(source: Attributed): string {
+  return source.getAttribute(SOURCE_ATTRIBUTE) ?? NO_ADDRESS;
 }
