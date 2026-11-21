@@ -94,6 +94,19 @@ export interface StreamInfo {
   readonly audio?: AudioStream;
 }
 
+// A stream that can go into the MP4 without re-encoding, and how.
+export interface Shortcut<S> {
+  suits(stream: S): boolean;
+  // The ffmpeg arguments that carry the stream over.
+  readonly args: readonly string[];
+}
+
+// The shortcuts the planner tries, in order, before re-encoding a stream.
+export interface Shortcuts {
+  readonly video: readonly Shortcut<VideoStream>[];
+  readonly audio: readonly Shortcut<AudioStream>[];
+}
+
 // Reads what ffmpeg prints about a file.
 export interface StreamInfoParsing {
   parse(lines: readonly string[]): StreamInfo;
