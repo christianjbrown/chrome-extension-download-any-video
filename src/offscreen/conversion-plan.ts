@@ -79,7 +79,14 @@ function treatment<S>(
   stream: S,
   encode: readonly string[],
 ): readonly string[] {
-  return shortcuts.find((shortcut) => shortcut.suits(stream))?.args ?? encode;
+  return shortcutFor(shortcuts, stream) ?? encode;
+}
+
+function shortcutFor<S>(
+  shortcuts: readonly Shortcut<S>[],
+  stream: S,
+): readonly string[] | undefined {
+  return shortcuts.find((shortcut) => shortcut.suits(stream))?.args;
 }
 
 function audioArguments(

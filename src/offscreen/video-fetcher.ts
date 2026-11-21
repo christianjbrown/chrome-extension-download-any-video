@@ -32,30 +32,58 @@ export class VideoFetcher implements Fetches {
   constructor(private readonly fetchUrl: Fetch) {}
 
   async fetch(url: string, onProgress: ProgressListener): Promise<MediaInputs> {
-    const response = await this.fetchUrl(url, { credentials: WITH_COOKIES });
-    if (!response.ok) {
-      throw new Error(refused(response.status));
-    }
-    if (response.body === null) {
-      throw new Error(EMPTY_ANSWER);
-    }
-    const total = Number(
-      response.headers.get(CONTENT_LENGTH) ?? UNKNOWN_LENGTH,
+    const response = accepted(
+      await this.fetchUrl(url, { credentials: WITH_COOKIES }),
     );
-    const chunks: Uint8Array[] = [];
-    let received = 0;
-    const reader = response.body.getReader();
-    for (
-      let next = await reader.read();
-      !next.done;
-      next = await reader.read()
-    ) {
-      chunks.push(next.value);
-      received += next.value.length;
-      if (total > UNKNOWN_LENGTH) {
-        onProgress(Math.min(received / total, ALL_DONE));
-      }
-    }
-    return { main: concatenate(chunks), audio: undefined };
+    const body = bodyOf(response);
+    const main = await readAll(
+      body.getReader(),
+      progressOf(totalOf(response), onProgress),
+    );
+    return { main, audio: undefined };
   }
+}
+
+function accepted(response: FetchedResponse): FetchedResponse {
+  if (!response.ok) {
+    throw new Error(refused(response.status));
+  }
+  return response;
+}
+
+function bodyOf(response: FetchedResponse): ReadableStream<Uint8Array> {
+  if (response.body === null) {
+    throw new Error(EMPTY_ANSWER);
+  }
+  return response.body;
+}
+
+function totalOf(response: FetchedResponse): number {
+  return Number(response.headers.get(CONTENT_LENGTH) ?? UNKNOWN_LENGTH);
+}
+
+// How far along the bytes so far are, said only when the server gave a size.
+function progressOf(
+  total: number,
+  onProgress: ProgressListener,
+): (received: number) => void {
+  return (received) => {
+    if (total > UNKNOWN_LENGTH) {
+      onProgress(Math.min(received / total, ALL_DONE));
+    }
+  };
+}
+
+async function readAll(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  onReceived: (received: number) => void,
+): Promise<Uint8Array> {
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  for (let next = await reader.read(); !next.done; next = await reader.read()) {
+    chunks.push(next.value);
+    received += next.value.length;
+    onReceived(received);
+  }
+  return concatenate(chunks);
 }

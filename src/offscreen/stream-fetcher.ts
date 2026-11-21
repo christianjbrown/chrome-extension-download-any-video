@@ -1,4 +1,5 @@
-import type { TrackFetcher } from "../stream/fetchers";
+import { ifDefined, required } from "../shared/optional";
+import type { FetchedTrack, TrackFetcher } from "../stream/fetchers";
 import type { StreamReader } from "../stream/playlists";
 import { NO_STREAMS } from "../stream/tracks";
 import { concatenate } from "./bytes";
@@ -26,16 +27,13 @@ export class StreamFetcher implements Fetches {
     });
     const main = fetched.find((track) => this.roles.main.has(track.role));
     const audio = fetched.find((track) => this.roles.audio.has(track.role));
-    if (main === undefined) {
-      throw new Error(NO_STREAMS);
-    }
     return {
-      main: joined(main.parts),
-      audio: audio === undefined ? undefined : joined(audio.parts),
+      main: joined(required(main, NO_STREAMS)),
+      audio: ifDefined(audio, joined),
     };
   }
 }
 
-function joined(parts: readonly ArrayBuffer[]): Uint8Array {
-  return concatenate(parts.map((part) => new Uint8Array(part)));
+function joined(track: FetchedTrack): Uint8Array {
+  return concatenate(track.parts.map((part) => new Uint8Array(part)));
 }
