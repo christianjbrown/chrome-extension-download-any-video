@@ -3,12 +3,12 @@ import { OFFSCREEN_PAGE, PAGE_SCRIPT_FILE } from "../shared/extension-files";
 import { ExtensionMedia, MEDIA_EXTENSIONS } from "../shared/extension-media";
 import { DASH_FORMAT, HLS_FORMAT } from "../shared/media-types";
 import { isSchemeReport } from "../shared/scheme-messages";
+import { ByFormat } from "../stream/by-format";
+import { DashReferences } from "../stream/dash-references";
 import { HttpFetcher } from "../stream/fetching";
-import {
-  DashReferences,
-  HlsReferences,
-  PlaylistLister,
-} from "../stream/stream-lister";
+import { HlsReferences } from "../stream/hls-references";
+import { PlaylistLister } from "../stream/playlist-lister";
+import type { StreamLister } from "../stream/playlists";
 import { parseXml } from "../stream/xml-parser";
 import { CandidateRanker, RANKING } from "./candidate-ranker";
 import { BACKGROUND_CONFIG } from "./config";
@@ -62,11 +62,10 @@ const controller = new DownloadController({
   asker: new PageScript(chrome.scripting, PAGE_SCRIPT_FILE),
   filter: new PieceFilter(
     new PlaylistLister(
-      {
+      new ByFormat<StreamLister>(media, {
         [HLS_FORMAT]: new HlsReferences(playlists),
         [DASH_FORMAT]: new DashReferences(playlists, parseXml),
-      },
-      media,
+      }),
     ),
     media,
   ),

@@ -7,7 +7,7 @@ import {
   type MediaPlaylist,
   type Variant,
 } from "./hls-playlist";
-import type { StreamReader } from "./stream-reader";
+import type { StreamReader } from "./playlists";
 import {
   AUDIO_TRACK,
   EMPTY_PLAYLIST,

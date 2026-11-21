@@ -1,5 +1,5 @@
 import type { TrackFetcher } from "../stream/piece-fetcher";
-import type { StreamReader } from "../stream/stream-reader";
+import type { StreamReader } from "../stream/playlists";
 import { AUDIO_TRACK, NO_STREAMS } from "../stream/tracks";
 import { concatenate } from "./bytes";
 import type { MediaInputs } from "./media-inputs";

@@ -1,6 +1,6 @@
 import type { FrameReport, VideoCandidate } from "../shared/candidates";
 import { PLAYLIST_KIND, type MediaKinds } from "../shared/media-types";
-import type { StreamLister } from "../stream/stream-lister";
+import type { StreamLister } from "../stream/playlists";
 
 // Takes out of the frames' reports whatever should not be ranked.
 export interface CandidateFilter {

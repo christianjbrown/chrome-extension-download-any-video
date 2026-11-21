@@ -16,10 +16,12 @@ import {
   HLS_FORMAT,
   PLAYLIST_KIND,
 } from "../shared/media-types";
+import { ByFormat } from "../stream/by-format";
 import { DashTracks } from "../stream/dash-tracks";
 import { HttpFetcher } from "../stream/fetching";
 import { HlsTracks } from "../stream/hls-tracks";
 import { PieceFetcher } from "../stream/piece-fetcher";
+import type { StreamReader } from "../stream/playlists";
 import { PlaylistReader } from "../stream/stream-reader";
 import { parseXml } from "../stream/xml-parser";
 import { OFFSCREEN_CONFIG } from "./config";
@@ -41,11 +43,10 @@ const handler = new ConvertHandler({
       [FILE_KIND]: new VideoFetcher((url, init) => fetch(url, init)),
       [PLAYLIST_KIND]: new StreamFetcher(
         new PlaylistReader(
-          {
+          new ByFormat<StreamReader>(media, {
             [HLS_FORMAT]: new HlsTracks(pieces),
             [DASH_FORMAT]: new DashTracks(pieces, parseXml),
-          },
-          media,
+          }),
         ),
         new PieceFetcher(pieces, OFFSCREEN_CONFIG.parallelFetches),
       ),

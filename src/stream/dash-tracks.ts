@@ -1,6 +1,6 @@
 import { parseManifest, type DashRepresentation } from "./dash-manifest";
 import type { TextFetcher } from "./fetching";
-import type { StreamReader } from "./stream-reader";
+import type { StreamReader } from "./playlists";
 import {
   EMPTY_PLAYLIST,
   AUDIO_TRACK,
