@@ -1,4 +1,4 @@
-import { BlobUrls } from "../../src/offscreen/blob-urls";
+import { BlobUrls, SHARED_BYTES } from "../../src/offscreen/blob-urls";
 
 describe("BlobUrls", () => {
   it("hands out a URL for an MP4 blob of the bytes", async () => {
@@ -11,5 +11,13 @@ describe("BlobUrls", () => {
     expect(new Uint8Array(await blob.arrayBuffer())).toEqual(
       new Uint8Array([1, 2]),
     );
+  });
+
+  it("refuses bytes in memory shared with a worker", () => {
+    const api = { createObjectURL: vi.fn() };
+    const shared = new Uint8Array(new SharedArrayBuffer(2));
+
+    expect(() => new BlobUrls(api).create(shared)).toThrow(SHARED_BYTES);
+    expect(api.createObjectURL).not.toHaveBeenCalled();
   });
 });
