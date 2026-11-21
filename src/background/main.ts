@@ -4,6 +4,7 @@ import { OFFSCREEN_PAGE, PAGE_SCRIPT_FILE } from "../shared/extension-files";
 import { ExtensionMedia } from "../shared/extension-media";
 import { KindTest } from "../shared/kind-test";
 import { MEDIA_EXTENSIONS } from "../shared/media-extensions";
+import { PathExtensions } from "../shared/path-extensions";
 import {
   DASH_FORMAT,
   FILE_KIND,
@@ -111,7 +112,7 @@ const controller = new DownloadController({
       nextId: () => crypto.randomUUID(),
     }),
     isSaveable,
-    media,
+    new PathExtensions(isSaveable),
     // Both steps can fail on a video that is nonetheless a perfectly good
     // file: a server that only answers its own player, or a codec ffmpeg
     // cannot read.

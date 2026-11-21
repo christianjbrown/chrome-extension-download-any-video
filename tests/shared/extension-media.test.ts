@@ -38,17 +38,6 @@ describe("ExtensionMedia.kindOf", () => {
   });
 });
 
-describe("ExtensionMedia.extensionOf", () => {
-  it("is the file's own extension, lower case", () => {
-    expect(media.extensionOf("https://cdn.example/Clip.WebM")).toBe("webm");
-  });
-
-  it("is nothing for a playlist or a page", () => {
-    expect(media.extensionOf("https://cdn.example/p.m3u8")).toBeUndefined();
-    expect(media.extensionOf("https://cdn.example/p.html")).toBeUndefined();
-  });
-});
-
 describe("ExtensionMedia.formatOf", () => {
   it("tells HLS from DASH, and neither from a file or a bare path", () => {
     expect(media.formatOf("https://cdn.example/v/index.M3U8?x=1")).toBe("hls");

@@ -1,10 +1,8 @@
-import {
-  FILE_KIND,
-  type MediaKind,
-  type MediaKinds,
-  type PlaylistFormat,
-  type PlaylistFormats,
-  type SavedExtensions,
+import type {
+  MediaKind,
+  MediaKinds,
+  PlaylistFormat,
+  PlaylistFormats,
 } from "./media-types";
 import { pathExtension } from "./media-urls";
 
@@ -16,9 +14,7 @@ export interface MediaType {
 }
 
 // Tells what a URL is from the extension on its path alone.
-export class ExtensionMedia
-  implements MediaKinds, PlaylistFormats, SavedExtensions
-{
+export class ExtensionMedia implements MediaKinds, PlaylistFormats {
   constructor(private readonly types: ReadonlyMap<string, MediaType>) {}
 
   kindOf(url: string): MediaKind | undefined {
@@ -27,10 +23,6 @@ export class ExtensionMedia
 
   formatOf(url: string): PlaylistFormat | undefined {
     return this.typeOf(url)?.format;
-  }
-
-  extensionOf(url: string): string | undefined {
-    return this.kindOf(url) === FILE_KIND ? pathExtension(url) : undefined;
   }
 
   private typeOf(url: string): MediaType | undefined {
