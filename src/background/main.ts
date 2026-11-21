@@ -87,7 +87,14 @@ const clickScheme = new ClickScheme(
 const hiddenPage = new OffscreenDocument(
   chrome.offscreen,
   chrome.runtime,
-  OFFSCREEN_PAGE,
+  {
+    url: OFFSCREEN_PAGE,
+    // ffmpeg runs in a web worker, and the page watches Chrome's colour
+    // scheme for the toolbar icon. Another job is another reason here.
+    reasons: ["WORKERS", "MATCH_MEDIA"],
+    justification:
+      "Turns the video into an H.264 MP4 in a web worker before saving it, and reads the colour scheme so the toolbar icon matches it",
+  },
   new SerialQueue(),
 );
 const media = new ExtensionMedia(MEDIA_EXTENSIONS);

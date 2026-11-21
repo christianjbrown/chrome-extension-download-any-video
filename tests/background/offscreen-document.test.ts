@@ -1,6 +1,12 @@
 import { OffscreenDocument } from "../../src/background/offscreen-document";
 import { SerialQueue } from "../../src/shared/serial-queue";
 
+const page = {
+  url: "converter.html",
+  reasons: ["WORKERS", "MATCH_MEDIA"],
+  justification: "Converts videos and watches the colour scheme",
+};
+
 // A fake Chrome that keeps track of whether its one offscreen document is
 // there, and refuses a second one the way the real one does.
 function setup(alreadyOpen = false) {
@@ -30,7 +36,7 @@ function setup(alreadyOpen = false) {
     document: new OffscreenDocument(
       offscreen,
       runtime,
-      "converter.html",
+      page,
       new SerialQueue(),
     ),
   };
@@ -45,11 +51,7 @@ describe("OffscreenDocument", () => {
     expect(runtime.getContexts).toHaveBeenCalledWith({
       contextTypes: ["OFFSCREEN_DOCUMENT"],
     });
-    expect(offscreen.createDocument).toHaveBeenCalledExactlyOnceWith({
-      url: "converter.html",
-      reasons: ["WORKERS", "MATCH_MEDIA"],
-      justification: expect.stringMatching(/H\.264.*colour scheme/) as string,
-    });
+    expect(offscreen.createDocument).toHaveBeenCalledExactlyOnceWith(page);
   });
 
   it("leaves a document that is already open alone", async () => {

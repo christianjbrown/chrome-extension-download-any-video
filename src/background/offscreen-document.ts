@@ -10,6 +10,13 @@ export interface OffscreenApi {
   closeDocument(): Promise<void>;
 }
 
+// The extension's page to open, and what Chrome is told it is for.
+export interface OffscreenPage {
+  readonly url: string;
+  readonly reasons: string[];
+  readonly justification: string;
+}
+
 const OFFSCREEN_CONTEXT = "OFFSCREEN_DOCUMENT";
 
 export interface ContextsApi {
@@ -17,12 +24,6 @@ export interface ContextsApi {
     contextTypes: (typeof OFFSCREEN_CONTEXT)[];
   }): Promise<unknown[]>;
 }
-
-// Everything the page does: ffmpeg runs in a web worker, and the page watches
-// Chrome's colour scheme for the toolbar icon.
-const REASONS = ["WORKERS", "MATCH_MEDIA"];
-const JUSTIFICATION =
-  "Turns the video into an H.264 MP4 in a web worker before saving it, and reads the colour scheme so the toolbar icon matches it";
 
 // Chrome allows one offscreen document per extension, and this is the only
 // place that creates or closes it. It asks Chrome whether the document is
@@ -33,8 +34,7 @@ export class OffscreenDocument implements HiddenPage {
   constructor(
     private readonly offscreen: OffscreenApi,
     private readonly runtime: ContextsApi,
-    // The extension's page to open.
-    private readonly page: string,
+    private readonly page: OffscreenPage,
     private readonly queue: Sequencer,
   ) {}
 
@@ -63,10 +63,6 @@ export class OffscreenDocument implements HiddenPage {
   }
 
   private create(): Promise<void> {
-    return this.offscreen.createDocument({
-      url: this.page,
-      reasons: REASONS,
-      justification: JUSTIFICATION,
-    });
+    return this.offscreen.createDocument(this.page);
   }
 }
