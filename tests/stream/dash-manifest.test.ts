@@ -1,11 +1,10 @@
 import { DashManifestParser } from "../../src/stream/dash-manifest";
-import { DASH_PIECE_SOURCES } from "../../src/stream/dash-pieces";
 import type { XmlElement } from "../../src/stream/xml";
-import { xml } from "./fakes";
+import { pieceSources, xml } from "./fakes";
 
 // The XML parser hands back whatever root the test built.
 const parseManifest = (root: XmlElement, url: string) =>
-  new DashManifestParser(() => root, DASH_PIECE_SOURCES).parse("<MPD/>", url);
+  new DashManifestParser(() => root, pieceSources).parse("<MPD/>", url);
 
 const MPD = "https://cdn.example/v/manifest.mpd";
 const piece = (url: string, range?: { offset: number; length: number }) => ({

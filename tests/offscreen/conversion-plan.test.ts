@@ -5,13 +5,21 @@ import {
   NO_VIDEO,
   OUTPUT_NAME,
 } from "../../src/offscreen/conversion-plan";
+import {
+  CompatibleAudioCopy,
+  CompatibleVideoCopy,
+} from "../../src/offscreen/copy-shortcuts";
 
-const planner = new ConversionPlanner({
+const settings = {
   threads: 4,
   preset: "veryfast",
   crf: 20,
   profile: "high",
   audioBitrate: "160k",
+};
+const planner = new ConversionPlanner(settings, {
+  video: [new CompatibleVideoCopy()],
+  audio: [new CompatibleAudioCopy()],
 });
 
 const head = [
@@ -110,5 +118,24 @@ describe("ConversionPlanner", () => {
     expect(() => planner.plan({ audio: { codec: "mp3" } }, undefined)).toThrow(
       NO_VIDEO,
     );
+  });
+
+  it("tries each shortcut in turn and takes the first that suits", () => {
+    const never = { suits: () => false, args: ["-never"] };
+    const always = { suits: () => true, args: ["-always"] };
+    const choosy = new ConversionPlanner(settings, {
+      video: [never, always],
+      audio: [never],
+    });
+
+    expect(
+      choosy.plan(
+        {
+          video: { codec: "av1", pixelFormat: "yuv420p" },
+          audio: { codec: "aac" },
+        },
+        undefined,
+      ),
+    ).toEqual([...head, "-always", "-c:a", "aac", "-b:a", "160k", ...tail]);
   });
 });

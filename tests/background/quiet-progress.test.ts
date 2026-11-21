@@ -1,7 +1,6 @@
 import { QuietProgress } from "../../src/background/quiet-progress";
 import { ToolbarIndicator } from "../../src/background/toolbar-indicator";
-import { TOOLBAR_LOOKS } from "../../src/background/toolbar-looks";
-import { fakeIndicator } from "./fakes";
+import { fakeIndicator, looks } from "./fakes";
 
 function action() {
   return {
@@ -15,8 +14,8 @@ describe("QuietProgress", () => {
   it("only redraws progress when the number on the button would change", async () => {
     const toolbar = action();
     const indicator = new QuietProgress(
-      new ToolbarIndicator(toolbar, TOOLBAR_LOOKS),
-      TOOLBAR_LOOKS,
+      new ToolbarIndicator(toolbar, looks),
+      looks,
     );
 
     await indicator.showProgress(3, "convert", 0.421);
@@ -39,7 +38,7 @@ describe("QuietProgress", () => {
 
   it("passes everything that is not progress straight on", async () => {
     const inner = fakeIndicator();
-    const indicator = new QuietProgress(inner, TOOLBAR_LOOKS);
+    const indicator = new QuietProgress(inner, looks);
 
     await indicator.showIdle(3);
     await indicator.showBusy(3);
@@ -52,7 +51,7 @@ describe("QuietProgress", () => {
 
   it("redraws the same progress after the button showed something else", async () => {
     const inner = fakeIndicator();
-    const indicator = new QuietProgress(inner, TOOLBAR_LOOKS);
+    const indicator = new QuietProgress(inner, looks);
 
     await indicator.showProgress(3, "fetch", 0.5);
     await indicator.showIdle(3);

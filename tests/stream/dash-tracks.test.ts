@@ -1,5 +1,4 @@
 import { DashManifestParser } from "../../src/stream/dash-manifest";
-import { DASH_PIECE_SOURCES } from "../../src/stream/dash-pieces";
 import { DashTracks } from "../../src/stream/dash-tracks";
 import { SharpestFirst } from "../../src/stream/sharpest-first";
 import {
@@ -9,7 +8,7 @@ import {
   NO_STREAMS,
 } from "../../src/stream/tracks";
 import type { XmlElement } from "../../src/stream/xml";
-import { FakeFetcher, xml } from "./fakes";
+import { FakeFetcher, pieceSources, xml } from "./fakes";
 
 const MPD = "https://cdn.example/v/manifest.mpd";
 
@@ -49,7 +48,7 @@ function reader(root: XmlElement) {
     parse,
     tracks: new DashTracks(
       fetcher,
-      new DashManifestParser(parse, DASH_PIECE_SOURCES),
+      new DashManifestParser(parse, pieceSources),
       new SharpestFirst(),
     ),
   };

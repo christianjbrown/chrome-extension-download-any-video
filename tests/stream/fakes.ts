@@ -1,3 +1,7 @@
+import {
+  SegmentListSource,
+  SegmentTemplateSource,
+} from "../../src/stream/dash-pieces";
 import type { ByteFetcher, TextFetcher } from "../../src/stream/fetchers";
 import type { Progress } from "../../src/stream/progress";
 import type { ByteRange } from "../../src/stream/tracks";
@@ -51,3 +55,9 @@ export function xml(name: string, options: Options = {}): XmlElement {
 
 export const decode = (buffer: ArrayBuffer): string =>
   new TextDecoder().decode(buffer);
+
+// The piece sources the entry points hand a DASH parser, in their order.
+export const pieceSources = [
+  new SegmentListSource(),
+  new SegmentTemplateSource(),
+];

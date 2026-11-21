@@ -1,9 +1,11 @@
 // The script injected into every frame of the tab: builds the finder and leaves
 // it where the service worker's second call can reach it. It changes nothing on
 // the page and listens to nothing; it only answers.
-import { ExtensionMedia, MEDIA_EXTENSIONS } from "../shared/extension-media";
+import { ExtensionMedia } from "../shared/extension-media";
+import { MEDIA_EXTENSIONS } from "../shared/media-extensions";
 import { FINDER_KEY, type InstalledFinder } from "../shared/installed-finder";
-import { HEIGHT_PATTERNS, UrlHeights } from "../shared/url-heights";
+import { HEIGHT_PATTERNS } from "../shared/height-patterns";
+import { UrlHeights } from "../shared/url-heights";
 import { MediaCandidates } from "./media-candidates";
 import { NetworkFinder } from "./network-entries";
 import { MetadataFinder } from "./page-metadata";

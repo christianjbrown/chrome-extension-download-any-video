@@ -1,10 +1,15 @@
 // The service worker: builds the object graph and connects it to Chrome's events.
+import { CONVERT_STAGE, FETCH_STAGE } from "../shared/conversion-messages";
 import { OFFSCREEN_PAGE, PAGE_SCRIPT_FILE } from "../shared/extension-files";
-import { ExtensionMedia, MEDIA_EXTENSIONS } from "../shared/extension-media";
+import { ExtensionMedia } from "../shared/extension-media";
+import { MEDIA_EXTENSIONS } from "../shared/media-extensions";
 import { DASH_FORMAT, HLS_FORMAT } from "../shared/media-types";
 import { ByFormat } from "../stream/by-format";
 import { DashManifestParser } from "../stream/dash-manifest";
-import { DASH_PIECE_SOURCES } from "../stream/dash-pieces";
+import {
+  SegmentListSource,
+  SegmentTemplateSource,
+} from "../stream/dash-pieces";
 import { DashReferences } from "../stream/dash-references";
 import { HttpFetcher } from "../stream/fetching";
 import { HlsPlaylistParser } from "../stream/hls-playlist";
@@ -13,7 +18,8 @@ import { PlaylistLister } from "../stream/playlist-lister";
 import type { StreamLister } from "../stream/playlists";
 import { parseXml } from "../stream/xml-parser";
 import { CandidateRanker, RANKING } from "./candidate-ranker";
-import { CHROME_TRANSLATIONS, ChromeErrorExplainer } from "./chrome-errors";
+import { ChromeErrorExplainer } from "./chrome-errors";
+import { CHROME_TRANSLATIONS } from "./chrome-translations";
 import { ClickScheme } from "./click-scheme";
 import { ClosedTabAction } from "./closed-tab-action";
 import { BACKGROUND_CONFIG } from "./config";
@@ -31,18 +37,26 @@ import { QuietProgress } from "./quiet-progress";
 import { SchemeReportListener } from "./scheme-report-listener";
 import { SCHEME_POLICY, UNKNOWN_SCHEME } from "./scheme-state";
 import { SchemeStore } from "./scheme-store";
+import { ConvertingTitle, FetchingTitle } from "./stage-titles";
 import { SystemClock } from "./system-clock";
 import { TabScheme } from "./tab-scheme";
 import { ToolbarIcon } from "./toolbar-icon";
+import type { StageTitles } from "./toolbar";
 import { ToolbarIndicator } from "./toolbar-indicator";
-import { TOOLBAR_LOOKS } from "./toolbar-looks";
+import { ButtonLooks } from "./toolbar-looks";
 import { ToolbarScheme } from "./toolbar-scheme";
 import { VideoFilename } from "./video-filename";
 import { VideoSaver } from "./video-saver";
 
+// Another stage is another entry here, and the compiler asks for one.
+const stageTitles = {
+  [FETCH_STAGE]: new FetchingTitle(),
+  [CONVERT_STAGE]: new ConvertingTitle(),
+} satisfies StageTitles;
+const looks = new ButtonLooks(stageTitles);
 const indicator = new QuietProgress(
-  new ToolbarIndicator(new ClosedTabAction(chrome.action), TOOLBAR_LOOKS),
-  TOOLBAR_LOOKS,
+  new ToolbarIndicator(new ClosedTabAction(chrome.action), looks),
+  looks,
 );
 const toolbarScheme = new ToolbarScheme(
   new SchemeStore(chrome.storage.local, UNKNOWN_SCHEME),
@@ -61,6 +75,9 @@ const hiddenPage = new OffscreenDocument(
   OFFSCREEN_PAGE,
 );
 const media = new ExtensionMedia(MEDIA_EXTENSIONS);
+// The ways a DASH manifest names its pieces, most specific first. Another way
+// is another entry here.
+const pieceSources = [new SegmentListSource(), new SegmentTemplateSource()];
 const playlists = new HttpFetcher((url, init) => fetch(url, init));
 const controller = new DownloadController({
   asker: new PageScript(chrome.scripting, PAGE_SCRIPT_FILE),
@@ -70,7 +87,7 @@ const controller = new DownloadController({
         [HLS_FORMAT]: new HlsReferences(playlists, new HlsPlaylistParser()),
         [DASH_FORMAT]: new DashReferences(
           playlists,
-          new DashManifestParser(parseXml, DASH_PIECE_SOURCES),
+          new DashManifestParser(parseXml, pieceSources),
         ),
       }),
     ),
@@ -84,6 +101,10 @@ const controller = new DownloadController({
       nextId: () => crypto.randomUUID(),
     }),
     media,
+    // Both steps can fail on a video that is nonetheless a perfectly good
+    // file: a server that only answers its own player, or a codec ffmpeg
+    // cannot read.
+    [FETCH_STAGE, CONVERT_STAGE],
   ),
   names: new VideoFilename(
     new SystemClock(),

@@ -1,8 +1,7 @@
 import { DashManifestParser } from "../../src/stream/dash-manifest";
-import { DASH_PIECE_SOURCES } from "../../src/stream/dash-pieces";
 import { DashReferences } from "../../src/stream/dash-references";
 import { parseXml } from "../../src/stream/xml-parser";
-import { FakeFetcher } from "./fakes";
+import { FakeFetcher, pieceSources } from "./fakes";
 
 describe("DashReferences", () => {
   it("lists the pieces of every representation", async () => {
@@ -21,7 +20,7 @@ describe("DashReferences", () => {
           "</MPD>",
         ].join(""),
       }),
-      new DashManifestParser(parseXml, DASH_PIECE_SOURCES),
+      new DashManifestParser(parseXml, pieceSources),
     );
 
     await expect(

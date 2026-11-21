@@ -1,5 +1,5 @@
 import { ToolbarIndicator } from "../../src/background/toolbar-indicator";
-import { TOOLBAR_LOOKS } from "../../src/background/toolbar-looks";
+import { looks } from "./fakes";
 
 function action() {
   return {
@@ -61,7 +61,7 @@ describe("ToolbarIndicator", () => {
   ])("shows $title on that tab only", async ({ show, text, color, title }) => {
     const toolbar = action();
 
-    await show(new ToolbarIndicator(toolbar, TOOLBAR_LOOKS));
+    await show(new ToolbarIndicator(toolbar, looks));
 
     expect(toolbar.setBadgeText).toHaveBeenCalledWith({ tabId: 3, text });
     expect(toolbar.setBadgeBackgroundColor).toHaveBeenCalledWith({

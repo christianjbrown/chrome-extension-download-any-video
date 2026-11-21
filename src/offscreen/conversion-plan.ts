@@ -1,10 +1,17 @@
 import { CONVERTED_EXTENSION } from "../shared/conversion-messages";
+import {
+  AUDIO_CODEC_FLAG,
+  COMPATIBLE_AUDIO_CODEC,
+  COMPATIBLE_PIXEL_FORMAT,
+  VIDEO_CODEC_FLAG,
+} from "./compatible-format";
 import type {
   AudioStream,
   ConversionPlanning,
   EncodeSettings,
+  Shortcut,
+  Shortcuts,
   StreamInfo,
-  VideoStream,
 } from "./conversion-parts";
 
 export const INPUT_NAME = "input";
@@ -18,11 +25,6 @@ const MAP_FLAG = "-map";
 
 export const NO_VIDEO = "There is no picture in that file, only sound";
 
-// What plays everywhere: H.264 with 4:2:0 colour and AAC sound, in an MP4.
-const COMPATIBLE_VIDEO_CODEC = "h264";
-const COMPATIBLE_PIXEL_FORMAT = "yuv420p";
-const COMPATIBLE_AUDIO_CODEC = "aac";
-
 const FIRST_VIDEO_STREAM = "0:v:0";
 // The trailing ? keeps ffmpeg from refusing a silent video.
 const FIRST_AUDIO_STREAM_IF_ANY = "0:a:0?";
@@ -30,8 +32,6 @@ const SECOND_INPUT_AUDIO_IF_ANY = "1:a:0?";
 
 // ffmpeg's own flags and values, as its command line spells them.
 const THREADS_FLAG = "-threads";
-const VIDEO_CODEC_FLAG = "-c:v";
-const AUDIO_CODEC_FLAG = "-c:a";
 const PRESET_FLAG = "-preset";
 const CRF_FLAG = "-crf";
 const PIXEL_FORMAT_FLAG = "-pix_fmt";
@@ -39,8 +39,6 @@ const PROFILE_FLAG = "-profile:v";
 const VIDEO_FILTER_FLAG = "-vf";
 const AUDIO_BITRATE_FLAG = "-b:a";
 const MOV_FLAGS_FLAG = "-movflags";
-// Keeps a stream's encoded bytes as they are.
-const COPY_CODEC = "copy";
 const H264_ENCODER = "libx264";
 // The index goes at the front of the file, so players start at once.
 const FAST_START_FLAG = "+faststart";
@@ -50,7 +48,6 @@ const threads = (settings: EncodeSettings): readonly string[] => [
   String(settings.threads),
 ];
 
-const COPY_VIDEO: readonly string[] = [VIDEO_CODEC_FLAG, COPY_CODEC];
 // H.264 needs even dimensions, so odd ones are rounded up by a pixel.
 const EVEN_DIMENSIONS = "scale=ceil(iw/2)*2:ceil(ih/2)*2";
 const encodeVideo = (settings: EncodeSettings): readonly string[] => [
@@ -68,7 +65,6 @@ const encodeVideo = (settings: EncodeSettings): readonly string[] => [
   VIDEO_FILTER_FLAG,
   EVEN_DIMENSIONS,
 ];
-const COPY_AUDIO: readonly string[] = [AUDIO_CODEC_FLAG, COPY_CODEC];
 const encodeAudio = (settings: EncodeSettings): readonly string[] => [
   AUDIO_CODEC_FLAG,
   COMPATIBLE_AUDIO_CODEC,
@@ -77,14 +73,7 @@ const encodeAudio = (settings: EncodeSettings): readonly string[] => [
 ];
 const FAST_START: readonly string[] = [MOV_FLAGS_FLAG, FAST_START_FLAG];
 
-// A stream that can go into the MP4 without re-encoding, and how.
-interface Shortcut<S> {
-  readonly suits: (stream: S) => boolean;
-  readonly args: readonly string[];
-}
-
 // The first shortcut that suits the stream, or a re-encode when none does.
-// Another copyable codec is another entry here.
 function treatment<S>(
   shortcuts: readonly Shortcut<S>[],
   stream: S,
@@ -93,29 +82,14 @@ function treatment<S>(
   return shortcuts.find((shortcut) => shortcut.suits(stream))?.args ?? encode;
 }
 
-const VIDEO_SHORTCUTS: readonly Shortcut<VideoStream>[] = [
-  {
-    suits: (video) =>
-      video.codec === COMPATIBLE_VIDEO_CODEC &&
-      video.pixelFormat === COMPATIBLE_PIXEL_FORMAT,
-    args: COPY_VIDEO,
-  },
-];
-
-const AUDIO_SHORTCUTS: readonly Shortcut<AudioStream>[] = [
-  {
-    suits: (audio) => audio.codec === COMPATIBLE_AUDIO_CODEC,
-    args: COPY_AUDIO,
-  },
-];
-
 function audioArguments(
+  shortcuts: readonly Shortcut<AudioStream>[],
   audio: AudioStream | undefined,
   settings: EncodeSettings,
 ): readonly string[] {
   return audio === undefined
     ? []
-    : treatment(AUDIO_SHORTCUTS, audio, encodeAudio(settings));
+    : treatment(shortcuts, audio, encodeAudio(settings));
 }
 
 interface Sound {
@@ -144,7 +118,10 @@ function soundOf(main: StreamInfo, audio: StreamInfo | undefined): Sound {
 // Streams that already play everywhere are copied as they are, so nothing is
 // lost; anything else is re-encoded.
 export class ConversionPlanner implements ConversionPlanning {
-  constructor(private readonly settings: EncodeSettings) {}
+  constructor(
+    private readonly settings: EncodeSettings,
+    private readonly shortcuts: Shortcuts,
+  ) {}
 
   plan(main: StreamInfo, audio: StreamInfo | undefined): string[] {
     if (main.video === undefined) {
@@ -158,8 +135,12 @@ export class ConversionPlanner implements ConversionPlanning {
       FIRST_VIDEO_STREAM,
       MAP_FLAG,
       sound.map,
-      ...treatment(VIDEO_SHORTCUTS, main.video, encodeVideo(this.settings)),
-      ...audioArguments(sound.stream, this.settings),
+      ...treatment(
+        this.shortcuts.video,
+        main.video,
+        encodeVideo(this.settings),
+      ),
+      ...audioArguments(this.shortcuts.audio, sound.stream, this.settings),
       ...FAST_START,
       OUTPUT_NAME,
     ];

@@ -4,7 +4,8 @@
 // page once the last download has landed.
 import { DARK_SCHEME_QUERY } from "../shared/colour-scheme";
 import { FFMPEG_FILES } from "../shared/extension-files";
-import { ExtensionMedia, MEDIA_EXTENSIONS } from "../shared/extension-media";
+import { ExtensionMedia } from "../shared/extension-media";
+import { MEDIA_EXTENSIONS } from "../shared/media-extensions";
 import {
   DASH_FORMAT,
   FILE_KIND,
@@ -13,7 +14,10 @@ import {
 } from "../shared/media-types";
 import { ByFormat } from "../stream/by-format";
 import { DashManifestParser } from "../stream/dash-manifest";
-import { DASH_PIECE_SOURCES } from "../stream/dash-pieces";
+import {
+  SegmentListSource,
+  SegmentTemplateSource,
+} from "../stream/dash-pieces";
 import { DashTracks } from "../stream/dash-tracks";
 import { HttpFetcher } from "../stream/fetching";
 import { HlsPlaylistParser } from "../stream/hls-playlist";
@@ -26,6 +30,7 @@ import { parseXml } from "../stream/xml-parser";
 import { BlobUrls } from "./blob-urls";
 import { OFFSCREEN_CONFIG } from "./config";
 import { ConversionPlanner } from "./conversion-plan";
+import { CompatibleAudioCopy, CompatibleVideoCopy } from "./copy-shortcuts";
 import { ConvertHandler } from "./convert-handler";
 import { ConvertListener } from "./convert-listener";
 import { FfmpegEngine } from "./ffmpeg-engine";
@@ -39,8 +44,16 @@ import { VideoFetcher } from "./video-fetcher";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 
 const media = new ExtensionMedia(MEDIA_EXTENSIONS);
+// The ways a DASH manifest names its pieces, most specific first. Another way
+// is another entry here.
+const pieceSources = [new SegmentListSource(), new SegmentTemplateSource()];
 const sizes = new SharpestFirst();
 const pieces = new HttpFetcher((url, init) => fetch(url, init));
+// Another copyable codec is another entry here.
+const shortcuts = {
+  video: [new CompatibleVideoCopy()],
+  audio: [new CompatibleAudioCopy()],
+};
 const listener = new ConvertListener(
   new ConvertHandler({
     fetcher: new SourceFetcher(
@@ -56,7 +69,7 @@ const listener = new ConvertListener(
               ),
               [DASH_FORMAT]: new DashTracks(
                 pieces,
-                new DashManifestParser(parseXml, DASH_PIECE_SOURCES),
+                new DashManifestParser(parseXml, pieceSources),
                 sizes,
               ),
             }),
@@ -74,7 +87,7 @@ const listener = new ConvertListener(
         classWorker: chrome.runtime.getURL(FFMPEG_FILES.classWorker),
       }),
       parser: new StreamInfoParser(),
-      planner: new ConversionPlanner(OFFSCREEN_CONFIG.encoding),
+      planner: new ConversionPlanner(OFFSCREEN_CONFIG.encoding, shortcuts),
     }),
     urls: new BlobUrls(URL),
     progress: new RuntimeProgress(chrome.runtime),
