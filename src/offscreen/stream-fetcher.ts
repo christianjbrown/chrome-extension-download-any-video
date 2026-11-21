@@ -1,10 +1,10 @@
-import type { TrackFetcher } from "../stream/piece-fetcher";
+import type { TrackFetcher } from "../stream/fetchers";
 import type { StreamReader } from "../stream/playlists";
 import { AUDIO_TRACK, NO_STREAMS } from "../stream/tracks";
 import { concatenate } from "./bytes";
+import type { Fetches } from "./conversion-parts";
 import type { MediaInputs } from "./media-inputs";
 import type { ProgressListener } from "./progress";
-import type { Fetches } from "./video-fetcher";
 
 // A video the page only offers as a playlist: the pieces are fetched and
 // joined into one file per track. Fragmented MP4 after its initialisation

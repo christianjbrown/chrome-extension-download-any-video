@@ -1,4 +1,3 @@
-import { pathExtension } from "./media-urls";
 import {
   DASH_FORMAT,
   FILE_KIND,
@@ -10,6 +9,7 @@ import {
   type PlaylistFormats,
   type SavedExtensions,
 } from "./media-types";
+import { pathExtension } from "./media-urls";
 
 // What an extension on a URL's path stands for.
 export interface MediaType {

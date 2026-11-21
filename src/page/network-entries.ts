@@ -1,9 +1,5 @@
 import { NETWORK_ORIGIN, type VideoCandidate } from "../shared/candidates";
-import type { UrlCandidates } from "./url-candidates";
-
-export interface NetworkLog {
-  find(): VideoCandidate[];
-}
+import type { NetworkLog, UrlCandidates } from "./finder-parts";
 
 // The addresses the page has fetched so far.
 export type ResourceUrls = () => readonly string[];

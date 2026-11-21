@@ -1,11 +1,7 @@
 import type { FrameReport, VideoCandidate } from "../shared/candidates";
 import { PLAYLIST_KIND, type MediaKinds } from "../shared/media-types";
 import type { StreamLister } from "../stream/playlists";
-
-// Takes out of the frames' reports whatever should not be ranked.
-export interface CandidateFilter {
-  filter(reports: readonly FrameReport[]): Promise<FrameReport[]>;
-}
+import type { CandidateFilter } from "./download-steps";
 
 // A player fetches a playlist's pieces one by one, and the page's network log
 // shows each of them. A piece with a file's extension, an init.mp4 or a

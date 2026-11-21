@@ -1,4 +1,5 @@
-import { VisibleVideoChooser, type Placed } from "../../src/page/visible-video";
+import type { Placed } from "../../src/page/finder-parts";
+import { VisibleVideoChooser } from "../../src/page/visible-video";
 import { video } from "./fakes";
 
 const viewport = { width: 1000, height: 800 };

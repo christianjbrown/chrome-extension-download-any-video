@@ -2,7 +2,6 @@
 // runs. It has ffmpeg.wasm in it for converting videos, and it watches
 // Chrome's colour scheme for the service worker, which swaps it for a fresh
 // page once the last download has landed.
-import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { DARK_SCHEME_QUERY } from "../shared/colour-scheme";
 import { FFMPEG_FILES } from "../shared/extension-files";
 import { ExtensionMedia, MEDIA_EXTENSIONS } from "../shared/extension-media";
@@ -23,8 +22,8 @@ import { PieceFetcher } from "../stream/piece-fetcher";
 import type { StreamReader } from "../stream/playlists";
 import { PlaylistReader } from "../stream/stream-reader";
 import { parseXml } from "../stream/xml-parser";
-import { OFFSCREEN_CONFIG } from "./config";
 import { BlobUrls } from "./blob-urls";
+import { OFFSCREEN_CONFIG } from "./config";
 import { ConversionPlanner } from "./conversion-plan";
 import { ConvertHandler } from "./convert-handler";
 import { ConvertListener } from "./convert-listener";
@@ -36,6 +35,7 @@ import { StreamFetcher } from "./stream-fetcher";
 import { StreamInfoParser } from "./stream-info";
 import { Transcoder } from "./transcoder";
 import { VideoFetcher } from "./video-fetcher";
+import { FFmpeg } from "@ffmpeg/ffmpeg";
 
 const media = new ExtensionMedia(MEDIA_EXTENSIONS);
 const pieces = new HttpFetcher((url, init) => fetch(url, init));

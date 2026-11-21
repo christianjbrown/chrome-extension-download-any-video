@@ -1,5 +1,11 @@
 import { CONVERTED_EXTENSION } from "../shared/conversion-messages";
-import type { AudioStream, StreamInfo, VideoStream } from "./stream-info";
+import type {
+  AudioStream,
+  ConversionPlanning,
+  EncodeSettings,
+  StreamInfo,
+  VideoStream,
+} from "./conversion-parts";
 
 export const INPUT_NAME = "input";
 // A stream's sound, when it came as a separate track.
@@ -9,28 +15,6 @@ export const OUTPUT_NAME = `output.${CONVERTED_EXTENSION}`;
 // The flag that names an input file, in a plan and when asking about a file.
 export const INPUT_FLAG = "-i";
 const MAP_FLAG = "-map";
-
-export interface ConversionPlanning {
-  // The ffmpeg arguments that turn the inputs into OUTPUT_NAME: the picture
-  // from INPUT_NAME, the sound from AUDIO_INPUT_NAME when there is one and
-  // otherwise from INPUT_NAME too.
-  plan(main: StreamInfo, audio: StreamInfo | undefined): string[];
-}
-
-// How hard ffmpeg works on a video it has to re-encode, and what it aims for.
-export interface EncodeSettings {
-  // Left to pick its own thread count, ffmpeg.wasm's multi-threaded build
-  // asks for more workers than it has and deadlocks.
-  readonly threads: number;
-  // x264's speed against size trade.
-  readonly preset: string;
-  // x264's constant quality: lower looks better and takes more room.
-  readonly crf: number;
-  // The H.264 profile, which decides which players can open the file.
-  readonly profile: string;
-  // What the sound is re-encoded at, in ffmpeg's own notation.
-  readonly audioBitrate: string;
-}
 
 export const NO_VIDEO = "There is no picture in that file, only sound";
 

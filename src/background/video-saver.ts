@@ -1,4 +1,4 @@
-import type { DownloadCompletion } from "./download-completion";
+import type { DownloadCompletion, VideoDownloader } from "./download-steps";
 
 // A file of the same name already there is kept, and this one is numbered.
 const UNIQUIFY = "uniquify";
@@ -10,10 +10,6 @@ export interface DownloadStarter {
     saveAs: false;
     conflictAction: typeof UNIQUIFY;
   }): Promise<number>;
-}
-
-export interface VideoDownloader {
-  save(url: string, filename: string): Promise<void>;
 }
 
 // Chrome does the saving, so the file lands like any other download: in the

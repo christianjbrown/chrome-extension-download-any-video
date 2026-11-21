@@ -1,10 +1,6 @@
 import { METADATA_ORIGIN, type VideoCandidate } from "../shared/candidates";
 import type { ElementTree, MetadataElement } from "./dom";
-import type { UrlCandidates } from "./url-candidates";
-
-export interface PageMetadata {
-  find(tree: ElementTree<MetadataElement>): VideoCandidate[];
-}
+import type { PageMetadata, UrlCandidates } from "./finder-parts";
 
 export type JsonParser = (text: string) => unknown;
 

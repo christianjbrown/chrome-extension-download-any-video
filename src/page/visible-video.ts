@@ -1,13 +1,5 @@
-import type { Box, Boxed, Viewport } from "./dom";
-
-// A found video, as far as choosing between them goes: where it is on screen.
-export interface Placed {
-  readonly element: Boxed;
-}
-
-export interface VideoChooser {
-  choose<V extends Placed>(videos: readonly V[]): V | undefined;
-}
+import type { Box, Viewport } from "./dom";
+import type { Placed, VideoChooser } from "./finder-parts";
 
 function visibleArea(box: Box, viewport: Viewport): number {
   const width =

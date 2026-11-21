@@ -1,12 +1,13 @@
-import type { Ranker } from "./candidate-ranker";
-import type { ErrorExplainer } from "./chrome-errors";
-import type { FrameAsker } from "./page-script";
-import type { CandidateFilter } from "./piece-filter";
-import type { DownloadIndicator } from "./toolbar-indicator";
-import type { FinishedDownload } from "./toolbar-looks";
+import type {
+  CandidateFilter,
+  ErrorExplainer,
+  Filenames,
+  FrameAsker,
+  Ranker,
+  VideoDownloader,
+} from "./download-steps";
+import type { DownloadIndicator, FinishedDownload } from "./toolbar";
 import type { VideoConverter } from "./video-converter";
-import type { Filenames } from "./video-filename";
-import type { VideoDownloader } from "./video-saver";
 
 export interface ClickedTab {
   id?: number | undefined;

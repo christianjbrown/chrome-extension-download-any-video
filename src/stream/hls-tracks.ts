@@ -1,4 +1,4 @@
-import type { TextFetcher } from "./fetching";
+import type { TextFetcher } from "./fetchers";
 import type { AudioRendition, HlsParsing, MediaPlaylist, Variant } from "./hls";
 import type { StreamReader } from "./playlists";
 import {

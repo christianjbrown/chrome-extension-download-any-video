@@ -1,6 +1,6 @@
-import { media } from "../shared/media";
 import { PieceFilter } from "../../src/background/piece-filter";
 import type { VideoCandidate } from "../../src/shared/candidates";
+import { media } from "../shared/media";
 
 const c = (url: string, origin: VideoCandidate["origin"] = "network") => ({
   url,

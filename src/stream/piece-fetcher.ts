@@ -1,19 +1,6 @@
-import type { ByteFetcher } from "./fetching";
+import type { ByteFetcher, FetchedTrack, TrackFetcher } from "./fetchers";
 import type { Progress } from "./progress";
-import type { Track, TrackRole } from "./tracks";
-
-// A track's bytes, in playing order.
-export interface FetchedTrack {
-  readonly role: TrackRole;
-  readonly parts: readonly ArrayBuffer[];
-}
-
-export interface TrackFetcher {
-  fetchAll(
-    tracks: readonly Track[],
-    progress: Progress,
-  ): Promise<FetchedTrack[]>;
-}
+import type { Track } from "./tracks";
 
 // Fetches every piece of every track, a few at a time, saying how far it has
 // got after each batch.

@@ -1,5 +1,5 @@
 import { StreamFetcher } from "../../src/offscreen/stream-fetcher";
-import type { FetchedTrack } from "../../src/stream/piece-fetcher";
+import type { FetchedTrack } from "../../src/stream/fetchers";
 import type { Progress } from "../../src/stream/progress";
 import { NO_STREAMS, type Track } from "../../src/stream/tracks";
 

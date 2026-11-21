@@ -1,5 +1,5 @@
 import { errorMessage } from "../shared/error-message";
-import type { ToolbarAction } from "./toolbar-indicator";
+import type { ToolbarAction } from "./toolbar";
 
 // What Chrome says when a call names a tab that has already closed.
 export const CLOSED_TAB_ERROR = /^No tab with id: \d+/;

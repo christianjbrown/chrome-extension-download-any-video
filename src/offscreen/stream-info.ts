@@ -1,20 +1,9 @@
-export interface VideoStream {
-  readonly codec: string;
-  readonly pixelFormat: string;
-}
-
-export interface AudioStream {
-  readonly codec: string;
-}
-
-export interface StreamInfo {
-  readonly video?: VideoStream;
-  readonly audio?: AudioStream;
-}
-
-export interface StreamInfoParsing {
-  parse(lines: readonly string[]): StreamInfo;
-}
+import type {
+  AudioStream,
+  StreamInfo,
+  StreamInfoParsing,
+  VideoStream,
+} from "./conversion-parts";
 
 // "Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, bt709), 1280x720 ..."
 // The codec is followed by its profile and tag in brackets, then the pixel format.

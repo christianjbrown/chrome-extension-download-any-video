@@ -1,13 +1,6 @@
 import { CONVERTED_EXTENSION } from "../shared/conversion-messages";
+import type { Clock, Filenames } from "./download-steps";
 import { kebab } from "./filename-text";
-
-export interface Clock {
-  now(): Date;
-}
-
-export interface Filenames {
-  name(title: string, extension: string | undefined): string;
-}
 
 const FALLBACK_STEM = "video";
 const FALLBACK_EXTENSION = CONVERTED_EXTENSION;

@@ -3,9 +3,9 @@ import {
   type MediaKind,
   type MediaKinds,
 } from "../shared/media-types";
+import type { Fetches } from "./conversion-parts";
 import type { MediaInputs } from "./media-inputs";
 import type { ProgressListener } from "./progress";
-import type { Fetches } from "./video-fetcher";
 
 // A whole file and a playlist are fetched differently; the address says which.
 // An address that says nothing is taken for a file, since that is what Chrome

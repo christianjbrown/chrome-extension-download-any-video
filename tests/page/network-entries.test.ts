@@ -1,5 +1,5 @@
-import { candidates } from "./candidates";
 import { NetworkFinder } from "../../src/page/network-entries";
+import { candidates } from "./candidates";
 
 describe("NetworkFinder", () => {
   it("keeps the video files and playlists the page fetched", () => {

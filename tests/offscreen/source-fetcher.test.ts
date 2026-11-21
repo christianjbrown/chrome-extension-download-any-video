@@ -1,5 +1,5 @@
-import { media } from "../shared/media";
 import { SourceFetcher } from "../../src/offscreen/source-fetcher";
+import { media } from "../shared/media";
 
 describe("SourceFetcher", () => {
   const fetcher = (name: string) => ({

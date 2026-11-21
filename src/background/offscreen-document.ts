@@ -1,3 +1,5 @@
+import type { HiddenPage } from "./hidden-page";
+
 export interface OffscreenApi {
   createDocument(parameters: {
     url: string;
@@ -13,14 +15,6 @@ export interface ContextsApi {
   getContexts(filter: {
     contextTypes: (typeof OFFSCREEN_CONTEXT)[];
   }): Promise<unknown[]>;
-}
-
-// The extension's one hidden page, as the things that use it see it.
-export interface HiddenPage {
-  // Makes sure the page is there, creating it if it is not.
-  open(): Promise<void>;
-  // Swaps the page for a fresh one, which drops everything the old one held.
-  renew(): Promise<void>;
 }
 
 // Everything the page does: ffmpeg runs in a web worker, and the page watches

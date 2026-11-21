@@ -1,5 +1,5 @@
-import { candidates } from "./candidates";
 import { PlayerAttributeFinder } from "../../src/page/player-attributes";
+import { candidates } from "./candidates";
 import { element, video } from "./fakes";
 
 describe("PlayerAttributeFinder", () => {

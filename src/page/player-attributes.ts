@@ -1,11 +1,7 @@
 import { PLAYER_ORIGIN, type VideoCandidate } from "../shared/candidates";
 import type { PlayerElement } from "./dom";
+import type { PlayerAttributes, UrlCandidates } from "./finder-parts";
 import { ancestors } from "./tree-walk";
-import type { UrlCandidates } from "./url-candidates";
-
-export interface PlayerAttributes {
-  find(video: PlayerElement): VideoCandidate[];
-}
 
 // Characters that end a URL in an attribute: quotes, brackets, blanks, and the
 // backslash that starts a JSON escape.

@@ -1,10 +1,13 @@
 import type { FrameReport, VideoCandidate } from "../shared/candidates";
+import type { InstalledFinder } from "../shared/installed-finder";
 import type { ElementTree } from "./dom";
-import type { NetworkLog } from "./network-entries";
-import type { PageMetadata } from "./page-metadata";
-import type { PlayerAttributes } from "./player-attributes";
-import type { VideoChooser } from "./visible-video";
-import type { VideoElements } from "./video-elements";
+import type {
+  NetworkLog,
+  PageMetadata,
+  PlayerAttributes,
+  VideoChooser,
+  VideoElements,
+} from "./finder-parts";
 
 export interface FinderParts {
   readonly tree: ElementTree;
@@ -19,7 +22,7 @@ export interface FinderParts {
 // Everything this frame can say about its video, most trustworthy first: the
 // video in view and the player around it, then the page's metadata, then what
 // the page fetched. Each address once, where it was first found.
-export class VideoFinder {
+export class VideoFinder implements InstalledFinder {
   constructor(private readonly parts: FinderParts) {}
 
   find(): FrameReport {

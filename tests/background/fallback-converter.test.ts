@@ -1,6 +1,6 @@
-import { media } from "../shared/media";
 import { FallbackConverter } from "../../src/background/fallback-converter";
 import { ConversionError } from "../../src/background/video-converter";
+import { media } from "../shared/media";
 
 describe("FallbackConverter", () => {
   it("hands back whatever the real converter made", async () => {

@@ -1,3 +1,5 @@
+import type { DownloadCompletion } from "./download-steps";
+
 interface DownloadDelta {
   id: number;
   state?: { current?: string | undefined } | undefined;
@@ -11,11 +13,6 @@ export interface DownloadEvents {
     addListener(listener: DeltaListener): void;
     removeListener(listener: DeltaListener): void;
   };
-}
-
-export interface DownloadCompletion {
-  // Settles when download `id` has finished, or failed.
-  finished(id: number): Promise<void>;
 }
 
 const COMPLETE = "complete";

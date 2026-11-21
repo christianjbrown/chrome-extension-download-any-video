@@ -1,3 +1,4 @@
+import type { RunResult, TranscodeEngine } from "./conversion-parts";
 import { INPUT_FLAG } from "./conversion-plan";
 import type { ProgressListener } from "./progress";
 
@@ -46,24 +47,6 @@ export interface CoreUrls {
   readonly wasm: string;
   readonly worker: string;
   readonly classWorker: string;
-}
-
-export interface RunResult {
-  readonly code: number;
-  // ffmpeg's last word on what went wrong, when it said anything useful.
-  readonly complaint: string | undefined;
-}
-
-export interface TranscodeEngine {
-  ready(): Promise<void>;
-  write(name: string, data: Uint8Array): Promise<void>;
-  // Everything ffmpeg says about the file when asked to read it.
-  describe(name: string): Promise<string[]>;
-  // Runs one ffmpeg command and gives back its exit code, with its complaint.
-  run(args: string[], onProgress: ProgressListener): Promise<RunResult>;
-  read(name: string): Promise<Uint8Array>;
-  // Forgets the file, whether or not it was there.
-  remove(name: string): Promise<void>;
 }
 
 const NO_PROGRESS = 0;

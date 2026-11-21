@@ -1,5 +1,6 @@
 import { WITH_COOKIES } from "../stream/fetching";
 import { concatenate } from "./bytes";
+import type { Fetches } from "./conversion-parts";
 import type { MediaInputs } from "./media-inputs";
 import type { ProgressListener } from "./progress";
 
@@ -15,10 +16,6 @@ export type Fetch = (
   url: string,
   init: RequestInit,
 ) => Promise<FetchedResponse>;
-
-export interface Fetches {
-  fetch(url: string, onProgress: ProgressListener): Promise<MediaInputs>;
-}
 
 const EMPTY_ANSWER = "The server sent an empty answer for the video";
 const refused = (status: number): string =>

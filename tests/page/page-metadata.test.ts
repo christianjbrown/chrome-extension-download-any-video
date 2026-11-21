@@ -1,5 +1,5 @@
-import { candidates } from "./candidates";
 import { MetadataFinder } from "../../src/page/page-metadata";
+import { candidates } from "./candidates";
 import { element } from "./fakes";
 
 const META_SELECTOR =

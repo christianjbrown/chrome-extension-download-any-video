@@ -9,13 +9,13 @@ import {
 import { errorMessage } from "../shared/error-message";
 import type {
   ConvertHandling,
+  Fetches,
   ObjectUrls,
   ProgressSender,
+  Transcodes,
 } from "./conversion-parts";
 import type { MediaInputs } from "./media-inputs";
 import type { ProgressListener } from "./progress";
-import type { Transcodes } from "./transcoder";
-import type { Fetches } from "./video-fetcher";
 
 export interface HandlerParts {
   readonly fetcher: Fetches;

@@ -1,9 +1,9 @@
 import type { DashParsing, DashRepresentation } from "./dash";
-import type { TextFetcher } from "./fetching";
+import type { TextFetcher } from "./fetchers";
 import type { StreamReader } from "./playlists";
 import {
-  EMPTY_PLAYLIST,
   AUDIO_TRACK,
+  EMPTY_PLAYLIST,
   ENCRYPTED_STREAM,
   LIVE_STREAM,
   NO_STREAMS,

@@ -1,10 +1,4 @@
-import type { HiddenPage } from "./offscreen-document";
-
-// The hidden page as a conversion sees it: there while anyone is converting.
-export interface OffscreenHost {
-  open(): Promise<void>;
-  release(): Promise<void>;
-}
+import type { HiddenPage, OffscreenHost } from "./hidden-page";
 
 const NOBODY = 0;
 

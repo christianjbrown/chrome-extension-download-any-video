@@ -1,8 +1,5 @@
 import { errorMessage } from "../shared/error-message";
-
-export interface ErrorExplainer {
-  explain(error: unknown): string;
-}
+import type { ErrorExplainer } from "./download-steps";
 
 // A refusal Chrome words its own way, and what to say instead.
 export interface Translation {

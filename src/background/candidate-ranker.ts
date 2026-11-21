@@ -13,11 +13,7 @@ import {
   type MediaKind,
   type MediaKinds,
 } from "../shared/media-types";
-
-export interface Ranker {
-  // The one to download, or why there is none.
-  pick(reports: readonly FrameReport[]): VideoCandidate;
-}
+import type { Ranker } from "./download-steps";
 
 export const NOTHING_FOUND = "No video found on this page";
 

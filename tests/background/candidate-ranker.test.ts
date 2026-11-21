@@ -1,10 +1,10 @@
-import { media } from "../shared/media";
 import {
   CandidateRanker,
   NOTHING_FOUND,
   RANKING,
 } from "../../src/background/candidate-ranker";
 import type { VideoCandidate } from "../../src/shared/candidates";
+import { media } from "../shared/media";
 
 const c = (
   url: string,

@@ -1,5 +1,5 @@
 import type { DashParsing } from "./dash";
-import type { TextFetcher } from "./fetching";
+import type { TextFetcher } from "./fetchers";
 import type { StreamLister } from "./playlists";
 
 // The pieces of every representation in a manifest.

@@ -8,8 +8,8 @@ import { MediaCandidates } from "./media-candidates";
 import { NetworkFinder } from "./network-entries";
 import { MetadataFinder } from "./page-metadata";
 import { PlayerAttributeFinder } from "./player-attributes";
-import { VideoFinder } from "./video-finder";
 import { VideoElementFinder } from "./video-elements";
+import { VideoFinder } from "./video-finder";
 import { VisibleVideoChooser } from "./visible-video";
 
 // The performance entries for what the page has fetched.
@@ -39,6 +39,4 @@ const finder = new VideoFinder({
   ),
 });
 
-(globalThis as unknown as Record<string, InstalledFinder>)[FINDER_KEY] = {
-  find: () => finder.find(),
-};
+(globalThis as unknown as Record<string, InstalledFinder>)[FINDER_KEY] = finder;
