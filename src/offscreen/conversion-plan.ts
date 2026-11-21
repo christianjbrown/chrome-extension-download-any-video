@@ -44,38 +44,54 @@ const FIRST_VIDEO_STREAM = "0:v:0";
 const FIRST_AUDIO_STREAM_IF_ANY = "0:a:0?";
 const SECOND_INPUT_AUDIO_IF_ANY = "1:a:0?";
 
+// ffmpeg's own flags and values, as its command line spells them.
+const THREADS_FLAG = "-threads";
+const VIDEO_CODEC_FLAG = "-c:v";
+const AUDIO_CODEC_FLAG = "-c:a";
+const PRESET_FLAG = "-preset";
+const CRF_FLAG = "-crf";
+const PIXEL_FORMAT_FLAG = "-pix_fmt";
+const PROFILE_FLAG = "-profile:v";
+const VIDEO_FILTER_FLAG = "-vf";
+const AUDIO_BITRATE_FLAG = "-b:a";
+const MOV_FLAGS_FLAG = "-movflags";
+// Keeps a stream's encoded bytes as they are.
+const COPY_CODEC = "copy";
+const H264_ENCODER = "libx264";
+// The index goes at the front of the file, so players start at once.
+const FAST_START_FLAG = "+faststart";
+
 const threads = (settings: EncodeSettings): readonly string[] => [
-  "-threads",
+  THREADS_FLAG,
   String(settings.threads),
 ];
 
-const COPY_VIDEO: readonly string[] = ["-c:v", "copy"];
+const COPY_VIDEO: readonly string[] = [VIDEO_CODEC_FLAG, COPY_CODEC];
 // H.264 needs even dimensions, so odd ones are rounded up by a pixel.
 const EVEN_DIMENSIONS = "scale=ceil(iw/2)*2:ceil(ih/2)*2";
 const encodeVideo = (settings: EncodeSettings): readonly string[] => [
   ...threads(settings),
-  "-c:v",
-  "libx264",
-  "-preset",
+  VIDEO_CODEC_FLAG,
+  H264_ENCODER,
+  PRESET_FLAG,
   settings.preset,
-  "-crf",
+  CRF_FLAG,
   String(settings.crf),
-  "-pix_fmt",
+  PIXEL_FORMAT_FLAG,
   COMPATIBLE_PIXEL_FORMAT,
-  "-profile:v",
+  PROFILE_FLAG,
   settings.profile,
-  "-vf",
+  VIDEO_FILTER_FLAG,
   EVEN_DIMENSIONS,
 ];
-const COPY_AUDIO: readonly string[] = ["-c:a", "copy"];
+const COPY_AUDIO: readonly string[] = [AUDIO_CODEC_FLAG, COPY_CODEC];
 const encodeAudio = (settings: EncodeSettings): readonly string[] => [
-  "-c:a",
+  AUDIO_CODEC_FLAG,
   COMPATIBLE_AUDIO_CODEC,
-  "-b:a",
+  AUDIO_BITRATE_FLAG,
   settings.audioBitrate,
 ];
-// The index goes at the front of the file, so players start at once.
-const FAST_START: readonly string[] = ["-movflags", "+faststart"];
+const FAST_START: readonly string[] = [MOV_FLAGS_FLAG, FAST_START_FLAG];
 
 // A stream that can go into the MP4 without re-encoding, and how.
 interface Shortcut<S> {

@@ -23,6 +23,11 @@ export interface ControllerParts {
   readonly errors: ErrorExplainer;
 }
 
+// The frame whose title names the file: the page the person is on.
+const TOP_FRAME = 0;
+// A page with no title, which leaves the filename to fall back on its own.
+const UNTITLED = "";
+
 // A click on the toolbar button: find the video on that tab, make it an MP4
 // that plays everywhere, and download it.
 export class DownloadController {
@@ -64,7 +69,7 @@ export class DownloadController {
     );
     try {
       const filename = this.parts.names.name(
-        reports[0]?.title ?? "",
+        reports[TOP_FRAME]?.title ?? UNTITLED,
         source.extension,
       );
       await this.parts.saver.save(source.url, filename);
