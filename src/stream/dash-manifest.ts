@@ -87,7 +87,7 @@ export class DashManifestParser implements DashParsing {
   ) {}
 
   parse(text: string, url: string): DashManifest {
-    const root = this.xml(text);
+    const root = this.xml.parse(text);
     const period = childNamed(root, ELEMENTS.period);
     return {
       live: root.attribute(ATTRIBUTES.type) === DYNAMIC,

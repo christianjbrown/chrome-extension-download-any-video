@@ -36,7 +36,15 @@ import { AUDIO_TRACK, MUXED_TRACK, VIDEO_TRACK } from "../stream/tracks";
 import { SharpestFirst } from "../stream/sharpest-first";
 import type { StreamReader } from "../stream/playlists";
 import { PlaylistReader } from "../stream/stream-reader";
-import { parseXml } from "../stream/xml-parser";
+import { XmlReader } from "../stream/xml-parser";
+import {
+  CdataPart,
+  ChildElementPart,
+  CommentPart,
+  DeclarationPart,
+  InstructionPart,
+} from "../stream/xml-parts";
+import type { XmlParts } from "../stream/xml-reading";
 import { BlobUrls } from "./blob-urls";
 import { OFFSCREEN_CONFIG } from "./config";
 import { ConversionPlanner } from "./conversion-plan";
@@ -60,6 +68,19 @@ const hlsTags: HlsTags = {
   master: [new StreamInfTag(), new MediaTag()],
   media: [new KeyTag(), new MapTag(), new ByteRangeTag()],
 };
+// The kinds of markup the XML scanner knows, each list tried in order: a
+// comment before a declaration or CDATA, since all of them start with "<!",
+// and any other tag last. Another kind is another class and one entry here.
+const xmlParts: XmlParts = {
+  prolog: [new CommentPart(), new InstructionPart(), new DeclarationPart()],
+  content: [
+    new CommentPart(),
+    new CdataPart(),
+    new InstructionPart(),
+    new ChildElementPart(),
+  ],
+};
+const manifests = new XmlReader(xmlParts);
 // The ways a DASH manifest names its pieces, most specific first. Another way
 // is another entry here.
 const pieceSources = [new SegmentListSource(), new SegmentTemplateSource()];
@@ -85,7 +106,7 @@ const listener = new ConvertListener(
               ),
               [DASH_FORMAT]: new DashTracks(
                 pieces,
-                new DashManifestParser(parseXml, pieceSources),
+                new DashManifestParser(manifests, pieceSources),
                 sizes,
               ),
             }),

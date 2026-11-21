@@ -38,7 +38,15 @@ import {
 import { HlsReferences } from "../stream/hls-references";
 import { PlaylistLister } from "../stream/playlist-lister";
 import type { StreamLister } from "../stream/playlists";
-import { parseXml } from "../stream/xml-parser";
+import { XmlReader } from "../stream/xml-parser";
+import {
+  CdataPart,
+  ChildElementPart,
+  CommentPart,
+  DeclarationPart,
+  InstructionPart,
+} from "../stream/xml-parts";
+import type { XmlParts } from "../stream/xml-reading";
 import { CandidateRanker, type RankingPolicy } from "./candidate-ranker";
 import { ChromeErrorExplainer } from "./chrome-errors";
 import { CHROME_TRANSLATIONS } from "./chrome-translations";
@@ -125,6 +133,19 @@ const hlsTags: HlsTags = {
   master: [new StreamInfTag(), new MediaTag()],
   media: [new KeyTag(), new MapTag(), new ByteRangeTag()],
 };
+// The kinds of markup the XML scanner knows, each list tried in order: a
+// comment before a declaration or CDATA, since all of them start with "<!",
+// and any other tag last. Another kind is another class and one entry here.
+const xmlParts: XmlParts = {
+  prolog: [new CommentPart(), new InstructionPart(), new DeclarationPart()],
+  content: [
+    new CommentPart(),
+    new CdataPart(),
+    new InstructionPart(),
+    new ChildElementPart(),
+  ],
+};
+const manifests = new XmlReader(xmlParts);
 // The ways a DASH manifest names its pieces, most specific first. Another way
 // is another entry here.
 const pieceSources = [new SegmentListSource(), new SegmentTemplateSource()];
@@ -140,7 +161,7 @@ const controller = new DownloadController({
         ),
         [DASH_FORMAT]: new DashReferences(
           playlists,
-          new DashManifestParser(parseXml, pieceSources),
+          new DashManifestParser(manifests, pieceSources),
         ),
       }),
     ),

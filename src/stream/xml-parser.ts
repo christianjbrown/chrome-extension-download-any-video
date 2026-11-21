@@ -2,35 +2,35 @@
 // where there is no DOMParser, as in a service worker. Manifests are written
 // by machines, so this covers well-formed XML and nothing more forgiving.
 import { NOT_FOUND } from "../shared/search";
-import type { XmlElement } from "./xml";
+import type { XmlElement, XmlParser } from "./xml";
 import { decodeEntities } from "./xml-entities";
+import { CLOSE, OPEN } from "./xml-markers";
+import type { XmlContent, XmlCursor, XmlParts } from "./xml-reading";
 
 export const UNREADABLE_MANIFEST = "The video's manifest could not be read";
 
-const OPEN = "<";
-const CLOSE = ">";
 const SLASH = "/";
 const EQUALS = "=";
-const COMMENT_START = "<!--";
-const COMMENT_END = "-->";
-const CDATA_START = "<![CDATA[";
-const CDATA_END = "]]>";
-const DECLARATION_START = "<!";
-const INSTRUCTION_START = "<?";
-const INSTRUCTION_END = "?>";
 const CLOSING_TAG_START = "</";
 const NAMESPACE_SEPARATOR = ":";
 const QUOTES = ['"', "'"];
 const WHITESPACE = /\s/;
 const NAME_END = /[\s/>=]/;
-export function parseXml(text: string): XmlElement {
-  return new XmlScanner(text).document();
+
+// Parses a manifest with the parts of XML the entry points list. Each parse
+// is a fresh scanner, since scanning keeps track of where it has got to.
+export class XmlReader implements XmlParser {
+  constructor(private readonly parts: XmlParts) {}
+
+  parse(text: string): XmlElement {
+    return new XmlScanner(text, this.parts).document();
+  }
 }
 
 // An element as the scanner builds it. Its text is its own, not its
 // children's, which is all a manifest's BaseURL needs.
-class Element implements XmlElement {
-  readonly children: Element[] = [];
+class Element implements XmlElement, XmlContent {
+  readonly children: XmlElement[] = [];
   text = "";
 
   constructor(
@@ -42,56 +42,22 @@ class Element implements XmlElement {
     this.text += text;
   }
 
+  addChild(child: XmlElement): void {
+    this.children.push(child);
+  }
+
   attribute(name: string): string | undefined {
     return this.attributes.get(name);
   }
 }
 
-// What may sit around the root element, each skipped through its end.
-const PROLOG_PARTS: readonly (readonly [string, string])[] = [
-  [COMMENT_START, COMMENT_END],
-  [INSTRUCTION_START, INSTRUCTION_END],
-  [DECLARATION_START, CLOSE],
-];
-
-// How a part of an element's content starts, and what reading it does.
-type ContentReaders = readonly (readonly [
-  string,
-  (element: Element) => void,
-])[];
-
-class XmlScanner {
+class XmlScanner implements XmlCursor {
   private at = 0;
-  // Comments come before CDATA, which comes before any other markup, since
-  // each starts the same way as the next.
-  private readonly contentReaders: ContentReaders = [
-    [
-      COMMENT_START,
-      () => {
-        this.skipPast(COMMENT_END);
-      },
-    ],
-    [
-      CDATA_START,
-      (element) => {
-        element.addText(this.until(CDATA_START, CDATA_END));
-      },
-    ],
-    [
-      INSTRUCTION_START,
-      () => {
-        this.skipPast(INSTRUCTION_END);
-      },
-    ],
-    [
-      OPEN,
-      (element) => {
-        element.children.push(this.element());
-      },
-    ],
-  ];
 
-  constructor(private readonly text: string) {}
+  constructor(
+    private readonly text: string,
+    private readonly parts: XmlParts,
+  ) {}
 
   document(): XmlElement {
     this.skipProlog();
@@ -112,15 +78,15 @@ class XmlScanner {
   }
 
   private skippedPrologPart(): boolean {
-    const part = PROLOG_PARTS.find(([start]) => this.lookingAt(start));
+    const part = this.parts.prolog.find(({ start }) => this.lookingAt(start));
     if (part === undefined) {
       return false;
     }
-    this.skipPast(part[1]);
+    part.skip(this);
     return true;
   }
 
-  private element(): Element {
+  element(): Element {
     this.expect(OPEN);
     const element = new Element(localName(this.name()), this.attributes());
     return this.lookingAt(SLASH)
@@ -177,12 +143,12 @@ class XmlScanner {
 
   private contentPart(element: Element): void {
     this.expectMore();
-    const reader = this.contentReaders.find(([start]) => this.lookingAt(start));
-    if (reader === undefined) {
+    const part = this.parts.content.find(({ start }) => this.lookingAt(start));
+    if (part === undefined) {
       element.addText(decodeEntities(this.textUntil(OPEN)));
       return;
     }
-    reader[1](element);
+    part.read(this, element);
   }
 
   // An element still open at the end of the text was never closed.
@@ -239,12 +205,12 @@ class XmlScanner {
     return end;
   }
 
-  private until(start: string, end: string): string {
+  until(start: string, end: string): string {
     this.at += start.length;
     return this.textThrough(end);
   }
 
-  private skipPast(marker: string): void {
+  skipPast(marker: string): void {
     this.textThrough(marker);
   }
 

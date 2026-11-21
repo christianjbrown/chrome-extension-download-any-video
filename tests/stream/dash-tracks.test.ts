@@ -48,7 +48,7 @@ function reader(root: XmlElement) {
     parse,
     tracks: new DashTracks(
       fetcher,
-      new DashManifestParser(parse, pieceSources),
+      new DashManifestParser({ parse }, pieceSources),
       new SharpestFirst(),
     ),
   };

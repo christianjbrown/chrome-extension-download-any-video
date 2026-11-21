@@ -9,7 +9,9 @@ export interface XmlElement {
 }
 
 // Parses a document and hands back its root element.
-export type XmlParser = (text: string) => XmlElement;
+export interface XmlParser {
+  parse(text: string): XmlElement;
+}
 
 export function childrenNamed(element: XmlElement, name: string): XmlElement[] {
   return element.children.filter((child) => child.name === name);
