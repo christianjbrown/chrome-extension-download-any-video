@@ -3,6 +3,7 @@
 // Chrome's colour scheme for the service worker, which swaps it for a fresh
 // page once the last download has landed.
 import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { DARK_SCHEME_QUERY } from "../shared/colour-scheme";
 import { isConvertRequest } from "../shared/conversion-messages";
 import { DashTracks } from "../stream/dash-tracks";
 import { HttpFetcher } from "../stream/fetching";
@@ -10,10 +11,11 @@ import { HlsTracks } from "../stream/hls-tracks";
 import { PieceFetcher } from "../stream/piece-fetcher";
 import { PlaylistReader } from "../stream/stream-reader";
 import { parseXml } from "../stream/xml-parser";
+import { OFFSCREEN_CONFIG } from "./config";
 import { ConversionPlanner } from "./conversion-plan";
 import { ConvertHandler } from "./convert-handler";
 import { FfmpegEngine } from "./ffmpeg-engine";
-import { DARK_SCHEME_QUERY, SchemeReporter } from "./scheme-reporter";
+import { SchemeReporter } from "./scheme-reporter";
 import { SourceFetcher } from "./source-fetcher";
 import { StreamFetcher } from "./stream-fetcher";
 import { StreamInfoParser } from "./stream-info";
@@ -72,4 +74,5 @@ new SchemeReporter(
   (work, everyMs) => {
     window.setInterval(work, everyMs);
   },
+  OFFSCREEN_CONFIG.schemeCheckMs,
 ).start();

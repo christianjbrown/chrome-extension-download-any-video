@@ -20,6 +20,7 @@ import { OffscreenConverter } from "./offscreen-converter";
 import { OffscreenDocument } from "./offscreen-document";
 import { PageScript } from "./page-script";
 import { PieceFilter } from "./piece-filter";
+import { SCHEME_POLICY, UNKNOWN_SCHEME } from "./scheme-state";
 import { SchemeStore } from "./scheme-store";
 import { SystemClock } from "./system-clock";
 import { TabScheme } from "./tab-scheme";
@@ -31,8 +32,9 @@ import { VideoSaver } from "./video-saver";
 
 const indicator = new ToolbarIndicator(new ClosedTabAction(chrome.action));
 const toolbarScheme = new ToolbarScheme(
-  new SchemeStore(chrome.storage.local),
+  new SchemeStore(chrome.storage.local, UNKNOWN_SCHEME),
   new ToolbarIcon(chrome.action),
+  SCHEME_POLICY,
 );
 const clickScheme = new ClickScheme(
   new TabScheme(chrome.scripting),
