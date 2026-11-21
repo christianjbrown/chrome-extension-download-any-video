@@ -1,4 +1,7 @@
-import { parseXml, UNREADABLE_MANIFEST } from "../../src/stream/xml-parser";
+import { UNREADABLE_MANIFEST } from "../../src/stream/xml-parser";
+import { xmlReader } from "./fakes";
+
+const parseXml = (text: string) => xmlReader.parse(text);
 
 describe("parseXml", () => {
   it("reads elements, attributes, text and nesting, skipping the prolog", () => {

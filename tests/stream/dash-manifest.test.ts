@@ -4,7 +4,10 @@ import { pieceSources, xml } from "./fakes";
 
 // The XML parser hands back whatever root the test built.
 const parseManifest = (root: XmlElement, url: string) =>
-  new DashManifestParser(() => root, pieceSources).parse("<MPD/>", url);
+  new DashManifestParser({ parse: () => root }, pieceSources).parse(
+    "<MPD/>",
+    url,
+  );
 
 const MPD = "https://cdn.example/v/manifest.mpd";
 const piece = (url: string, range?: { offset: number; length: number }) => ({
@@ -322,13 +325,10 @@ describe("DashManifestParser sources", () => {
   });
 
   it("takes the pieces from the first source that names them", () => {
-    const parser = new DashManifestParser(
-      () => root,
-      [
-        { pieces: () => undefined },
-        { pieces: (_set, _rep, context) => [piece(`${context.baseUrl}#own`)] },
-      ],
-    );
+    const parser = new DashManifestParser({ parse: () => root }, [
+      { pieces: () => undefined },
+      { pieces: (_set, _rep, context) => [piece(`${context.baseUrl}#own`)] },
+    ]);
 
     expect(parser.parse("<MPD/>", MPD).representations[0]?.pieces).toEqual([
       piece(`${MPD}#own`),

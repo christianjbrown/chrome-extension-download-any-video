@@ -35,3 +35,59 @@ export interface HlsParsing {
   master(text: string, baseUrl: string): MasterPlaylist;
   media(text: string, baseUrl: string): MediaPlaylist;
 }
+
+// A tag's NAME=value attributes, the quotes taken off quoted values.
+export type Attributes = ReadonlyMap<string, string>;
+
+// The playlist's own address, which the URIs in it are relative to.
+interface Based {
+  readonly baseUrl: string;
+}
+
+// What reading a playlist gathers as it goes, in the parts each tag needs.
+
+export interface PendingVariant {
+  // A variant's attributes, waiting for the URI on the line after them.
+  pending: Attributes | undefined;
+}
+
+export interface AudioRenditions extends Based {
+  readonly audio: AudioRendition[];
+}
+
+export interface MasterReading extends PendingVariant, AudioRenditions {
+  readonly variants: Variant[];
+}
+
+export interface Encryption {
+  encrypted: boolean;
+}
+
+export interface InitPiece extends Based {
+  init: Piece | undefined;
+}
+
+export interface PendingRange {
+  // A segment's byte range, waiting for the URI on a later line.
+  pendingRange: string | undefined;
+}
+
+export interface MediaReading extends Encryption, InitPiece, PendingRange {
+  readonly segments: Piece[];
+  // Where the last segment ended, for a range that only gives a length.
+  previousEnd: number;
+}
+
+// One tag a playlist reader understands: each line that starts with it is
+// handed to read, along with what the reading has gathered so far.
+export interface HlsTag<R> {
+  readonly tag: string;
+  read(line: string, reading: R): void;
+}
+
+// The tags each kind of playlist is read with. Another tag is another class
+// and one more entry where the entry points list them.
+export interface HlsTags {
+  readonly master: readonly HlsTag<MasterReading>[];
+  readonly media: readonly HlsTag<MediaReading>[];
+}

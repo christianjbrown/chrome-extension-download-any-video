@@ -6,7 +6,7 @@ import {
   ENCRYPTED_STREAM,
   NO_STREAMS,
 } from "../../src/stream/tracks";
-import { FakeFetcher } from "./fakes";
+import { FakeFetcher, hlsTags } from "./fakes";
 
 const MASTER = "https://cdn.example/v/master.m3u8";
 const media = (...names: string[]) =>
@@ -20,7 +20,7 @@ describe("HlsTracks", () => {
     await expect(
       new HlsTracks(
         fetcher,
-        new HlsPlaylistParser(),
+        new HlsPlaylistParser(hlsTags),
         new SharpestFirst(),
       ).tracks(MASTER),
     ).resolves.toEqual([
@@ -45,7 +45,7 @@ describe("HlsTracks", () => {
     await expect(
       new HlsTracks(
         fetcher,
-        new HlsPlaylistParser(),
+        new HlsPlaylistParser(hlsTags),
         new SharpestFirst(),
       ).tracks(MASTER),
     ).resolves.toEqual([
@@ -70,7 +70,7 @@ describe("HlsTracks", () => {
     await expect(
       new HlsTracks(
         fetcher,
-        new HlsPlaylistParser(),
+        new HlsPlaylistParser(hlsTags),
         new SharpestFirst(),
       ).tracks(MASTER),
     ).resolves.toEqual([
@@ -89,7 +89,7 @@ describe("HlsTracks", () => {
 
     const tracks = await new HlsTracks(
       fetcher,
-      new HlsPlaylistParser(),
+      new HlsPlaylistParser(hlsTags),
       new SharpestFirst(),
     ).tracks(MASTER);
 
@@ -105,7 +105,7 @@ describe("HlsTracks", () => {
 
     const tracks = await new HlsTracks(
       fetcher,
-      new HlsPlaylistParser(),
+      new HlsPlaylistParser(hlsTags),
       new SharpestFirst(),
     ).tracks(MASTER);
 
@@ -125,7 +125,7 @@ describe("HlsTracks", () => {
     await expect(
       new HlsTracks(
         fetcher,
-        new HlsPlaylistParser(),
+        new HlsPlaylistParser(hlsTags),
         new SharpestFirst(),
       ).tracks(MASTER),
     ).rejects.toThrow(message);

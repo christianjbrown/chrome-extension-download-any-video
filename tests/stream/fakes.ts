@@ -3,9 +3,25 @@ import {
   SegmentTemplateSource,
 } from "../../src/stream/dash-pieces";
 import type { ByteFetcher, TextFetcher } from "../../src/stream/fetchers";
+import type { HlsTags } from "../../src/stream/hls";
+import {
+  ByteRangeTag,
+  KeyTag,
+  MapTag,
+  MediaTag,
+  StreamInfTag,
+} from "../../src/stream/hls-tags";
 import type { Progress } from "../../src/stream/progress";
 import type { ByteRange } from "../../src/stream/tracks";
 import type { XmlElement } from "../../src/stream/xml";
+import { XmlReader } from "../../src/stream/xml-parser";
+import {
+  CdataPart,
+  ChildElementPart,
+  CommentPart,
+  DeclarationPart,
+  InstructionPart,
+} from "../../src/stream/xml-parts";
 
 // Serves fixed texts by URL, and bytes that spell out what was asked for.
 export class FakeFetcher implements TextFetcher, ByteFetcher {
@@ -61,3 +77,20 @@ export const pieceSources = [
   new SegmentListSource(),
   new SegmentTemplateSource(),
 ];
+
+// The HLS tags the entry points hand a playlist parser.
+export const hlsTags: HlsTags = {
+  master: [new StreamInfTag(), new MediaTag()],
+  media: [new KeyTag(), new MapTag(), new ByteRangeTag()],
+};
+
+// Parses XML with the parts the entry points list, in their order.
+export const xmlReader = new XmlReader({
+  prolog: [new CommentPart(), new InstructionPart(), new DeclarationPart()],
+  content: [
+    new CommentPart(),
+    new CdataPart(),
+    new InstructionPart(),
+    new ChildElementPart(),
+  ],
+});

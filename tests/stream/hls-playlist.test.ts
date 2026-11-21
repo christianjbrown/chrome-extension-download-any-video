@@ -1,6 +1,7 @@
+import { hlsTags } from "./fakes";
 import { HlsPlaylistParser } from "../../src/stream/hls-playlist";
 
-const hls = new HlsPlaylistParser();
+const hls = new HlsPlaylistParser(hlsTags);
 
 const BASE = "https://cdn.example/v/master.m3u8";
 
