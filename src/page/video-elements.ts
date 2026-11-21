@@ -4,7 +4,12 @@ import {
   type VideoCandidate,
 } from "../shared/candidates";
 import { isWebUrl } from "../shared/media-urls";
-import type { ElementTree, PageElement, VideoElement } from "./dom";
+import type {
+  Attributed,
+  ElementTree,
+  ScannedElement,
+  VideoElement,
+} from "./dom";
 import { allElements } from "./tree-walk";
 
 // A <video> on the page, with the addresses it plays from. A player that feeds
@@ -15,7 +20,7 @@ export interface FoundVideo {
 }
 
 export interface VideoElements {
-  find(tree: ElementTree): FoundVideo[];
+  find(tree: ElementTree<ScannedElement>): FoundVideo[];
 }
 
 const VIDEO_TAG = "video";
@@ -25,7 +30,7 @@ const SOURCE_ATTRIBUTE = "src";
 const NO_ADDRESS = "";
 
 export class VideoElementFinder implements VideoElements {
-  find(tree: ElementTree): FoundVideo[] {
+  find(tree: ElementTree<ScannedElement>): FoundVideo[] {
     return allElements(tree)
       .filter((element) => element.localName === VIDEO_TAG)
       .map((element) => this.describe(element as VideoElement));
@@ -49,7 +54,7 @@ export class VideoElementFinder implements VideoElements {
     return { element: video, candidates };
   }
 
-  private source(source: PageElement): VideoCandidate[] {
+  private source(source: Attributed): VideoCandidate[] {
     const url = source.getAttribute(SOURCE_ATTRIBUTE) ?? NO_ADDRESS;
     return isWebUrl(url)
       ? [{ url, origin: ELEMENT_ORIGIN, height: UNKNOWN_HEIGHT }]

@@ -1,8 +1,12 @@
-import type { Box, Viewport } from "./dom";
-import type { FoundVideo } from "./video-elements";
+import type { Box, Boxed, Viewport } from "./dom";
+
+// A found video, as far as choosing between them goes: where it is on screen.
+export interface Placed {
+  readonly element: Boxed;
+}
 
 export interface VideoChooser {
-  choose(videos: readonly FoundVideo[]): FoundVideo | undefined;
+  choose<V extends Placed>(videos: readonly V[]): V | undefined;
 }
 
 function visibleArea(box: Box, viewport: Viewport): number {
@@ -18,9 +22,9 @@ function visibleArea(box: Box, viewport: Viewport): number {
 export class VisibleVideoChooser implements VideoChooser {
   constructor(private readonly viewport: () => Viewport) {}
 
-  choose(videos: readonly FoundVideo[]): FoundVideo | undefined {
+  choose<V extends Placed>(videos: readonly V[]): V | undefined {
     const viewport = this.viewport();
-    let best: FoundVideo | undefined;
+    let best: V | undefined;
     let bestArea = 0;
     for (const video of videos) {
       const area = visibleArea(video.element.getBoundingClientRect(), viewport);

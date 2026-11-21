@@ -1,9 +1,9 @@
 import { METADATA_ORIGIN, type VideoCandidate } from "../shared/candidates";
 import { heightHint, mediaKind } from "../shared/media-urls";
-import type { ElementTree } from "./dom";
+import type { ElementTree, MetadataElement } from "./dom";
 
 export interface PageMetadata {
-  find(tree: ElementTree): VideoCandidate[];
+  find(tree: ElementTree<MetadataElement>): VideoCandidate[];
 }
 
 export type JsonParser = (text: string) => unknown;
@@ -36,7 +36,7 @@ const isObject = (value: unknown): value is JsonObject =>
 export class MetadataFinder implements PageMetadata {
   constructor(private readonly parseJson: JsonParser) {}
 
-  find(tree: ElementTree): VideoCandidate[] {
+  find(tree: ElementTree<MetadataElement>): VideoCandidate[] {
     const urls: string[] = [];
     for (const meta of tree.querySelectorAll(META_SELECTOR)) {
       urls.push(meta.getAttribute(CONTENT_ATTRIBUTE) ?? NO_ADDRESS);
