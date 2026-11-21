@@ -1,12 +1,5 @@
 import type { TextFetcher } from "./fetching";
-import {
-  isMasterPlaylist,
-  parseMasterPlaylist,
-  parseMediaPlaylist,
-  type AudioRendition,
-  type MediaPlaylist,
-  type Variant,
-} from "./hls-playlist";
+import type { AudioRendition, HlsParsing, MediaPlaylist, Variant } from "./hls";
 import type { StreamReader } from "./playlists";
 import {
   AUDIO_TRACK,
@@ -23,14 +16,17 @@ import {
 // The tallest variant of an HLS stream, and its sound track when that is
 // fetched separately.
 export class HlsTracks implements StreamReader {
-  constructor(private readonly fetcher: TextFetcher) {}
+  constructor(
+    private readonly fetcher: TextFetcher,
+    private readonly hls: HlsParsing,
+  ) {}
 
   async tracks(url: string): Promise<Track[]> {
     const text = await this.fetcher.text(url);
-    if (!isMasterPlaylist(text)) {
-      return [trackOf(MUXED_TRACK, parseMediaPlaylist(text, url))];
+    if (!this.hls.isMaster(text)) {
+      return [trackOf(MUXED_TRACK, this.hls.media(text, url))];
     }
-    const master = parseMasterPlaylist(text, url);
+    const master = this.hls.master(text, url);
     const chosen = sharpest(master.variants);
     if (chosen === undefined) {
       throw new Error(NO_STREAMS);
@@ -46,7 +42,7 @@ export class HlsTracks implements StreamReader {
   }
 
   private async media(role: TrackRole, url: string): Promise<Track> {
-    return trackOf(role, parseMediaPlaylist(await this.fetcher.text(url), url));
+    return trackOf(role, this.hls.media(await this.fetcher.text(url), url));
   }
 }
 

@@ -1,5 +1,10 @@
-import { parseManifest } from "../../src/stream/dash-manifest";
+import { DashManifestParser } from "../../src/stream/dash-manifest";
+import type { XmlElement } from "../../src/stream/xml";
 import { xml } from "./fakes";
+
+// The XML parser hands back whatever root the test built.
+const parseManifest = (root: XmlElement, url: string) =>
+  new DashManifestParser(() => root).parse("<MPD/>", url);
 
 const MPD = "https://cdn.example/v/manifest.mpd";
 const piece = (url: string, range?: { offset: number; length: number }) => ({
@@ -7,7 +12,7 @@ const piece = (url: string, range?: { offset: number; length: number }) => ({
   range,
 });
 
-describe("parseManifest", () => {
+describe("DashManifestParser", () => {
   it("reads whole-file representations with nested base URLs, as a link-sharing site serves them", () => {
     const root = xml("MPD", {
       attributes: { mediaPresentationDuration: "PT12S" },

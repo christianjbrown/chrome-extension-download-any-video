@@ -1,16 +1,9 @@
 // DASH SegmentTemplate: one URL pattern that, filled in with a number or a
 // time, names every piece of a representation.
+import type { TemplateContext } from "./dash";
 import { ATTRIBUTES, ELEMENTS } from "./dash-names";
 import type { Piece } from "./tracks";
 import { childNamed, childrenNamed, type XmlElement } from "./xml";
-
-export interface TemplateContext {
-  readonly representationId: string;
-  readonly bandwidth: number;
-  readonly baseUrl: string;
-  // The period's length in seconds, when the manifest says.
-  readonly periodSeconds: number | undefined;
-}
 
 export const UNKNOWN_LENGTH =
   "The manifest does not say how long the video is, so its pieces cannot be counted";

@@ -1,4 +1,4 @@
-import { parseManifest, type DashRepresentation } from "./dash-manifest";
+import type { DashParsing, DashRepresentation } from "./dash";
 import type { TextFetcher } from "./fetching";
 import type { StreamReader } from "./playlists";
 import {
@@ -11,20 +11,16 @@ import {
   VIDEO_TRACK,
   type Track,
 } from "./tracks";
-import type { XmlParser } from "./xml";
 
 // The sharpest picture of a DASH stream, and its best sound when it has any.
 export class DashTracks implements StreamReader {
   constructor(
     private readonly fetcher: TextFetcher,
-    private readonly parse: XmlParser,
+    private readonly dash: DashParsing,
   ) {}
 
   async tracks(url: string): Promise<Track[]> {
-    const manifest = parseManifest(
-      this.parse(await this.fetcher.text(url)),
-      url,
-    );
+    const manifest = this.dash.parse(await this.fetcher.text(url), url);
     if (manifest.live) {
       throw new Error(LIVE_STREAM);
     }

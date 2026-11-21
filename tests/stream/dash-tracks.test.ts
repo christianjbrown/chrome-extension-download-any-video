@@ -1,3 +1,4 @@
+import { DashManifestParser } from "../../src/stream/dash-manifest";
 import { DashTracks } from "../../src/stream/dash-tracks";
 import {
   EMPTY_PLAYLIST,
@@ -42,7 +43,10 @@ function manifest(attributes: Record<string, string>, ...sets: XmlElement[]) {
 function reader(root: XmlElement) {
   const fetcher = new FakeFetcher({ [MPD]: "<MPD/>" });
   const parse = vi.fn().mockReturnValue(root);
-  return { parse, tracks: new DashTracks(fetcher, parse) };
+  return {
+    parse,
+    tracks: new DashTracks(fetcher, new DashManifestParser(parse)),
+  };
 }
 
 describe("DashTracks", () => {

@@ -17,8 +17,10 @@ import {
   PLAYLIST_KIND,
 } from "../shared/media-types";
 import { ByFormat } from "../stream/by-format";
+import { DashManifestParser } from "../stream/dash-manifest";
 import { DashTracks } from "../stream/dash-tracks";
 import { HttpFetcher } from "../stream/fetching";
+import { HlsPlaylistParser } from "../stream/hls-playlist";
 import { HlsTracks } from "../stream/hls-tracks";
 import { PieceFetcher } from "../stream/piece-fetcher";
 import type { StreamReader } from "../stream/playlists";
@@ -44,8 +46,11 @@ const handler = new ConvertHandler({
       [PLAYLIST_KIND]: new StreamFetcher(
         new PlaylistReader(
           new ByFormat<StreamReader>(media, {
-            [HLS_FORMAT]: new HlsTracks(pieces),
-            [DASH_FORMAT]: new DashTracks(pieces, parseXml),
+            [HLS_FORMAT]: new HlsTracks(pieces, new HlsPlaylistParser()),
+            [DASH_FORMAT]: new DashTracks(
+              pieces,
+              new DashManifestParser(parseXml),
+            ),
           }),
         ),
         new PieceFetcher(pieces, OFFSCREEN_CONFIG.parallelFetches),

@@ -1,8 +1,6 @@
-import {
-  isMasterPlaylist,
-  parseMasterPlaylist,
-  parseMediaPlaylist,
-} from "../../src/stream/hls-playlist";
+import { HlsPlaylistParser } from "../../src/stream/hls-playlist";
+
+const hls = new HlsPlaylistParser();
 
 const BASE = "https://cdn.example/v/master.m3u8";
 
@@ -23,18 +21,18 @@ audio-only.m3u8
 tiny.m3u8
 `;
 
-describe("isMasterPlaylist", () => {
+describe("HlsPlaylistParser.isMaster", () => {
   it("tells a master playlist from a media playlist", () => {
-    expect(isMasterPlaylist(master)).toBe(true);
-    expect(isMasterPlaylist("#EXTM3U\n#EXTINF:4,\nseg0.ts\n")).toBe(false);
+    expect(hls.isMaster(master)).toBe(true);
+    expect(hls.isMaster("#EXTM3U\n#EXTINF:4,\nseg0.ts\n")).toBe(false);
   });
 });
 
-describe("parseMasterPlaylist", () => {
-  const parsed = parseMasterPlaylist(master, BASE);
+describe("HlsPlaylistParser.master", () => {
+  const parsed = hls.master(master, BASE);
 
   it("ignores an address that no variant line came before", () => {
-    const stray = parseMasterPlaylist(
+    const stray = hls.master(
       "#EXTM3U\nstray.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=1\nreal.m3u8\n",
       BASE,
     );
@@ -94,18 +92,18 @@ describe("parseMasterPlaylist", () => {
   });
 
   it("finds nothing in an empty playlist", () => {
-    expect(parseMasterPlaylist("#EXTM3U\n", BASE)).toEqual({
+    expect(hls.master("#EXTM3U\n", BASE)).toEqual({
       variants: [],
       audio: [],
     });
   });
 });
 
-describe("parseMediaPlaylist", () => {
+describe("HlsPlaylistParser.media", () => {
   const MEDIA = "https://cdn.example/v/720/index.m3u8";
 
   it("lists the pieces in order, resolved against the playlist", () => {
-    const parsed = parseMediaPlaylist(
+    const parsed = hls.media(
       "#EXTM3U\r\n#EXT-X-TARGETDURATION:4\r\n#EXTINF:4.0,\r\nseg0.ts\r\n#EXTINF:4.0,\r\n../seg1.ts\r\n#EXTINF:2.5,\r\nhttps://other.example/seg2.ts\r\n#EXT-X-ENDLIST\r\n",
       MEDIA,
     );
@@ -122,7 +120,7 @@ describe("parseMediaPlaylist", () => {
   });
 
   it("puts the initialisation first for fragmented MP4", () => {
-    const parsed = parseMediaPlaylist(
+    const parsed = hls.media(
       '#EXTM3U\n#EXT-X-MAP:URI="init.mp4"\n#EXTINF:4,\nseg0.m4s\n',
       MEDIA,
     );
@@ -135,7 +133,7 @@ describe("parseMediaPlaylist", () => {
   });
 
   it("takes a map without an address as the playlist's own", () => {
-    const parsed = parseMediaPlaylist('#EXT-X-MAP:BYTERANGE="9@0"\n', MEDIA);
+    const parsed = hls.media('#EXT-X-MAP:BYTERANGE="9@0"\n', MEDIA);
 
     expect(parsed.init).toEqual({
       url: MEDIA,
@@ -144,7 +142,7 @@ describe("parseMediaPlaylist", () => {
   });
 
   it("reads byte ranges, continuing from the previous piece when no offset is given", () => {
-    const parsed = parseMediaPlaylist(
+    const parsed = hls.media(
       [
         "#EXTM3U",
         '#EXT-X-MAP:URI="all.mp4",BYTERANGE="700@0"',
@@ -179,16 +177,14 @@ describe("parseMediaPlaylist", () => {
 
   it("notices encryption, unless the key says there is none", () => {
     expect(
-      parseMediaPlaylist(
+      hls.media(
         '#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="k"\n#EXTINF:4,\nseg0.ts\n',
         MEDIA,
       ).encrypted,
     ).toBe(true);
     expect(
-      parseMediaPlaylist(
-        "#EXTM3U\n#EXT-X-KEY:METHOD=NONE\n#EXTINF:4,\nseg0.ts\n",
-        MEDIA,
-      ).encrypted,
+      hls.media("#EXTM3U\n#EXT-X-KEY:METHOD=NONE\n#EXTINF:4,\nseg0.ts\n", MEDIA)
+        .encrypted,
     ).toBe(false);
   });
 });

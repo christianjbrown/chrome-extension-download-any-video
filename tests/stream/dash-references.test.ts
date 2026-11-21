@@ -1,3 +1,4 @@
+import { DashManifestParser } from "../../src/stream/dash-manifest";
 import { DashReferences } from "../../src/stream/dash-references";
 import { parseXml } from "../../src/stream/xml-parser";
 import { FakeFetcher } from "./fakes";
@@ -19,7 +20,7 @@ describe("DashReferences", () => {
           "</MPD>",
         ].join(""),
       }),
-      parseXml,
+      new DashManifestParser(parseXml),
     );
 
     await expect(

@@ -1,3 +1,4 @@
+import { HlsPlaylistParser } from "../../src/stream/hls-playlist";
 import { HlsReferences } from "../../src/stream/hls-references";
 import { FakeFetcher } from "./fakes";
 
@@ -17,6 +18,7 @@ describe("HlsReferences", () => {
           "#EXT-X-ENDLIST",
         ].join("\n"),
       }),
+      new HlsPlaylistParser(),
     );
 
     await expect(
@@ -44,6 +46,7 @@ describe("HlsReferences", () => {
         "https://cdn.example/v/audio/index.m3u8":
           '#EXTM3U\n#EXT-X-MAP:URI="init.mp4"\n#EXTINF:1,\na0.m4s',
       }),
+      new HlsPlaylistParser(),
     );
 
     await expect(lister.references(MASTER)).resolves.toEqual([

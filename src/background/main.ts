@@ -4,8 +4,10 @@ import { ExtensionMedia, MEDIA_EXTENSIONS } from "../shared/extension-media";
 import { DASH_FORMAT, HLS_FORMAT } from "../shared/media-types";
 import { isSchemeReport } from "../shared/scheme-messages";
 import { ByFormat } from "../stream/by-format";
+import { DashManifestParser } from "../stream/dash-manifest";
 import { DashReferences } from "../stream/dash-references";
 import { HttpFetcher } from "../stream/fetching";
+import { HlsPlaylistParser } from "../stream/hls-playlist";
 import { HlsReferences } from "../stream/hls-references";
 import { PlaylistLister } from "../stream/playlist-lister";
 import type { StreamLister } from "../stream/playlists";
@@ -63,8 +65,11 @@ const controller = new DownloadController({
   filter: new PieceFilter(
     new PlaylistLister(
       new ByFormat<StreamLister>(media, {
-        [HLS_FORMAT]: new HlsReferences(playlists),
-        [DASH_FORMAT]: new DashReferences(playlists, parseXml),
+        [HLS_FORMAT]: new HlsReferences(playlists, new HlsPlaylistParser()),
+        [DASH_FORMAT]: new DashReferences(
+          playlists,
+          new DashManifestParser(parseXml),
+        ),
       }),
     ),
     media,
