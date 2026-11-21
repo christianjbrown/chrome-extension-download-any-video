@@ -7,10 +7,12 @@ import { FINDER_KEY } from "../shared/installed-finder";
 import { HEIGHT_PATTERNS } from "../wiring/height-patterns";
 import { VIDEO_META } from "../wiring/video-meta";
 import { UrlHeights } from "../shared/url-heights";
+import { WebUrls } from "../shared/web-urls";
 import { MediaCandidates } from "./media-candidates";
 import { NetworkFinder } from "./network-entries";
 import { MetadataFinder } from "./page-metadata";
 import { PlayerAttributeFinder } from "./player-attributes";
+import { ShadowLineage, ShadowTreeWalk } from "./tree-walk";
 import { VideoElementFinder } from "./video-elements";
 import { VideoFinder } from "./video-finder";
 import { VisibleVideoChooser } from "./visible-video";
@@ -25,12 +27,12 @@ const candidates = new MediaCandidates(
 const finder = new VideoFinder({
   tree: document,
   title: () => document.title,
-  elements: new VideoElementFinder(),
+  elements: new VideoElementFinder(new ShadowTreeWalk(), new WebUrls()),
   chooser: new VisibleVideoChooser(() => ({
     width: window.innerWidth,
     height: window.innerHeight,
   })),
-  player: new PlayerAttributeFinder(candidates),
+  player: new PlayerAttributeFinder(candidates, new ShadowLineage()),
   metadata: new MetadataFinder(
     (text) => JSON.parse(text) as unknown,
     candidates,

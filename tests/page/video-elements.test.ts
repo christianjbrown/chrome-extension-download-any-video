@@ -1,8 +1,10 @@
+import { ShadowTreeWalk } from "../../src/page/tree-walk";
 import { VideoElementFinder } from "../../src/page/video-elements";
+import { WebUrls } from "../../src/shared/web-urls";
 import { element, tree, video } from "./fakes";
 
 describe("VideoElementFinder", () => {
-  const finder = new VideoElementFinder();
+  const finder = new VideoElementFinder(new ShadowTreeWalk(), new WebUrls());
 
   it("finds a video and the addresses it plays from, the chosen one first", () => {
     const clip = video({

@@ -1,29 +1,31 @@
 import type { ElementTree, Lineage, ShadowHost } from "./dom";
+import type { ElementWalk, LineageWalk } from "./finder-parts";
 
 const EVERY_ELEMENT = "*";
 
 // The elements of a tree, open shadow roots included, in document order.
-export function allElements<E extends ShadowHost<E>>(
-  tree: ElementTree<E>,
-): E[] {
-  return Array.from(tree.querySelectorAll(EVERY_ELEMENT)).flatMap((element) => [
-    element,
-    ...shadowElements(element),
-  ]);
-}
+export class ShadowTreeWalk implements ElementWalk {
+  all<E extends ShadowHost<E>>(tree: ElementTree<E>): E[] {
+    return Array.from(tree.querySelectorAll(EVERY_ELEMENT)).flatMap(
+      (element) => [element, ...this.shadowElements(element)],
+    );
+  }
 
-function shadowElements<E extends ShadowHost<E>>(element: E): E[] {
-  return element.shadowRoot === null ? [] : allElements(element.shadowRoot);
+  private shadowElements<E extends ShadowHost<E>>(element: E): E[] {
+    return element.shadowRoot === null ? [] : this.all(element.shadowRoot);
+  }
 }
 
 // An element's ancestors, nearest first, climbing out of shadow roots through
 // their hosts, so a player built from custom elements counts as one lineage.
-export function ancestors<E extends Lineage<E>>(element: E): E[] {
-  return lineageFrom(parentOf(element));
-}
+export class ShadowLineage implements LineageWalk {
+  ancestors<E extends Lineage<E>>(element: E): E[] {
+    return this.lineageFrom(parentOf(element));
+  }
 
-function lineageFrom<E extends Lineage<E>>(parent: E | undefined): E[] {
-  return parent === undefined ? [] : [parent, ...ancestors(parent)];
+  private lineageFrom<E extends Lineage<E>>(parent: E | undefined): E[] {
+    return parent === undefined ? [] : [parent, ...this.ancestors(parent)];
+  }
 }
 
 function parentOf<E extends Lineage<E>>(element: E): E | undefined {

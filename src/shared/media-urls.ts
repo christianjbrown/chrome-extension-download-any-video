@@ -2,13 +2,8 @@
 import { ifDefined } from "./optional";
 import { NOT_FOUND } from "./search";
 
-const WEB_URL = /^https?:\/\//i;
 const PATH_SEPARATOR = "/";
 const EXTENSION_MARK = ".";
-
-export function isWebUrl(url: string): boolean {
-  return WEB_URL.test(url);
-}
 
 // The extension on the URL's path, lower case, or nothing when it has none.
 export function pathExtension(url: string): string | undefined {
