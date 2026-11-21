@@ -1,9 +1,10 @@
-import {
-  CONVERT_STAGE,
-  FETCH_STAGE,
-  type Stage,
-} from "../shared/conversion-messages";
-import type { FinishedDownload, ToolbarLooks } from "./toolbar";
+import type { Stage } from "../shared/conversion-messages";
+import type {
+  FinishedDownload,
+  Look,
+  StageTitles,
+  ToolbarLooks,
+} from "./toolbar";
 
 const RED = "#dc2626";
 const BLUE = "#1a73e8";
@@ -22,32 +23,43 @@ function percent(ratio: number): string {
   return `${String(Math.round(ratio * PERCENT))}%`;
 }
 
-const STAGE_TITLES: Readonly<Record<Stage, (shown: string) => string>> = {
-  [FETCH_STAGE]: (shown) => `Fetching the video (${shown})`,
-  [CONVERT_STAGE]: (shown) => `Converting the video to H.264 (${shown})`,
-};
-
 function doneTitle(download: FinishedDownload): string {
   return download.converted
     ? `Downloaded ${download.filename}`
     : `Downloaded ${download.filename}, as the site served it: it could not be converted`;
 }
 
-export const TOOLBAR_LOOKS: ToolbarLooks = {
-  idle: () => ({ badge: NO_BADGE, colour: GREY, title: IDLE_TITLE }),
-  busy: () => ({ badge: BUSY_BADGE, colour: BLUE, title: BUSY_TITLE }),
-  progress: (stage, ratio) => {
+// The button's badge, colour and tooltip at each point of a download, with
+// each stage's tooltip handed in.
+export class ButtonLooks implements ToolbarLooks {
+  constructor(private readonly stageTitles: StageTitles) {}
+
+  idle(): Look {
+    return { badge: NO_BADGE, colour: GREY, title: IDLE_TITLE };
+  }
+
+  busy(): Look {
+    return { badge: BUSY_BADGE, colour: BLUE, title: BUSY_TITLE };
+  }
+
+  progress(stage: Stage, ratio: number): Look {
     const shown = percent(ratio);
-    return { badge: shown, colour: BLUE, title: STAGE_TITLES[stage](shown) };
-  },
-  done: (download) => ({
-    badge: DONE_BADGE,
-    colour: BLUE,
-    title: doneTitle(download),
-  }),
-  error: (message) => ({
-    badge: ERROR_BADGE,
-    colour: RED,
-    title: `Download failed: ${message}`,
-  }),
-};
+    return {
+      badge: shown,
+      colour: BLUE,
+      title: this.stageTitles[stage].title(shown),
+    };
+  }
+
+  done(download: FinishedDownload): Look {
+    return { badge: DONE_BADGE, colour: BLUE, title: doneTitle(download) };
+  }
+
+  error(message: string): Look {
+    return {
+      badge: ERROR_BADGE,
+      colour: RED,
+      title: `Download failed: ${message}`,
+    };
+  }
+}

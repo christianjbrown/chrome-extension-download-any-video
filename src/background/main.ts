@@ -1,4 +1,5 @@
 // The service worker: builds the object graph and connects it to Chrome's events.
+import { CONVERT_STAGE, FETCH_STAGE } from "../shared/conversion-messages";
 import { OFFSCREEN_PAGE, PAGE_SCRIPT_FILE } from "../shared/extension-files";
 import { ExtensionMedia, MEDIA_EXTENSIONS } from "../shared/extension-media";
 import { DASH_FORMAT, HLS_FORMAT } from "../shared/media-types";
@@ -34,18 +35,26 @@ import { QuietProgress } from "./quiet-progress";
 import { SchemeReportListener } from "./scheme-report-listener";
 import { SCHEME_POLICY, UNKNOWN_SCHEME } from "./scheme-state";
 import { SchemeStore } from "./scheme-store";
+import { ConvertingTitle, FetchingTitle } from "./stage-titles";
 import { SystemClock } from "./system-clock";
 import { TabScheme } from "./tab-scheme";
 import { ToolbarIcon } from "./toolbar-icon";
+import type { StageTitles } from "./toolbar";
 import { ToolbarIndicator } from "./toolbar-indicator";
-import { TOOLBAR_LOOKS } from "./toolbar-looks";
+import { ButtonLooks } from "./toolbar-looks";
 import { ToolbarScheme } from "./toolbar-scheme";
 import { VideoFilename } from "./video-filename";
 import { VideoSaver } from "./video-saver";
 
+// Another stage is another entry here, and the compiler asks for one.
+const stageTitles = {
+  [FETCH_STAGE]: new FetchingTitle(),
+  [CONVERT_STAGE]: new ConvertingTitle(),
+} satisfies StageTitles;
+const looks = new ButtonLooks(stageTitles);
 const indicator = new QuietProgress(
-  new ToolbarIndicator(new ClosedTabAction(chrome.action), TOOLBAR_LOOKS),
-  TOOLBAR_LOOKS,
+  new ToolbarIndicator(new ClosedTabAction(chrome.action), looks),
+  looks,
 );
 const toolbarScheme = new ToolbarScheme(
   new SchemeStore(chrome.storage.local, UNKNOWN_SCHEME),

@@ -38,6 +38,14 @@ export interface FinishedDownload {
   readonly converted: boolean;
 }
 
+// The tooltip for one stage of a download, around the percentage shown.
+export interface StageTitle {
+  title(shown: string): string;
+}
+
+// A tooltip for every stage there is.
+export type StageTitles = Readonly<Record<Stage, StageTitle>>;
+
 // How the button looks at each point of a download.
 export interface ToolbarLooks {
   idle(): Look;
