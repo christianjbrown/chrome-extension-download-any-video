@@ -15,14 +15,14 @@ export interface TrackFetcher {
   ): Promise<FetchedTrack[]>;
 }
 
-// Pieces fetched at once. A player takes one at a time; a few in parallel is
-// quicker and still polite to the server.
-const PARALLEL_FETCHES = 4;
-
 // Fetches every piece of every track, a few at a time, saying how far it has
 // got after each batch.
 export class PieceFetcher implements TrackFetcher {
-  constructor(private readonly fetcher: ByteFetcher) {}
+  constructor(
+    private readonly fetcher: ByteFetcher,
+    // Pieces fetched at once.
+    private readonly parallel: number,
+  ) {}
 
   async fetchAll(
     tracks: readonly Track[],
@@ -34,12 +34,8 @@ export class PieceFetcher implements TrackFetcher {
     const fetched: FetchedTrack[] = [];
     for (const track of tracks) {
       const parts: ArrayBuffer[] = [];
-      for (
-        let start = 0;
-        start < track.pieces.length;
-        start += PARALLEL_FETCHES
-      ) {
-        const batch = track.pieces.slice(start, start + PARALLEL_FETCHES);
+      for (let start = 0; start < track.pieces.length; start += this.parallel) {
+        const batch = track.pieces.slice(start, start + this.parallel);
         parts.push(
           ...(await Promise.all(
             batch.map((piece) => this.fetcher.bytes(piece.url, piece.range)),

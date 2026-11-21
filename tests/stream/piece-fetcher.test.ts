@@ -2,6 +2,8 @@ import { PieceFetcher } from "../../src/stream/piece-fetcher";
 import type { Track } from "../../src/stream/tracks";
 import { FakeFetcher, RecordingProgress, decode } from "./fakes";
 
+const AT_ONCE = 4;
+
 const pieces = (prefix: string, count: number) =>
   Array.from({ length: count }, (_, i) => ({
     url: `https://x/${prefix}${String(i)}`,
@@ -17,7 +19,10 @@ describe("PieceFetcher", () => {
       { role: "audio", pieces: pieces("a", 3) },
     ];
 
-    const fetched = await new PieceFetcher(fetcher).fetchAll(tracks, progress);
+    const fetched = await new PieceFetcher(fetcher, AT_ONCE).fetchAll(
+      tracks,
+      progress,
+    );
 
     expect(fetched.map((track) => track.role)).toEqual(["video", "audio"]);
     expect(fetched[0]?.parts.map(decode)).toEqual([
@@ -46,7 +51,7 @@ describe("PieceFetcher", () => {
     vi.spyOn(fetcher, "bytes").mockRejectedValue(new Error("HTTP 404"));
 
     await expect(
-      new PieceFetcher(fetcher).fetchAll(
+      new PieceFetcher(fetcher, AT_ONCE).fetchAll(
         [{ role: "muxed", pieces: pieces("v", 1) }],
         new RecordingProgress(),
       ),

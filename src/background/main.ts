@@ -10,6 +10,7 @@ import {
 } from "../stream/stream-lister";
 import { parseXml } from "../stream/xml-parser";
 import { CandidateRanker } from "./candidate-ranker";
+import { BACKGROUND_CONFIG } from "./config";
 import { ChromeErrorExplainer } from "./chrome-errors";
 import { ClickScheme } from "./click-scheme";
 import { ClosedTabAction } from "./closed-tab-action";
@@ -66,7 +67,7 @@ const controller = new DownloadController({
       nextId: () => crypto.randomUUID(),
     }),
   ),
-  names: new VideoFilename(new SystemClock()),
+  names: new VideoFilename(new SystemClock(), BACKGROUND_CONFIG.maxStem),
   saver: new VideoSaver(
     chrome.downloads,
     new DownloadWatcher(chrome.downloads),

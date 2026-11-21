@@ -41,7 +41,7 @@ const handler = new ConvertHandler({
         [HLS_FORMAT]: new HlsTracks(pieces),
         [DASH_FORMAT]: new DashTracks(pieces, parseXml),
       }),
-      new PieceFetcher(pieces),
+      new PieceFetcher(pieces, OFFSCREEN_CONFIG.parallelFetches),
     ),
   }),
   transcoder: new Transcoder({
@@ -52,7 +52,7 @@ const handler = new ConvertHandler({
       classWorker: chrome.runtime.getURL(FFMPEG_FILES.classWorker),
     }),
     parser: new StreamInfoParser(),
-    planner: new ConversionPlanner(),
+    planner: new ConversionPlanner(OFFSCREEN_CONFIG.encoding),
   }),
   urls: {
     create: (data) =>

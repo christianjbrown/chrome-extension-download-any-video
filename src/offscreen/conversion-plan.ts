@@ -17,6 +17,21 @@ export interface ConversionPlanning {
   plan(main: StreamInfo, audio: StreamInfo | undefined): string[];
 }
 
+// How hard ffmpeg works on a video it has to re-encode, and what it aims for.
+export interface EncodeSettings {
+  // Left to pick its own thread count, ffmpeg.wasm's multi-threaded build
+  // asks for more workers than it has and deadlocks.
+  readonly threads: number;
+  // x264's speed against size trade.
+  readonly preset: string;
+  // x264's constant quality: lower looks better and takes more room.
+  readonly crf: number;
+  // The H.264 profile, which decides which players can open the file.
+  readonly profile: string;
+  // What the sound is re-encoded at, in ffmpeg's own notation.
+  readonly audioBitrate: string;
+}
+
 export const NO_VIDEO = "There is no picture in that file, only sound";
 
 // What plays everywhere: H.264 with 4:2:0 colour and AAC sound, in an MP4.
@@ -29,45 +44,59 @@ const FIRST_VIDEO_STREAM = "0:v:0";
 const FIRST_AUDIO_STREAM_IF_ANY = "0:a:0?";
 const SECOND_INPUT_AUDIO_IF_ANY = "1:a:0?";
 
-// Left to pick its own thread count, ffmpeg.wasm's multi-threaded build asks
-// for more workers than it has and deadlocks; four decode and encode fine.
-const THREADS: readonly string[] = ["-threads", "4"];
+const threads = (settings: EncodeSettings): readonly string[] => [
+  "-threads",
+  String(settings.threads),
+];
 
 const COPY_VIDEO: readonly string[] = ["-c:v", "copy"];
-// veryfast keeps a software encode bearable; CRF 20 looks like the original.
 // H.264 needs even dimensions, so odd ones are rounded up by a pixel.
-const ENCODE_VIDEO: readonly string[] = [
-  ...THREADS,
+const EVEN_DIMENSIONS = "scale=ceil(iw/2)*2:ceil(ih/2)*2";
+const encodeVideo = (settings: EncodeSettings): readonly string[] => [
+  ...threads(settings),
   "-c:v",
   "libx264",
   "-preset",
-  "veryfast",
+  settings.preset,
   "-crf",
-  "20",
+  String(settings.crf),
   "-pix_fmt",
   COMPATIBLE_PIXEL_FORMAT,
   "-profile:v",
-  "high",
+  settings.profile,
   "-vf",
-  "scale=ceil(iw/2)*2:ceil(ih/2)*2",
+  EVEN_DIMENSIONS,
 ];
 const COPY_AUDIO: readonly string[] = ["-c:a", "copy"];
-const ENCODE_AUDIO: readonly string[] = ["-c:a", "aac", "-b:a", "160k"];
+const encodeAudio = (settings: EncodeSettings): readonly string[] => [
+  "-c:a",
+  COMPATIBLE_AUDIO_CODEC,
+  "-b:a",
+  settings.audioBitrate,
+];
 // The index goes at the front of the file, so players start at once.
 const FAST_START: readonly string[] = ["-movflags", "+faststart"];
 
-function videoArguments(video: VideoStream): readonly string[] {
+function videoArguments(
+  video: VideoStream,
+  settings: EncodeSettings,
+): readonly string[] {
   const alreadyCompatible =
     video.codec === COMPATIBLE_VIDEO_CODEC &&
     video.pixelFormat === COMPATIBLE_PIXEL_FORMAT;
-  return alreadyCompatible ? COPY_VIDEO : ENCODE_VIDEO;
+  return alreadyCompatible ? COPY_VIDEO : encodeVideo(settings);
 }
 
-function audioArguments(audio: AudioStream | undefined): readonly string[] {
+function audioArguments(
+  audio: AudioStream | undefined,
+  settings: EncodeSettings,
+): readonly string[] {
   if (audio === undefined) {
     return [];
   }
-  return audio.codec === COMPATIBLE_AUDIO_CODEC ? COPY_AUDIO : ENCODE_AUDIO;
+  return audio.codec === COMPATIBLE_AUDIO_CODEC
+    ? COPY_AUDIO
+    : encodeAudio(settings);
 }
 
 interface Sound {
@@ -96,20 +125,22 @@ function soundOf(main: StreamInfo, audio: StreamInfo | undefined): Sound {
 // Streams that already play everywhere are copied as they are, so nothing is
 // lost; anything else is re-encoded.
 export class ConversionPlanner implements ConversionPlanning {
+  constructor(private readonly settings: EncodeSettings) {}
+
   plan(main: StreamInfo, audio: StreamInfo | undefined): string[] {
     if (main.video === undefined) {
       throw new Error(NO_VIDEO);
     }
     const sound = soundOf(main, audio);
     return [
-      ...THREADS,
+      ...threads(this.settings),
       ...sound.inputs,
       MAP_FLAG,
       FIRST_VIDEO_STREAM,
       MAP_FLAG,
       sound.map,
-      ...videoArguments(main.video),
-      ...audioArguments(sound.stream),
+      ...videoArguments(main.video, this.settings),
+      ...audioArguments(sound.stream, this.settings),
       ...FAST_START,
       OUTPUT_NAME,
     ];
