@@ -44,18 +44,14 @@ interface Based {
   readonly baseUrl: string;
 }
 
-// What reading a playlist gathers as it goes, in the parts each tag needs.
-
-export interface PendingVariant {
-  // A variant's attributes, waiting for the URI on the line after them.
-  pending: Attributes | undefined;
-}
+// What reading a playlist gathers as it goes, in the parts each tag fills in.
+// A tag that needs to remember something between lines keeps it itself.
 
 export interface AudioRenditions extends Based {
   readonly audio: AudioRendition[];
 }
 
-export interface MasterReading extends PendingVariant, AudioRenditions {
+export interface MasterReading extends AudioRenditions {
   readonly variants: Variant[];
 }
 
@@ -67,15 +63,8 @@ export interface InitPiece extends Based {
   init: Piece | undefined;
 }
 
-export interface PendingRange {
-  // A segment's byte range, waiting for the URI on a later line.
-  pendingRange: string | undefined;
-}
-
-export interface MediaReading extends Encryption, InitPiece, PendingRange {
+export interface MediaReading extends Encryption, InitPiece {
   readonly segments: Piece[];
-  // Where the last segment ended, for a range that only gives a length.
-  previousEnd: number;
 }
 
 // One tag a playlist reader understands: each line that starts with it is
@@ -85,9 +74,22 @@ export interface HlsTag<R> {
   read(line: string, reading: R): void;
 }
 
-// The tags each kind of playlist is read with. Another tag is another class
-// and one more entry where the entry points list them.
+// What makes of each line that is neither a tag nor a comment, which is a URI.
+export interface UriLine<R> {
+  uri(uri: string, reading: R): void;
+}
+
+// The tags one playlist is read with, and what takes its URIs.
+export interface PlaylistTags<R> {
+  readonly tags: readonly HlsTag<R>[];
+  readonly uris: UriLine<R>;
+}
+
+// The tags each kind of playlist is read with, fresh for every playlist so
+// that what a tag remembers between lines never leaks into the next one.
+// Another tag is another class and one more entry where the entry points list
+// them.
 export interface HlsTags {
-  readonly master: readonly HlsTag<MasterReading>[];
-  readonly media: readonly HlsTag<MediaReading>[];
+  master(): PlaylistTags<MasterReading>;
+  media(): PlaylistTags<MediaReading>;
 }

@@ -81,8 +81,14 @@ export const pieceSources = [
 
 // The HLS tags the entry points hand a playlist parser.
 export const hlsTags: HlsTags = {
-  master: [new StreamInfTag(), new MediaTag()],
-  media: [new KeyTag(), new MapTag(), new ByteRangeTag()],
+  master: () => {
+    const variants = new StreamInfTag();
+    return { tags: [variants, new MediaTag()], uris: variants };
+  },
+  media: () => {
+    const segments = new ByteRangeTag();
+    return { tags: [new KeyTag(), new MapTag(), segments], uris: segments };
+  },
 };
 
 // Parses XML with the parts the entry points list, in their order.

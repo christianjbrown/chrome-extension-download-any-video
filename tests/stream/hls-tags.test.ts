@@ -9,22 +9,30 @@ import {
 const base = "https://cdn.example/v/master.m3u8";
 
 describe("StreamInfTag", () => {
-  it("keeps the variant's attributes for the URI that follows", () => {
-    const reading = {
-      pending: undefined as ReadonlyMap<string, string> | undefined,
-    };
+  it("makes the URI after a variant's line that variant", () => {
+    const reading = { baseUrl: base, variants: [], audio: [] };
+    const tag = new StreamInfTag();
 
-    new StreamInfTag().read(
-      '#EXT-X-STREAM-INF:BANDWIDTH=900,CODECS="a,b"',
-      reading,
-    );
+    tag.read('#EXT-X-STREAM-INF:BANDWIDTH=900,RESOLUTION=640x360,AUDIO="aac"');
+    tag.uri("360.m3u8", reading);
+    tag.uri("stray.m3u8", reading);
 
-    expect(reading.pending).toEqual(
-      new Map([
-        ["BANDWIDTH", "900"],
-        ["CODECS", "a,b"],
-      ]),
-    );
+    expect(reading.variants).toEqual([
+      {
+        url: "https://cdn.example/v/360.m3u8",
+        height: 360,
+        bandwidth: 900,
+        audioGroup: "aac",
+      },
+    ]);
+  });
+
+  it("ignores a URI that no variant line came before", () => {
+    const reading = { baseUrl: base, variants: [], audio: [] };
+
+    new StreamInfTag().uri("stray.m3u8", reading);
+
+    expect(reading.variants).toEqual([]);
   });
 });
 
@@ -95,11 +103,33 @@ describe("MapTag", () => {
 });
 
 describe("ByteRangeTag", () => {
-  it("keeps the range for the segment that follows", () => {
-    const reading = { pendingRange: undefined as string | undefined };
+  const reading = () => ({
+    baseUrl: base,
+    init: undefined,
+    segments: [],
+    encrypted: false,
+  });
 
-    new ByteRangeTag().read("#EXT-X-BYTERANGE:500@100", reading);
+  it("slices the segment that follows, continuing from the last one", () => {
+    const media = reading();
+    const tag = new ByteRangeTag();
 
-    expect(reading.pendingRange).toBe("500@100");
+    tag.read("#EXT-X-BYTERANGE:500@100");
+    tag.uri("a.ts", media);
+    tag.read("#EXT-X-BYTERANGE:200");
+    tag.uri("a.ts", media);
+    tag.uri("b.ts", media);
+
+    expect(media.segments).toEqual([
+      {
+        url: "https://cdn.example/v/a.ts",
+        range: { length: 500, offset: 100 },
+      },
+      {
+        url: "https://cdn.example/v/a.ts",
+        range: { length: 200, offset: 600 },
+      },
+      { url: "https://cdn.example/v/b.ts", range: undefined },
+    ]);
   });
 });

@@ -8,8 +8,10 @@ import type {
   Encryption,
   HlsTag,
   InitPiece,
-  PendingRange,
-  PendingVariant,
+  MasterReading,
+  MediaReading,
+  UriLine,
+  Variant,
 } from "./hls";
 import {
   ATTRIBUTES,
@@ -18,8 +20,10 @@ import {
   FILE_START,
   given,
   resolve,
+  sizeOf,
   STREAM_INF_TAG,
 } from "./hls-syntax";
+import type { ByteRange } from "./tracks";
 
 const MEDIA_TAG = "#EXT-X-MEDIA:";
 const KEY_TAG = "#EXT-X-KEY:";
@@ -28,13 +32,44 @@ const BYTERANGE_TAG = "#EXT-X-BYTERANGE:";
 const AUDIO_TYPE = "AUDIO";
 const YES = "YES";
 const NO_ENCRYPTION = "NONE";
+const RESOLUTION = /^\d+x(\d+)$/;
+// Where the height sits in a resolution.
+const HEIGHT_GROUP = 1;
 
-// A variant's size and sound, which the URI on the next line points to.
-export class StreamInfTag implements HlsTag<PendingVariant> {
+function resolutionHeight(found: Attributes): string | undefined {
+  return RESOLUTION.exec(given(found, ATTRIBUTES.resolution))?.[HEIGHT_GROUP];
+}
+
+function variant(found: Attributes, url: string): Variant {
+  return {
+    url,
+    height: sizeOf(resolutionHeight(found)),
+    bandwidth: sizeOf(found.get(ATTRIBUTES.bandwidth)),
+    audioGroup: found.get(ATTRIBUTES.audio),
+  };
+}
+
+// A variant's size and sound, which the URI on the next line points to. It
+// keeps the attributes until that URI comes, so it is one per playlist.
+export class StreamInfTag
+  implements HlsTag<MasterReading>, UriLine<MasterReading>
+{
+  private pending: Attributes | undefined;
+
   readonly tag = STREAM_INF_TAG;
 
-  read(line: string, reading: PendingVariant): void {
-    reading.pending = attributes(line);
+  read(line: string): void {
+    this.pending = attributes(line);
+  }
+
+  // A URI that no variant line came before names nothing.
+  uri(uri: string, reading: MasterReading): void {
+    if (this.pending !== undefined) {
+      reading.variants.push(
+        variant(this.pending, resolve(uri, reading.baseUrl)),
+      );
+      this.pending = undefined;
+    }
   }
 }
 
@@ -97,11 +132,33 @@ export class MapTag implements HlsTag<InitPiece> {
   }
 }
 
-// The slice of a file the next segment is.
-export class ByteRangeTag implements HlsTag<PendingRange> {
+// Where a piece ends, which is where the next one starts when its range only
+// gives a length. A piece without a range is a whole file.
+function endOf(range: ByteRange | undefined): number {
+  return range === undefined ? FILE_START : range.offset + range.length;
+}
+
+// Each URI of a media playlist as a segment, sliced by the byte range before
+// it. It keeps the range until the URI comes, and where the last segment
+// ended, so it is one per playlist.
+export class ByteRangeTag
+  implements HlsTag<MediaReading>, UriLine<MediaReading>
+{
+  private pending: string | undefined;
+  private previousEnd = FILE_START;
+
   readonly tag = BYTERANGE_TAG;
 
-  read(line: string, reading: PendingRange): void {
-    reading.pendingRange = line.slice(BYTERANGE_TAG.length);
+  read(line: string): void {
+    this.pending = line.slice(BYTERANGE_TAG.length);
+  }
+
+  uri(uri: string, reading: MediaReading): void {
+    const range = ifDefined(this.pending, (spec) =>
+      byteRange(spec, this.previousEnd),
+    );
+    reading.segments.push({ url: resolve(uri, reading.baseUrl), range });
+    this.previousEnd = endOf(range);
+    this.pending = undefined;
   }
 }
