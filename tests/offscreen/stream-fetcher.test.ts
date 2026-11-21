@@ -1,7 +1,8 @@
 import { StreamFetcher } from "../../src/offscreen/stream-fetcher";
 import type { FetchedTrack } from "../../src/stream/fetchers";
 import type { Progress } from "../../src/stream/progress";
-import { NO_STREAMS, type Track } from "../../src/stream/tracks";
+import type { Track } from "../../src/stream/tracks";
+import { refusals } from "../stream/fakes";
 
 const bytes = (...values: number[]) => new Uint8Array(values).buffer;
 const tracks: Track[] = [
@@ -23,7 +24,11 @@ function setup(fetched: FetchedTrack[]) {
       return Promise.resolve(fetched);
     }),
   };
-  return { reader, pieces, fetcher: new StreamFetcher(reader, pieces, roles) };
+  return {
+    reader,
+    pieces,
+    fetcher: new StreamFetcher(reader, pieces, roles, refusals),
+  };
 }
 
 describe("StreamFetcher", () => {
@@ -58,7 +63,7 @@ describe("StreamFetcher", () => {
     const { fetcher } = setup([{ role: "audio", parts: [bytes(4)] }]);
 
     await expect(fetcher.fetch("https://x/v.m3u8", vi.fn())).rejects.toThrow(
-      NO_STREAMS,
+      refusals.noStreams,
     );
   });
 });

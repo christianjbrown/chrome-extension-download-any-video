@@ -2,12 +2,10 @@ import { asList, required } from "../shared/optional";
 import type { TextFetcher } from "./fetchers";
 import type { AudioRendition, HlsParsing, MediaPlaylist, Variant } from "./hls";
 import type { StreamReader } from "./playlists";
+import type { StreamRefusals } from "./refusals";
 import {
   AUDIO_TRACK,
-  EMPTY_PLAYLIST,
-  ENCRYPTED_STREAM,
   MUXED_TRACK,
-  NO_STREAMS,
   VIDEO_TRACK,
   type SizeChoice,
   type Track,
@@ -21,18 +19,22 @@ export class HlsTracks implements StreamReader {
     private readonly fetcher: TextFetcher,
     private readonly hls: HlsParsing,
     private readonly sizes: SizeChoice,
+    private readonly refusals: StreamRefusals,
   ) {}
 
   async tracks(url: string): Promise<Track[]> {
     const text = await this.fetcher.text(url);
     return this.hls.isMaster(text)
       ? this.fromMaster(text, url)
-      : [trackOf(MUXED_TRACK, this.hls.media(text, url))];
+      : [this.trackOf(MUXED_TRACK, this.hls.media(text, url))];
   }
 
   private async fromMaster(text: string, url: string): Promise<Track[]> {
     const master = this.hls.master(text, url);
-    const chosen = required(this.sizes.best(master.variants), NO_STREAMS);
+    const chosen = required(
+      this.sizes.best(master.variants),
+      this.refusals.noStreams,
+    );
     const audio = renditionFor(chosen, master.audio);
     return audio === undefined
       ? [await this.media(MUXED_TRACK, chosen.url)]
@@ -51,25 +53,28 @@ export class HlsTracks implements StreamReader {
   }
 
   private async media(role: TrackRole, url: string): Promise<Track> {
-    return trackOf(role, this.hls.media(await this.fetcher.text(url), url));
+    return this.trackOf(
+      role,
+      this.hls.media(await this.fetcher.text(url), url),
+    );
   }
-}
 
-function trackOf(role: TrackRole, playlist: MediaPlaylist): Track {
-  checkNotEncrypted(playlist);
-  return { role, pieces: [...asList(playlist.init), ...playlist.segments] };
-}
-
-function checkNotEncrypted(playlist: MediaPlaylist): void {
-  if (playlist.encrypted) {
-    throw new Error(ENCRYPTED_STREAM);
+  private trackOf(role: TrackRole, playlist: MediaPlaylist): Track {
+    this.checkNotEncrypted(playlist);
+    return { role, pieces: [...asList(playlist.init), ...playlist.segments] };
   }
-  checkNotEmpty(playlist);
-}
 
-function checkNotEmpty(playlist: MediaPlaylist): void {
-  if (playlist.segments.length === 0) {
-    throw new Error(EMPTY_PLAYLIST);
+  private checkNotEncrypted(playlist: MediaPlaylist): void {
+    if (playlist.encrypted) {
+      throw new Error(this.refusals.encrypted);
+    }
+    this.checkNotEmpty(playlist);
+  }
+
+  private checkNotEmpty(playlist: MediaPlaylist): void {
+    if (playlist.segments.length === 0) {
+      throw new Error(this.refusals.emptyPlaylist);
+    }
   }
 }
 

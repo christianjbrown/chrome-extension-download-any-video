@@ -1,7 +1,7 @@
 import { ifDefined, required } from "../shared/optional";
 import type { FetchedTrack, TrackFetcher } from "../stream/fetchers";
 import type { StreamReader } from "../stream/playlists";
-import { NO_STREAMS } from "../stream/tracks";
+import type { StreamRefusals } from "../stream/refusals";
 import { concatenate } from "./bytes";
 import type { Fetches } from "./conversion-parts";
 import type { InputRoles, MediaInputs } from "./media-inputs";
@@ -16,6 +16,7 @@ export class StreamFetcher implements Fetches {
     private readonly reader: StreamReader,
     private readonly pieces: TrackFetcher,
     private readonly roles: InputRoles,
+    private readonly refusals: Pick<StreamRefusals, "noStreams">,
   ) {}
 
   async fetch(url: string, onProgress: ProgressListener): Promise<MediaInputs> {
@@ -28,7 +29,7 @@ export class StreamFetcher implements Fetches {
     const main = fetched.find((track) => this.roles.main.has(track.role));
     const audio = fetched.find((track) => this.roles.audio.has(track.role));
     return {
-      main: joined(required(main, NO_STREAMS)),
+      main: joined(required(main, this.refusals.noStreams)),
       audio: ifDefined(audio, joined),
     };
   }

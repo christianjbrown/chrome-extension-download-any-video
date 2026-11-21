@@ -2,12 +2,9 @@ import { asList, required } from "../shared/optional";
 import type { DashManifest, DashParsing, DashRepresentation } from "./dash";
 import type { TextFetcher } from "./fetchers";
 import type { StreamReader } from "./playlists";
+import type { StreamRefusals } from "./refusals";
 import {
   AUDIO_TRACK,
-  EMPTY_PLAYLIST,
-  ENCRYPTED_STREAM,
-  LIVE_STREAM,
-  NO_STREAMS,
   VIDEO_TRACK,
   type SizeChoice,
   type Track,
@@ -19,32 +16,40 @@ export class DashTracks implements StreamReader {
     private readonly fetcher: TextFetcher,
     private readonly dash: DashParsing,
     private readonly sizes: SizeChoice,
+    private readonly refusals: StreamRefusals,
   ) {}
 
   async tracks(url: string): Promise<Track[]> {
     const manifest = this.dash.parse(await this.fetcher.text(url), url);
-    checkNotLive(manifest);
+    this.checkNotLive(manifest);
     const video = required(
       this.sizes.best(ofRole(manifest.representations, VIDEO_TRACK)),
-      NO_STREAMS,
+      this.refusals.noStreams,
     );
     const audio = this.sizes.best(
       ofRole(manifest.representations, AUDIO_TRACK),
     );
-    return [video, ...asList(audio)].map(track);
+    return [video, ...asList(audio)].map((chosen) => this.track(chosen));
   }
-}
 
-function checkNotLive(manifest: DashManifest): void {
-  if (manifest.live) {
-    throw new Error(LIVE_STREAM);
+  private checkNotLive(manifest: DashManifest): void {
+    if (manifest.live) {
+      throw new Error(this.refusals.live);
+    }
+    this.checkNotEncrypted(manifest);
   }
-  checkNotEncrypted(manifest);
-}
 
-function checkNotEncrypted(manifest: DashManifest): void {
-  if (manifest.encrypted) {
-    throw new Error(ENCRYPTED_STREAM);
+  private checkNotEncrypted(manifest: DashManifest): void {
+    if (manifest.encrypted) {
+      throw new Error(this.refusals.encrypted);
+    }
+  }
+
+  private track(representation: DashRepresentation): Track {
+    if (representation.pieces.length === 0) {
+      throw new Error(this.refusals.emptyPlaylist);
+    }
+    return { role: representation.role, pieces: representation.pieces };
   }
 }
 
@@ -53,11 +58,4 @@ function ofRole(
   role: DashRepresentation["role"],
 ): DashRepresentation[] {
   return representations.filter((r) => r.role === role);
-}
-
-function track(representation: DashRepresentation): Track {
-  if (representation.pieces.length === 0) {
-    throw new Error(EMPTY_PLAYLIST);
-  }
-  return { role: representation.role, pieces: representation.pieces };
 }

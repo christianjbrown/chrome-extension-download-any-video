@@ -12,6 +12,7 @@ import {
   StreamInfTag,
 } from "../../src/stream/hls-tags";
 import type { Progress } from "../../src/stream/progress";
+import type { StreamRefusals } from "../../src/stream/refusals";
 import type { ByteRange } from "../../src/stream/tracks";
 import type { XmlElement } from "../../src/stream/xml";
 import { XmlReader } from "../../src/stream/xml-parser";
@@ -94,3 +95,11 @@ export const xmlReader = new XmlReader({
     new ChildElementPart(),
   ],
 });
+
+// Refusal wording for the readers, one word each so a test sees which applied.
+export const refusals: StreamRefusals = {
+  encrypted: "encrypted",
+  live: "live",
+  noStreams: "no streams",
+  emptyPlaylist: "empty playlist",
+};

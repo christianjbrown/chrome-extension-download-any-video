@@ -28,14 +28,6 @@ export interface Track {
   readonly pieces: readonly Piece[];
 }
 
-// Why a stream cannot be downloaded, in words for the button's tooltip.
-export const ENCRYPTED_STREAM =
-  "This stream is encrypted, and this extension does not decrypt";
-export const LIVE_STREAM =
-  "This is a live stream with no end, so there is no whole video to save";
-export const NO_STREAMS = "The playlist names no video to download";
-export const EMPTY_PLAYLIST = "The playlist lists no pieces to download";
-
 // A variant or representation that does not say how tall or how big it is.
 export const UNKNOWN_SIZE = 0;
 

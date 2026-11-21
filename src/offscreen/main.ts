@@ -7,6 +7,7 @@ import { FFMPEG_FILES } from "../shared/extension-files";
 import { ExtensionMedia } from "../shared/extension-media";
 import { FFMPEG_NOISE } from "../wiring/ffmpeg-noise";
 import { MEDIA_EXTENSIONS } from "../wiring/media-extensions";
+import { STREAM_REFUSALS } from "../wiring/stream-refusals";
 import { SerialQueue } from "../shared/serial-queue";
 import {
   DASH_FORMAT,
@@ -59,11 +60,17 @@ const listener = new ConvertListener(
         [PLAYLIST_KIND]: new StreamFetcher(
           new PlaylistReader(
             new ByFormat<StreamReader>(media, {
-              [HLS_FORMAT]: new HlsTracks(pieces, hlsPlaylistParser(), sizes),
+              [HLS_FORMAT]: new HlsTracks(
+                pieces,
+                hlsPlaylistParser(),
+                sizes,
+                STREAM_REFUSALS,
+              ),
               [DASH_FORMAT]: new DashTracks(
                 pieces,
                 dashManifestParser(),
                 sizes,
+                STREAM_REFUSALS,
               ),
             }),
           ),
@@ -73,6 +80,7 @@ const listener = new ConvertListener(
             main: new Set([MUXED_TRACK, VIDEO_TRACK]),
             audio: new Set([AUDIO_TRACK]),
           },
+          STREAM_REFUSALS,
         ),
       },
       media,

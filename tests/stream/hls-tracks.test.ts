@@ -1,12 +1,7 @@
 import { HlsPlaylistParser } from "../../src/stream/hls-playlist";
 import { HlsTracks } from "../../src/stream/hls-tracks";
 import { SharpestFirst } from "../../src/stream/sharpest-first";
-import {
-  EMPTY_PLAYLIST,
-  ENCRYPTED_STREAM,
-  NO_STREAMS,
-} from "../../src/stream/tracks";
-import { FakeFetcher, hlsTags } from "./fakes";
+import { FakeFetcher, hlsTags, refusals } from "./fakes";
 
 const MASTER = "https://cdn.example/v/master.m3u8";
 const media = (...names: string[]) =>
@@ -22,6 +17,7 @@ describe("HlsTracks", () => {
         fetcher,
         new HlsPlaylistParser(hlsTags),
         new SharpestFirst(),
+        refusals,
       ).tracks(MASTER),
     ).resolves.toEqual([
       {
@@ -47,6 +43,7 @@ describe("HlsTracks", () => {
         fetcher,
         new HlsPlaylistParser(hlsTags),
         new SharpestFirst(),
+        refusals,
       ).tracks(MASTER),
     ).resolves.toEqual([
       {
@@ -72,6 +69,7 @@ describe("HlsTracks", () => {
         fetcher,
         new HlsPlaylistParser(hlsTags),
         new SharpestFirst(),
+        refusals,
       ).tracks(MASTER),
     ).resolves.toEqual([
       { role: "video", pieces: [piece("https://cdn.example/v/v.m4s")] },
@@ -91,6 +89,7 @@ describe("HlsTracks", () => {
       fetcher,
       new HlsPlaylistParser(hlsTags),
       new SharpestFirst(),
+      refusals,
     ).tracks(MASTER);
 
     expect(tracks[1]?.pieces).toEqual([piece("https://cdn.example/v/en.m4s")]);
@@ -107,17 +106,18 @@ describe("HlsTracks", () => {
       fetcher,
       new HlsPlaylistParser(hlsTags),
       new SharpestFirst(),
+      refusals,
     ).tracks(MASTER);
 
     expect(tracks.map((track) => track.role)).toEqual(["muxed"]);
   });
 
   it.each([
-    ["#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\n", NO_STREAMS],
-    ["#EXTM3U\n#EXT-X-ENDLIST\n", EMPTY_PLAYLIST],
+    ["#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\n", refusals.noStreams],
+    ["#EXTM3U\n#EXT-X-ENDLIST\n", refusals.emptyPlaylist],
     [
       '#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="k"\n#EXTINF:4,\na.ts\n',
-      ENCRYPTED_STREAM,
+      refusals.encrypted,
     ],
   ])("says why %j cannot be downloaded", async (text, message) => {
     const fetcher = new FakeFetcher({ [MASTER]: text });
@@ -127,6 +127,7 @@ describe("HlsTracks", () => {
         fetcher,
         new HlsPlaylistParser(hlsTags),
         new SharpestFirst(),
+        refusals,
       ).tracks(MASTER),
     ).rejects.toThrow(message);
   });
