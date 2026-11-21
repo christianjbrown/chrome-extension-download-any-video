@@ -26,7 +26,7 @@ function setup(alreadyOpen = false) {
     offscreen,
     runtime,
     isOpen: () => open,
-    document: new OffscreenDocument(offscreen, runtime),
+    document: new OffscreenDocument(offscreen, runtime, "converter.html"),
   };
 }
 
@@ -40,7 +40,7 @@ describe("OffscreenDocument", () => {
       contextTypes: ["OFFSCREEN_DOCUMENT"],
     });
     expect(offscreen.createDocument).toHaveBeenCalledExactlyOnceWith({
-      url: "offscreen.html",
+      url: "converter.html",
       reasons: ["WORKERS", "MATCH_MEDIA"],
       justification: expect.stringMatching(/H\.264.*colour scheme/) as string,
     });

@@ -1,4 +1,6 @@
 // The service worker: builds the object graph and connects it to Chrome's events.
+import { OFFSCREEN_PAGE, PAGE_SCRIPT_FILE } from "../shared/extension-files";
+import { DASH_FORMAT, HLS_FORMAT } from "../shared/media-urls";
 import { isSchemeReport } from "../shared/scheme-messages";
 import { HttpFetcher } from "../stream/fetching";
 import {
@@ -42,14 +44,18 @@ const clickScheme = new ClickScheme(
 );
 // One hidden page does two jobs: it converts videos, and it watches Chrome's
 // colour scheme for the toolbar icon.
-const hiddenPage = new OffscreenDocument(chrome.offscreen, chrome.runtime);
+const hiddenPage = new OffscreenDocument(
+  chrome.offscreen,
+  chrome.runtime,
+  OFFSCREEN_PAGE,
+);
 const playlists = new HttpFetcher((url, init) => fetch(url, init));
 const controller = new DownloadController({
-  asker: new PageScript(chrome.scripting, "page.js"),
+  asker: new PageScript(chrome.scripting, PAGE_SCRIPT_FILE),
   filter: new PieceFilter(
     new PlaylistLister({
-      hls: new HlsReferences(playlists),
-      dash: new DashReferences(playlists, parseXml),
+      [HLS_FORMAT]: new HlsReferences(playlists),
+      [DASH_FORMAT]: new DashReferences(playlists, parseXml),
     }),
   ),
   ranker: new CandidateRanker(),

@@ -3,10 +3,12 @@ import type { TextFetcher } from "./fetching";
 import type { StreamReader } from "./stream-reader";
 import {
   EMPTY_PLAYLIST,
+  AUDIO_TRACK,
   ENCRYPTED_STREAM,
   LIVE_STREAM,
   NO_STREAMS,
   sharpest,
+  VIDEO_TRACK,
   type Track,
 } from "./tracks";
 import type { XmlParser } from "./xml";
@@ -29,11 +31,11 @@ export class DashTracks implements StreamReader {
     if (manifest.encrypted) {
       throw new Error(ENCRYPTED_STREAM);
     }
-    const video = sharpest(ofRole(manifest.representations, "video"));
+    const video = sharpest(ofRole(manifest.representations, VIDEO_TRACK));
     if (video === undefined) {
       throw new Error(NO_STREAMS);
     }
-    const audio = sharpest(ofRole(manifest.representations, "audio"));
+    const audio = sharpest(ofRole(manifest.representations, AUDIO_TRACK));
     return [video, ...(audio === undefined ? [] : [audio])].map(track);
   }
 }

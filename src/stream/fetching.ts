@@ -18,7 +18,7 @@ interface FetchedResponse {
 
 interface FetchInit {
   readonly headers: Record<string, string>;
-  readonly credentials: "include";
+  readonly credentials: typeof WITH_COOKIES;
 }
 
 // The one piece of fetch this needs, so it can be swapped for a fake.
@@ -28,10 +28,14 @@ export type FetchLike = (
 ) => Promise<FetchedResponse>;
 
 const RANGE_HEADER = "Range";
+const RANGE_UNIT = "bytes";
 const PARTIAL_CONTENT = 206;
 // Cookies go along, as they would from the page, so pieces that need the
 // site's session still arrive.
-const WITH_COOKIES: FetchInit["credentials"] = "include";
+export const WITH_COOKIES = "include";
+
+const refused = (status: number): string =>
+  `The server answered HTTP ${String(status)} for a piece of the video`;
 
 export class HttpFetcher implements TextFetcher, ByteFetcher {
   constructor(private readonly fetch: FetchLike) {}
@@ -48,7 +52,7 @@ export class HttpFetcher implements TextFetcher, ByteFetcher {
     }
     const end = range.offset + range.length;
     const response = await this.fetched(url, {
-      [RANGE_HEADER]: `bytes=${String(range.offset)}-${String(end - 1)}`,
+      [RANGE_HEADER]: `${RANGE_UNIT}=${String(range.offset)}-${String(end - 1)}`,
     });
     const buffer = await response.arrayBuffer();
     return response.status === PARTIAL_CONTENT
@@ -65,9 +69,7 @@ export class HttpFetcher implements TextFetcher, ByteFetcher {
       credentials: WITH_COOKIES,
     });
     if (!response.ok) {
-      throw new Error(
-        `The server answered HTTP ${String(response.status)} for a piece of the video`,
-      );
+      throw new Error(refused(response.status));
     }
     return response;
   }

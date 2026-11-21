@@ -1,4 +1,4 @@
-import type { VideoCandidate } from "../shared/candidates";
+import { METADATA_ORIGIN, type VideoCandidate } from "../shared/candidates";
 import { heightHint, mediaKind } from "../shared/media-urls";
 import type { ElementTree } from "./dom";
 
@@ -19,7 +19,12 @@ const META_SELECTOR = VIDEO_META.map(
   (name) => `meta[property="${name}"], meta[name="${name}"]`,
 ).join(", ");
 const JSON_LD_SELECTOR = 'script[type="application/ld+json"]';
+const CONTENT_ATTRIBUTE = "content";
 const VIDEO_OBJECT = "VideoObject";
+// JSON-LD's key for what kind of thing an object is.
+const TYPE_KEY = "@type";
+// A tag with no content names no video.
+const NO_ADDRESS = "";
 
 type JsonObject = Record<string, unknown>;
 
@@ -34,14 +39,18 @@ export class MetadataFinder implements PageMetadata {
   find(tree: ElementTree): VideoCandidate[] {
     const urls: string[] = [];
     for (const meta of tree.querySelectorAll(META_SELECTOR)) {
-      urls.push(meta.getAttribute("content") ?? "");
+      urls.push(meta.getAttribute(CONTENT_ATTRIBUTE) ?? NO_ADDRESS);
     }
     for (const script of tree.querySelectorAll(JSON_LD_SELECTOR)) {
       urls.push(...this.contentUrls(script.textContent));
     }
     return urls
       .filter((url) => mediaKind(url) !== undefined)
-      .map((url) => ({ url, origin: "metadata", height: heightHint(url) }));
+      .map((url) => ({
+        url,
+        origin: METADATA_ORIGIN,
+        height: heightHint(url),
+      }));
   }
 
   private contentUrls(text: string | null): string[] {
@@ -57,7 +66,7 @@ export class MetadataFinder implements PageMetadata {
 }
 
 function isVideoObject(value: JsonObject): boolean {
-  const type = value["@type"];
+  const type = value[TYPE_KEY];
   return Array.isArray(type)
     ? type.includes(VIDEO_OBJECT)
     : type === VIDEO_OBJECT;

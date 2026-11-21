@@ -1,11 +1,14 @@
 import type { DownloadCompletion } from "./download-completion";
 
+// A file of the same name already there is kept, and this one is numbered.
+const UNIQUIFY = "uniquify";
+
 export interface DownloadStarter {
   download(options: {
     url: string;
     filename: string;
     saveAs: false;
-    conflictAction: "uniquify";
+    conflictAction: typeof UNIQUIFY;
   }): Promise<number>;
 }
 
@@ -26,7 +29,7 @@ export class VideoSaver implements VideoDownloader {
       url,
       filename,
       saveAs: false,
-      conflictAction: "uniquify",
+      conflictAction: UNIQUIFY,
     });
     await this.completion.finished(id);
   }

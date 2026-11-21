@@ -46,10 +46,11 @@ describe("fileExtension", () => {
 });
 
 describe("playlistFormat", () => {
-  it("tells HLS from DASH, and neither from a file", () => {
+  it("tells HLS from DASH, and neither from a file or a bare path", () => {
     expect(playlistFormat("https://cdn.example/v/index.M3U8?x=1")).toBe("hls");
     expect(playlistFormat("https://cdn.example/v/manifest.mpd")).toBe("dash");
     expect(playlistFormat("https://cdn.example/v/clip.mp4")).toBeUndefined();
+    expect(playlistFormat("https://cdn.example/v/stream")).toBeUndefined();
   });
 });
 

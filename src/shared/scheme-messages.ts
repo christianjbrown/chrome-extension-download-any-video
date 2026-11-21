@@ -1,6 +1,6 @@
 // What the offscreen document tells the service worker about Chrome's colour
 // scheme: which one it is in, when it starts looking and whenever it changes.
-import { COLOUR_SCHEMES, type ColourScheme } from "./colour-scheme";
+import { isColourScheme, type ColourScheme } from "./colour-scheme";
 
 export const SCHEME_REPORT = "scheme";
 
@@ -14,8 +14,5 @@ export function isSchemeReport(message: unknown): message is SchemeReport {
     return false;
   }
   const { type, scheme } = message as Record<string, unknown>;
-  return (
-    type === SCHEME_REPORT &&
-    (COLOUR_SCHEMES as readonly unknown[]).includes(scheme)
-  );
+  return type === SCHEME_REPORT && isColourScheme(scheme);
 }

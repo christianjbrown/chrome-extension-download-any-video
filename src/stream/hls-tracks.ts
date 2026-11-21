@@ -9,10 +9,13 @@ import {
 } from "./hls-playlist";
 import type { StreamReader } from "./stream-reader";
 import {
+  AUDIO_TRACK,
   EMPTY_PLAYLIST,
   ENCRYPTED_STREAM,
+  MUXED_TRACK,
   NO_STREAMS,
   sharpest,
+  VIDEO_TRACK,
   type Track,
   type TrackRole,
 } from "./tracks";
@@ -25,7 +28,7 @@ export class HlsTracks implements StreamReader {
   async tracks(url: string): Promise<Track[]> {
     const text = await this.fetcher.text(url);
     if (!isMasterPlaylist(text)) {
-      return [trackOf("muxed", parseMediaPlaylist(text, url))];
+      return [trackOf(MUXED_TRACK, parseMediaPlaylist(text, url))];
     }
     const master = parseMasterPlaylist(text, url);
     const chosen = sharpest(master.variants);
@@ -34,11 +37,11 @@ export class HlsTracks implements StreamReader {
     }
     const audio = renditionFor(chosen, master.audio);
     if (audio === undefined) {
-      return [await this.media("muxed", chosen.url)];
+      return [await this.media(MUXED_TRACK, chosen.url)];
     }
     return [
-      await this.media("video", chosen.url),
-      await this.media("audio", audio.url),
+      await this.media(VIDEO_TRACK, chosen.url),
+      await this.media(AUDIO_TRACK, audio.url),
     ];
   }
 

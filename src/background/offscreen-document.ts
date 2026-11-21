@@ -23,7 +23,6 @@ export interface HiddenPage {
   renew(): Promise<void>;
 }
 
-const PAGE = "offscreen.html";
 // Everything the page does: ffmpeg runs in a web worker, and the page watches
 // Chrome's colour scheme for the toolbar icon.
 const REASONS = ["WORKERS", "MATCH_MEDIA"];
@@ -41,6 +40,8 @@ export class OffscreenDocument implements HiddenPage {
   constructor(
     private readonly offscreen: OffscreenApi,
     private readonly runtime: ContextsApi,
+    // The extension's page to open.
+    private readonly page: string,
   ) {}
 
   open(): Promise<void> {
@@ -75,7 +76,7 @@ export class OffscreenDocument implements HiddenPage {
 
   private create(): Promise<void> {
     return this.offscreen.createDocument({
-      url: PAGE,
+      url: this.page,
       reasons: REASONS,
       justification: JUSTIFICATION,
     });

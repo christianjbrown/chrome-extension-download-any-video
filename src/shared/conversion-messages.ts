@@ -6,9 +6,14 @@ export const CONVERT_REQUEST = "convert";
 export const PROGRESS_REPORT = "progress";
 
 // The two steps of a conversion, as the toolbar button describes them.
-export type Stage = "fetch" | "convert";
-export const FETCH_STAGE: Stage = "fetch";
-export const CONVERT_STAGE: Stage = "convert";
+export const FETCH_STAGE = "fetch";
+export const CONVERT_STAGE = "convert";
+const STAGES = [FETCH_STAGE, CONVERT_STAGE] as const;
+export type Stage = (typeof STAGES)[number];
+
+// What a conversion makes, as a filename ends and as a blob is typed.
+export const CONVERTED_EXTENSION = "mp4";
+export const CONVERTED_TYPE = "video/mp4";
 
 export interface ConvertRequest {
   readonly type: typeof CONVERT_REQUEST;
@@ -32,7 +37,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isStage(value: unknown): value is Stage {
-  return value === FETCH_STAGE || value === CONVERT_STAGE;
+  return (STAGES as readonly unknown[]).includes(value);
 }
 
 export function isConvertRequest(message: unknown): message is ConvertRequest {

@@ -1,6 +1,7 @@
 // Reads the XML a DASH manifest is written in, so the manifest can be read
 // where there is no DOMParser, as in a service worker. Manifests are written
 // by machines, so this covers well-formed XML and nothing more forgiving.
+import { NOT_FOUND } from "../shared/search";
 import type { XmlElement } from "./xml";
 
 export const UNREADABLE_MANIFEST = "The video's manifest could not be read";
@@ -170,7 +171,7 @@ class XmlScanner {
   // The text up to a marker, which is skipped too when asked.
   private textUntil(marker: string, consume = false): string {
     const end = this.text.indexOf(marker, this.at);
-    if (end === -1) {
+    if (end === NOT_FOUND) {
       throw unreadable();
     }
     const found = this.text.slice(this.at, end);

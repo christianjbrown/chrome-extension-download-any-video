@@ -1,3 +1,4 @@
+import { WITH_COOKIES } from "../stream/fetching";
 import { concatenate } from "./bytes";
 import type { MediaInputs } from "./media-inputs";
 import type { ProgressListener } from "./progress";
@@ -19,6 +20,10 @@ export interface Fetches {
   fetch(url: string, onProgress: ProgressListener): Promise<MediaInputs>;
 }
 
+const EMPTY_ANSWER = "The server sent an empty answer for the video";
+const refused = (status: number): string =>
+  `The server answered ${String(status)} for the video`;
+
 const CONTENT_LENGTH = "content-length";
 const UNKNOWN_LENGTH = 0;
 const ALL_DONE = 1;
@@ -30,14 +35,12 @@ export class VideoFetcher implements Fetches {
   constructor(private readonly fetchUrl: Fetch) {}
 
   async fetch(url: string, onProgress: ProgressListener): Promise<MediaInputs> {
-    const response = await this.fetchUrl(url, { credentials: "include" });
+    const response = await this.fetchUrl(url, { credentials: WITH_COOKIES });
     if (!response.ok) {
-      throw new Error(
-        `The server answered ${String(response.status)} for the video`,
-      );
+      throw new Error(refused(response.status));
     }
     if (response.body === null) {
-      throw new Error("The server sent an empty answer for the video");
+      throw new Error(EMPTY_ANSWER);
     }
     const total = Number(
       response.headers.get(CONTENT_LENGTH) ?? UNKNOWN_LENGTH,

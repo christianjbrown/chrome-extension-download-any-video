@@ -27,7 +27,8 @@ export interface FrameAsker {
 const TOP_FRAME = 0;
 
 // Runs in the page, so it can only reach what the injected file left there. The
-// name is spelt out rather than imported: the function is serialised.
+// name is spelt out rather than imported: the function is serialised. A test
+// pins it to FINDER_KEY.
 function installedReport(): unknown {
   return (
     globalThis as unknown as Record<string, { find(): unknown } | undefined>

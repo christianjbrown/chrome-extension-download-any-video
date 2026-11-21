@@ -9,6 +9,9 @@ import { VideoFinder } from "./video-finder";
 import { VideoElementFinder } from "./video-elements";
 import { VisibleVideoChooser } from "./visible-video";
 
+// The performance entries for what the page has fetched.
+const RESOURCE_ENTRIES = "resource";
+
 const finder = new VideoFinder({
   tree: document,
   title: () => document.title,
@@ -20,7 +23,7 @@ const finder = new VideoFinder({
   player: new PlayerAttributeFinder(),
   metadata: new MetadataFinder((text) => JSON.parse(text) as unknown),
   network: new NetworkFinder(() =>
-    performance.getEntriesByType("resource").map((entry) => entry.name),
+    performance.getEntriesByType(RESOURCE_ENTRIES).map((entry) => entry.name),
   ),
 });
 

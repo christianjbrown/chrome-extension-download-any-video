@@ -1,3 +1,4 @@
+import { CONVERTED_EXTENSION } from "../shared/conversion-messages";
 import { kebab } from "./filename-text";
 
 export interface Clock {
@@ -9,10 +10,13 @@ export interface Filenames {
 }
 
 const FALLBACK_STEM = "video";
-const FALLBACK_EXTENSION = "mp4";
+const FALLBACK_EXTENSION = CONVERTED_EXTENSION;
+// Every part of the stamp but the year is two digits, so names sort by time.
+const PART_WIDTH = 2;
+const PAD = "0";
 
 function pad(number: number): string {
-  return String(number).padStart(2, "0");
+  return String(number).padStart(PART_WIDTH, PAD);
 }
 
 function stamp(date: Date): string {

@@ -1,6 +1,8 @@
 // An ISO 8601 duration as DASH writes it: "PT1H2M3.5S", "P0DT0H3M30.000S".
 // Years and months have no fixed length and never appear in a video's
 // duration, so they are not read.
+import { NOT_FOUND } from "../shared/search";
+
 const DATE_PART = /^P(?:(\d+)D)?$/;
 const TIME_PART = /^(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/;
 const TIME_MARK = "T";
@@ -18,7 +20,7 @@ interface Parts {
 
 function parts(text: string): Parts {
   const mark = text.indexOf(TIME_MARK);
-  return mark === -1
+  return mark === NOT_FOUND
     ? { date: text, time: "" }
     : { date: text.slice(0, mark), time: text.slice(mark + 1) };
 }

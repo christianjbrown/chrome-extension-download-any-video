@@ -1,13 +1,11 @@
 import type { FrameReport, VideoCandidate } from "../shared/candidates";
-import { mediaKind, type MediaKind } from "../shared/media-urls";
+import { mediaKind, PLAYLIST_KIND } from "../shared/media-urls";
 import type { StreamLister } from "../stream/stream-lister";
 
 // Takes out of the frames' reports whatever should not be ranked.
 export interface CandidateFilter {
   filter(reports: readonly FrameReport[]): Promise<FrameReport[]>;
 }
-
-const PLAYLIST: MediaKind = "playlist";
 
 // A player fetches a playlist's pieces one by one, and the page's network log
 // shows each of them. A piece with a file's extension, an init.mp4 or a
@@ -37,7 +35,7 @@ export class PieceFilter implements CandidateFilter {
     const playlists = new Set(
       candidates
         .map((candidate) => candidate.url)
-        .filter((url) => mediaKind(url) === PLAYLIST),
+        .filter((url) => mediaKind(url) === PLAYLIST_KIND),
     );
     const references = await Promise.all(
       Array.from(playlists, (url) =>

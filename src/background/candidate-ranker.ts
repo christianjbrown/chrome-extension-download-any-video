@@ -1,9 +1,18 @@
-import type {
-  CandidateOrigin,
-  FrameReport,
-  VideoCandidate,
+import {
+  ELEMENT_ORIGIN,
+  METADATA_ORIGIN,
+  NETWORK_ORIGIN,
+  PLAYER_ORIGIN,
+  type CandidateOrigin,
+  type FrameReport,
+  type VideoCandidate,
 } from "../shared/candidates";
-import { mediaKind, type MediaKind } from "../shared/media-urls";
+import {
+  FILE_KIND,
+  mediaKind,
+  PLAYLIST_KIND,
+  type MediaKind,
+} from "../shared/media-urls";
 
 export interface Ranker {
   // The one to download, or why there is none.
@@ -14,15 +23,15 @@ export const NOTHING_FOUND = "No video found on this page";
 
 // A whole file first, since Chrome can save it as it is; a stream only when
 // there is no file, since its pieces have to be fetched and stitched first.
-const KINDS: readonly MediaKind[] = ["file", "playlist"];
+const KINDS: readonly MediaKind[] = [FILE_KIND, PLAYLIST_KIND];
 
 // Origins that describe the same thing are weighed together: the player's
 // element and its attributes are one video, the metadata is the page's word,
 // and the network log is whatever was fetched.
 const TIERS: readonly (readonly CandidateOrigin[])[] = [
-  ["element", "player"],
-  ["metadata"],
-  ["network"],
+  [ELEMENT_ORIGIN, PLAYER_ORIGIN],
+  [METADATA_ORIGIN],
+  [NETWORK_ORIGIN],
 ];
 
 // Picks the sharpest video from the most trustworthy place that has one.

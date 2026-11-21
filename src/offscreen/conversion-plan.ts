@@ -1,9 +1,14 @@
+import { CONVERTED_EXTENSION } from "../shared/conversion-messages";
 import type { AudioStream, StreamInfo, VideoStream } from "./stream-info";
 
 export const INPUT_NAME = "input";
 // A stream's sound, when it came as a separate track.
 export const AUDIO_INPUT_NAME = "audio-input";
-export const OUTPUT_NAME = "output.mp4";
+export const OUTPUT_NAME = `output.${CONVERTED_EXTENSION}`;
+
+// The flag that names an input file, in a plan and when asking about a file.
+export const INPUT_FLAG = "-i";
+const MAP_FLAG = "-map";
 
 export interface ConversionPlanning {
   // The ffmpeg arguments that turn the inputs into OUTPUT_NAME: the picture
@@ -76,13 +81,13 @@ interface Sound {
 function soundOf(main: StreamInfo, audio: StreamInfo | undefined): Sound {
   if (audio === undefined) {
     return {
-      inputs: ["-i", INPUT_NAME],
+      inputs: [INPUT_FLAG, INPUT_NAME],
       map: FIRST_AUDIO_STREAM_IF_ANY,
       stream: main.audio,
     };
   }
   return {
-    inputs: ["-i", INPUT_NAME, "-i", AUDIO_INPUT_NAME],
+    inputs: [INPUT_FLAG, INPUT_NAME, INPUT_FLAG, AUDIO_INPUT_NAME],
     map: SECOND_INPUT_AUDIO_IF_ANY,
     stream: audio.audio,
   };
@@ -99,9 +104,9 @@ export class ConversionPlanner implements ConversionPlanning {
     return [
       ...THREADS,
       ...sound.inputs,
-      "-map",
+      MAP_FLAG,
       FIRST_VIDEO_STREAM,
-      "-map",
+      MAP_FLAG,
       sound.map,
       ...videoArguments(main.video),
       ...audioArguments(sound.stream),

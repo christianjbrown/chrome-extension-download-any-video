@@ -1,4 +1,8 @@
-import type { VideoCandidate } from "../shared/candidates";
+import {
+  ELEMENT_ORIGIN,
+  UNKNOWN_HEIGHT,
+  type VideoCandidate,
+} from "../shared/candidates";
 import { isWebUrl } from "../shared/media-urls";
 import type { ElementTree, PageElement, VideoElement } from "./dom";
 import { allElements } from "./tree-walk";
@@ -14,10 +18,16 @@ export interface VideoElements {
   find(tree: ElementTree): FoundVideo[];
 }
 
+const VIDEO_TAG = "video";
+const SOURCE_SELECTOR = "source";
+const SOURCE_ATTRIBUTE = "src";
+// A <source> without an address has nothing to offer.
+const NO_ADDRESS = "";
+
 export class VideoElementFinder implements VideoElements {
   find(tree: ElementTree): FoundVideo[] {
     return allElements(tree)
-      .filter((element) => element.localName === "video")
+      .filter((element) => element.localName === VIDEO_TAG)
       .map((element) => this.describe(element as VideoElement));
   }
 
@@ -26,17 +36,23 @@ export class VideoElementFinder implements VideoElements {
     // currentSrc is what the browser actually chose among the sources.
     for (const url of [video.currentSrc, video.src]) {
       if (isWebUrl(url)) {
-        candidates.push({ url, origin: "element", height: video.videoHeight });
+        candidates.push({
+          url,
+          origin: ELEMENT_ORIGIN,
+          height: video.videoHeight,
+        });
       }
     }
-    for (const source of video.querySelectorAll("source")) {
+    for (const source of video.querySelectorAll(SOURCE_SELECTOR)) {
       candidates.push(...this.source(source));
     }
     return { element: video, candidates };
   }
 
   private source(source: PageElement): VideoCandidate[] {
-    const url = source.getAttribute("src") ?? "";
-    return isWebUrl(url) ? [{ url, origin: "element", height: 0 }] : [];
+    const url = source.getAttribute(SOURCE_ATTRIBUTE) ?? NO_ADDRESS;
+    return isWebUrl(url)
+      ? [{ url, origin: ELEMENT_ORIGIN, height: UNKNOWN_HEIGHT }]
+      : [];
   }
 }
