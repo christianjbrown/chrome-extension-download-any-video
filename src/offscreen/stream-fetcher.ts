@@ -1,9 +1,9 @@
 import type { TrackFetcher } from "../stream/fetchers";
 import type { StreamReader } from "../stream/playlists";
-import { AUDIO_TRACK, NO_STREAMS } from "../stream/tracks";
+import { NO_STREAMS } from "../stream/tracks";
 import { concatenate } from "./bytes";
 import type { Fetches } from "./conversion-parts";
-import type { MediaInputs } from "./media-inputs";
+import type { InputRoles, MediaInputs } from "./media-inputs";
 import type { ProgressListener } from "./progress";
 
 // A video the page only offers as a playlist: the pieces are fetched and
@@ -14,6 +14,7 @@ export class StreamFetcher implements Fetches {
   constructor(
     private readonly reader: StreamReader,
     private readonly pieces: TrackFetcher,
+    private readonly roles: InputRoles,
   ) {}
 
   async fetch(url: string, onProgress: ProgressListener): Promise<MediaInputs> {
@@ -23,8 +24,8 @@ export class StreamFetcher implements Fetches {
         onProgress(done / total);
       },
     });
-    const main = fetched.find((track) => track.role !== AUDIO_TRACK);
-    const audio = fetched.find((track) => track.role === AUDIO_TRACK);
+    const main = fetched.find((track) => this.roles.main.has(track.role));
+    const audio = fetched.find((track) => this.roles.audio.has(track.role));
     if (main === undefined) {
       throw new Error(NO_STREAMS);
     }
