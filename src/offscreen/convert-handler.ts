@@ -4,33 +4,24 @@ import {
   PROGRESS_REPORT,
   type ConvertRequest,
   type ConvertResponse,
-  type ProgressReport,
   type Stage,
 } from "../shared/conversion-messages";
 import { errorMessage } from "../shared/error-message";
+import type {
+  ConvertHandling,
+  ObjectUrls,
+  ProgressSender,
+} from "./conversion-parts";
 import type { MediaInputs } from "./media-inputs";
 import type { ProgressListener } from "./progress";
 import type { Transcodes } from "./transcoder";
 import type { Fetches } from "./video-fetcher";
-
-interface ProgressSender {
-  send(report: ProgressReport): void;
-}
-
-interface ObjectUrls {
-  // A URL Chrome can download, for bytes this document holds.
-  create(data: Uint8Array): string;
-}
 
 export interface HandlerParts {
   readonly fetcher: Fetches;
   readonly transcoder: Transcodes;
   readonly urls: ObjectUrls;
   readonly progress: ProgressSender;
-}
-
-interface ConvertHandling {
-  handle(request: ConvertRequest): Promise<ConvertResponse>;
 }
 
 function failure(stage: Stage, error: unknown): ConvertResponse {
