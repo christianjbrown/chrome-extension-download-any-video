@@ -1,4 +1,4 @@
-import { HEIGHT_PATTERNS } from "../../src/shared/height-patterns";
+import { HEIGHT_PATTERNS } from "../../src/wiring/height-patterns";
 import { UrlHeights } from "../../src/shared/url-heights";
 
 describe("UrlHeights", () => {

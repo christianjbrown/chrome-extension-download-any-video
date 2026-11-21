@@ -5,16 +5,10 @@ import type { PageMetadata, UrlCandidates } from "./finder-parts";
 
 export type JsonParser = (text: string) => unknown;
 
-// The meta tags that name a page's video for link previews.
-const VIDEO_META = [
-  "og:video",
-  "og:video:url",
-  "og:video:secure_url",
-  "twitter:player:stream",
-];
-const META_SELECTOR = VIDEO_META.map(
-  (name) => `meta[property="${name}"], meta[name="${name}"]`,
-).join(", ");
+// A meta tag can name its kind in either attribute.
+const metaSelector = (name: string): string =>
+  `meta[property="${name}"], meta[name="${name}"]`;
+const SELECTOR_SEPARATOR = ", ";
 const JSON_LD_SELECTOR = 'script[type="application/ld+json"]';
 const CONTENT_ATTRIBUTE = "content";
 const VIDEO_OBJECT = "VideoObject";
@@ -35,11 +29,18 @@ export class MetadataFinder implements PageMetadata {
   constructor(
     private readonly parseJson: JsonParser,
     private readonly found: UrlCandidates,
+    // The meta tags that name a page's video for link previews.
+    private readonly videoMeta: readonly string[],
   ) {}
 
   find(tree: ElementTree<MetadataElement>): VideoCandidate[] {
     const urls = [
-      ...Array.from(tree.querySelectorAll(META_SELECTOR), metaContent),
+      ...Array.from(
+        tree.querySelectorAll(
+          this.videoMeta.map(metaSelector).join(SELECTOR_SEPARATOR),
+        ),
+        metaContent,
+      ),
       ...Array.from(tree.querySelectorAll(JSON_LD_SELECTOR)).flatMap((script) =>
         this.contentUrls(script.textContent),
       ),

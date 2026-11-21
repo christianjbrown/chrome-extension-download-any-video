@@ -2,9 +2,10 @@
 // it where the service worker's second call can reach it. It changes nothing on
 // the page and listens to nothing; it only answers.
 import { ExtensionMedia } from "../shared/extension-media";
-import { MEDIA_EXTENSIONS } from "../shared/media-extensions";
+import { MEDIA_EXTENSIONS } from "../wiring/media-extensions";
 import { FINDER_KEY, type InstalledFinder } from "../shared/installed-finder";
-import { HEIGHT_PATTERNS } from "../shared/height-patterns";
+import { HEIGHT_PATTERNS } from "../wiring/height-patterns";
+import { VIDEO_META } from "../wiring/video-meta";
 import { UrlHeights } from "../shared/url-heights";
 import { MediaCandidates } from "./media-candidates";
 import { NetworkFinder } from "./network-entries";
@@ -33,6 +34,7 @@ const finder = new VideoFinder({
   metadata: new MetadataFinder(
     (text) => JSON.parse(text) as unknown,
     candidates,
+    VIDEO_META,
   ),
   network: new NetworkFinder(
     () =>

@@ -9,7 +9,7 @@ import { CONVERT_STAGE, FETCH_STAGE } from "../shared/conversion-messages";
 import { OFFSCREEN_PAGE, PAGE_SCRIPT_FILE } from "../shared/extension-files";
 import { ExtensionMedia } from "../shared/extension-media";
 import { KindTest } from "../shared/kind-test";
-import { MEDIA_EXTENSIONS } from "../shared/media-extensions";
+import { MEDIA_EXTENSIONS } from "../wiring/media-extensions";
 import { PathExtensions } from "../shared/path-extensions";
 import { SerialQueue } from "../shared/serial-queue";
 import {
@@ -19,37 +19,18 @@ import {
   PLAYLIST_KIND,
 } from "../shared/media-types";
 import { ByFormat } from "../stream/by-format";
-import { DashManifestParser } from "../stream/dash-manifest";
 import {
-  SegmentListSource,
-  SegmentTemplateSource,
-} from "../stream/dash-pieces";
+  dashManifestParser,
+  hlsPlaylistParser,
+} from "../wiring/stream-parsers";
 import { DashReferences } from "../stream/dash-references";
 import { HttpFetcher } from "../stream/fetching";
-import type { HlsTags } from "../stream/hls";
-import { HlsPlaylistParser } from "../stream/hls-playlist";
-import {
-  ByteRangeTag,
-  KeyTag,
-  MapTag,
-  MediaTag,
-  StreamInfTag,
-} from "../stream/hls-tags";
 import { HlsReferences } from "../stream/hls-references";
 import { PlaylistLister } from "../stream/playlist-lister";
 import type { StreamLister } from "../stream/playlists";
-import { XmlReader } from "../stream/xml-parser";
-import {
-  CdataPart,
-  ChildElementPart,
-  CommentPart,
-  DeclarationPart,
-  InstructionPart,
-} from "../stream/xml-parts";
-import type { XmlParts } from "../stream/xml-reading";
 import { CandidateRanker, type RankingPolicy } from "./candidate-ranker";
 import { ChromeErrorExplainer } from "./chrome-errors";
-import { CHROME_TRANSLATIONS } from "./chrome-translations";
+import { CHROME_TRANSLATIONS } from "../wiring/chrome-translations";
 import { ClickScheme } from "./click-scheme";
 import { ClosedTabAction } from "./closed-tab-action";
 import { BACKGROUND_CONFIG } from "./config";
@@ -128,42 +109,14 @@ const ranking: RankingPolicy = {
   // word, and the network log is whatever was fetched.
   tiers: [[ELEMENT_ORIGIN, PLAYER_ORIGIN], [METADATA_ORIGIN], [NETWORK_ORIGIN]],
 };
-// The HLS tags each kind of playlist is read with. Another tag is another
-// class and one more entry here.
-const hlsTags: HlsTags = {
-  master: [new StreamInfTag(), new MediaTag()],
-  media: [new KeyTag(), new MapTag(), new ByteRangeTag()],
-};
-// The kinds of markup the XML scanner knows, each list tried in order: a
-// comment before a declaration or CDATA, since all of them start with "<!",
-// and any other tag last. Another kind is another class and one entry here.
-const xmlParts: XmlParts = {
-  prolog: [new CommentPart(), new InstructionPart(), new DeclarationPart()],
-  content: [
-    new CommentPart(),
-    new CdataPart(),
-    new InstructionPart(),
-    new ChildElementPart(),
-  ],
-};
-const manifests = new XmlReader(xmlParts);
-// The ways a DASH manifest names its pieces, most specific first. Another way
-// is another entry here.
-const pieceSources = [new SegmentListSource(), new SegmentTemplateSource()];
 const playlists = new HttpFetcher((url, init) => fetch(url, init));
 const controller = new DownloadController({
   asker: new PageScript(chrome.scripting, PAGE_SCRIPT_FILE),
   filter: new PieceFilter(
     new PlaylistLister(
       new ByFormat<StreamLister>(media, {
-        [HLS_FORMAT]: new HlsReferences(
-          playlists,
-          new HlsPlaylistParser(hlsTags),
-        ),
-        [DASH_FORMAT]: new DashReferences(
-          playlists,
-          new DashManifestParser(manifests, pieceSources),
-        ),
+        [HLS_FORMAT]: new HlsReferences(playlists, hlsPlaylistParser()),
+        [DASH_FORMAT]: new DashReferences(playlists, dashManifestParser()),
       }),
     ),
     isPlaylist,

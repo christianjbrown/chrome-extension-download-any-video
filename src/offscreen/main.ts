@@ -5,7 +5,8 @@
 import { DARK_SCHEME_QUERY } from "../shared/colour-scheme";
 import { FFMPEG_FILES } from "../shared/extension-files";
 import { ExtensionMedia } from "../shared/extension-media";
-import { MEDIA_EXTENSIONS } from "../shared/media-extensions";
+import { FFMPEG_NOISE } from "../wiring/ffmpeg-noise";
+import { MEDIA_EXTENSIONS } from "../wiring/media-extensions";
 import { SerialQueue } from "../shared/serial-queue";
 import {
   DASH_FORMAT,
@@ -14,37 +15,18 @@ import {
   PLAYLIST_KIND,
 } from "../shared/media-types";
 import { ByFormat } from "../stream/by-format";
-import { DashManifestParser } from "../stream/dash-manifest";
 import {
-  SegmentListSource,
-  SegmentTemplateSource,
-} from "../stream/dash-pieces";
+  dashManifestParser,
+  hlsPlaylistParser,
+} from "../wiring/stream-parsers";
 import { DashTracks } from "../stream/dash-tracks";
 import { HttpFetcher } from "../stream/fetching";
-import type { HlsTags } from "../stream/hls";
-import { HlsPlaylistParser } from "../stream/hls-playlist";
-import {
-  ByteRangeTag,
-  KeyTag,
-  MapTag,
-  MediaTag,
-  StreamInfTag,
-} from "../stream/hls-tags";
 import { HlsTracks } from "../stream/hls-tracks";
 import { PieceFetcher } from "../stream/piece-fetcher";
 import { AUDIO_TRACK, MUXED_TRACK, VIDEO_TRACK } from "../stream/tracks";
 import { SharpestFirst } from "../stream/sharpest-first";
 import type { StreamReader } from "../stream/playlists";
 import { PlaylistReader } from "../stream/stream-reader";
-import { XmlReader } from "../stream/xml-parser";
-import {
-  CdataPart,
-  ChildElementPart,
-  CommentPart,
-  DeclarationPart,
-  InstructionPart,
-} from "../stream/xml-parts";
-import type { XmlParts } from "../stream/xml-reading";
 import { BlobUrls } from "./blob-urls";
 import { OFFSCREEN_CONFIG } from "./config";
 import { ConversionPlanner } from "./conversion-plan";
@@ -62,28 +44,6 @@ import { VideoFetcher } from "./video-fetcher";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 
 const media = new ExtensionMedia(MEDIA_EXTENSIONS);
-// The HLS tags each kind of playlist is read with. Another tag is another
-// class and one more entry here.
-const hlsTags: HlsTags = {
-  master: [new StreamInfTag(), new MediaTag()],
-  media: [new KeyTag(), new MapTag(), new ByteRangeTag()],
-};
-// The kinds of markup the XML scanner knows, each list tried in order: a
-// comment before a declaration or CDATA, since all of them start with "<!",
-// and any other tag last. Another kind is another class and one entry here.
-const xmlParts: XmlParts = {
-  prolog: [new CommentPart(), new InstructionPart(), new DeclarationPart()],
-  content: [
-    new CommentPart(),
-    new CdataPart(),
-    new InstructionPart(),
-    new ChildElementPart(),
-  ],
-};
-const manifests = new XmlReader(xmlParts);
-// The ways a DASH manifest names its pieces, most specific first. Another way
-// is another entry here.
-const pieceSources = [new SegmentListSource(), new SegmentTemplateSource()];
 const sizes = new SharpestFirst();
 const pieces = new HttpFetcher((url, init) => fetch(url, init));
 // Another copyable codec is another entry here.
@@ -99,14 +59,10 @@ const listener = new ConvertListener(
         [PLAYLIST_KIND]: new StreamFetcher(
           new PlaylistReader(
             new ByFormat<StreamReader>(media, {
-              [HLS_FORMAT]: new HlsTracks(
-                pieces,
-                new HlsPlaylistParser(hlsTags),
-                sizes,
-              ),
+              [HLS_FORMAT]: new HlsTracks(pieces, hlsPlaylistParser(), sizes),
               [DASH_FORMAT]: new DashTracks(
                 pieces,
-                new DashManifestParser(manifests, pieceSources),
+                dashManifestParser(),
                 sizes,
               ),
             }),
@@ -125,12 +81,16 @@ const listener = new ConvertListener(
       FILE_KIND,
     ),
     transcoder: new Transcoder({
-      engine: new FfmpegEngine(new FFmpeg(), {
-        core: chrome.runtime.getURL(FFMPEG_FILES.core),
-        wasm: chrome.runtime.getURL(FFMPEG_FILES.wasm),
-        worker: chrome.runtime.getURL(FFMPEG_FILES.worker),
-        classWorker: chrome.runtime.getURL(FFMPEG_FILES.classWorker),
-      }),
+      engine: new FfmpegEngine(
+        new FFmpeg(),
+        {
+          core: chrome.runtime.getURL(FFMPEG_FILES.core),
+          wasm: chrome.runtime.getURL(FFMPEG_FILES.wasm),
+          worker: chrome.runtime.getURL(FFMPEG_FILES.worker),
+          classWorker: chrome.runtime.getURL(FFMPEG_FILES.classWorker),
+        },
+        FFMPEG_NOISE,
+      ),
       parser: new StreamInfoParser(),
       planner: new ConversionPlanner(OFFSCREEN_CONFIG.encoding, shortcuts),
       queue: new SerialQueue(),

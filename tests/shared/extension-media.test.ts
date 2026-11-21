@@ -1,5 +1,5 @@
 import { ExtensionMedia } from "../../src/shared/extension-media";
-import { MEDIA_EXTENSIONS } from "../../src/shared/media-extensions";
+import { MEDIA_EXTENSIONS } from "../../src/wiring/media-extensions";
 
 const media = new ExtensionMedia(MEDIA_EXTENSIONS);
 

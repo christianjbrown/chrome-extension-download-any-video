@@ -4,6 +4,7 @@ import {
   type LogLine,
   type ProgressTick,
 } from "../../src/offscreen/ffmpeg-engine";
+import { FFMPEG_NOISE } from "../../src/wiring/ffmpeg-noise";
 
 interface Listeners {
   log: ((e: LogLine) => void)[];
@@ -39,7 +40,7 @@ const urls = {
 describe("FfmpegEngine", () => {
   it("loads the core from the extension's files once", async () => {
     const { ffmpeg } = fakeFfmpeg();
-    const engine = new FfmpegEngine(ffmpeg, urls);
+    const engine = new FfmpegEngine(ffmpeg, urls, FFMPEG_NOISE);
 
     await engine.ready();
 
@@ -54,7 +55,7 @@ describe("FfmpegEngine", () => {
   it("leaves a loaded core alone", async () => {
     const { ffmpeg } = fakeFfmpeg(true);
 
-    await new FfmpegEngine(ffmpeg, urls).ready();
+    await new FfmpegEngine(ffmpeg, urls, FFMPEG_NOISE).ready();
 
     expect(ffmpeg.load).not.toHaveBeenCalled();
   });
@@ -63,7 +64,7 @@ describe("FfmpegEngine", () => {
     const { ffmpeg } = fakeFfmpeg(true);
     const data = new Uint8Array([9]);
 
-    await new FfmpegEngine(ffmpeg, urls).write("input", data);
+    await new FfmpegEngine(ffmpeg, urls, FFMPEG_NOISE).write("input", data);
 
     expect(ffmpeg.writeFile).toHaveBeenCalledWith("input", data);
   });
@@ -78,7 +79,9 @@ describe("FfmpegEngine", () => {
       return Promise.resolve(1);
     });
 
-    const lines = await new FfmpegEngine(ffmpeg, urls).describe("input");
+    const lines = await new FfmpegEngine(ffmpeg, urls, FFMPEG_NOISE).describe(
+      "input",
+    );
 
     expect(ffmpeg.exec).toHaveBeenCalledWith(["-i", "input"]);
     expect(lines).toEqual(["Input #0, matroska", "  Stream #0:0: Video: vp9"]);
@@ -97,8 +100,9 @@ describe("FfmpegEngine", () => {
       return Promise.resolve(0);
     });
 
-    const run = await new FfmpegEngine(ffmpeg, urls).run(["-i", "input"], (r) =>
-      seen.push(r),
+    const run = await new FfmpegEngine(ffmpeg, urls, FFMPEG_NOISE).run(
+      ["-i", "input"],
+      (r) => seen.push(r),
     );
 
     expect(run).toEqual({ code: 0, complaint: undefined });
@@ -123,7 +127,7 @@ describe("FfmpegEngine", () => {
       return Promise.resolve(1);
     });
 
-    const run = await new FfmpegEngine(ffmpeg, urls).run(
+    const run = await new FfmpegEngine(ffmpeg, urls, FFMPEG_NOISE).run(
       ["-i", "input"],
       vi.fn(),
     );
@@ -136,7 +140,7 @@ describe("FfmpegEngine", () => {
 
   it("reads a file back as bytes, and refuses text", async () => {
     const { ffmpeg } = fakeFfmpeg(true);
-    const engine = new FfmpegEngine(ffmpeg, urls);
+    const engine = new FfmpegEngine(ffmpeg, urls, FFMPEG_NOISE);
 
     await expect(engine.read("output.mp4")).resolves.toEqual(
       new Uint8Array([1, 2, 3]),
@@ -149,7 +153,7 @@ describe("FfmpegEngine", () => {
 
   it("removes a file, and does not mind one that is not there", async () => {
     const { ffmpeg } = fakeFfmpeg(true);
-    const engine = new FfmpegEngine(ffmpeg, urls);
+    const engine = new FfmpegEngine(ffmpeg, urls, FFMPEG_NOISE);
 
     await engine.remove("input");
     ffmpeg.deleteFile.mockRejectedValue(new Error("ENOENT"));

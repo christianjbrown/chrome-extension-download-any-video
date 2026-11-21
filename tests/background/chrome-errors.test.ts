@@ -1,5 +1,5 @@
 import { ChromeErrorExplainer } from "../../src/background/chrome-errors";
-import { CHROME_TRANSLATIONS } from "../../src/background/chrome-translations";
+import { CHROME_TRANSLATIONS } from "../../src/wiring/chrome-translations";
 
 describe("ChromeErrorExplainer", () => {
   const explainer = new ChromeErrorExplainer(CHROME_TRANSLATIONS);

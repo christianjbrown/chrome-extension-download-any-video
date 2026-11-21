@@ -1,10 +1,12 @@
-import type { MediaType } from "./extension-media";
+// Part of the entry points' wiring: the lists they build their objects from,
+// kept here so the entry points that share one build it from one place.
+import type { MediaType } from "../shared/extension-media";
 import {
   DASH_FORMAT,
   FILE_KIND,
   HLS_FORMAT,
   PLAYLIST_KIND,
-} from "./media-types";
+} from "../shared/media-types";
 
 const FILE: MediaType = { kind: FILE_KIND, format: undefined };
 
