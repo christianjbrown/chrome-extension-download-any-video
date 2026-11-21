@@ -17,6 +17,12 @@ export const isNumber: FieldTest = (value) => typeof value === "number";
 
 export const isArray: FieldTest = (value) => Array.isArray(value);
 
+export const isFunction: FieldTest = (value) => typeof value === "function";
+
+// An object, or null where there is none.
+export const isRecordOrNull: FieldTest = (value) =>
+  value === null || isRecord(value);
+
 // A list whose every item passes the test.
 export const everyItem =
   (test: FieldTest): FieldTest =>

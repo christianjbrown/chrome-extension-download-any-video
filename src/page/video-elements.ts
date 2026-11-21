@@ -10,10 +10,10 @@ import type {
   ScannedElement,
   VideoElement,
 } from "./dom";
+import { isVideoElement } from "./element-checks";
 import type { FoundVideo, VideoElements } from "./finder-parts";
 import { allElements } from "./tree-walk";
 
-const VIDEO_TAG = "video";
 const SOURCE_SELECTOR = "source";
 const SOURCE_ATTRIBUTE = "src";
 // A <source> without an address has nothing to offer.
@@ -22,8 +22,8 @@ const NO_ADDRESS = "";
 export class VideoElementFinder implements VideoElements {
   find(tree: ElementTree<ScannedElement>): FoundVideo[] {
     return allElements(tree)
-      .filter((element) => element.localName === VIDEO_TAG)
-      .map((element) => this.describe(element as VideoElement));
+      .filter(isVideoElement)
+      .map((video) => this.describe(video));
   }
 
   private describe(video: VideoElement): FoundVideo {

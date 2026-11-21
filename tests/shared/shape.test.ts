@@ -3,8 +3,10 @@ import {
   everyItem,
   fits,
   isArray,
+  isFunction,
   isNumber,
   isRecord,
+  isRecordOrNull,
   isString,
   oneOf,
 } from "../../src/shared/shape";
@@ -58,5 +60,19 @@ describe("list and set tests", () => {
   it("take one of a closed set of values", () => {
     const sizes = oneOf(["s", "m"]);
     expect([sizes("m"), sizes("l")]).toEqual([true, false]);
+  });
+});
+
+describe("function and nullable object tests", () => {
+  it("tell a function from anything else", () => {
+    expect([isFunction(() => 1), isFunction({})]).toEqual([true, false]);
+  });
+
+  it("take an object or null, and nothing else", () => {
+    expect([
+      isRecordOrNull(null),
+      isRecordOrNull({}),
+      isRecordOrNull("x"),
+    ]).toEqual([true, true, false]);
   });
 });

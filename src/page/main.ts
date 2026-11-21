@@ -3,7 +3,7 @@
 // the page and listens to nothing; it only answers.
 import { ExtensionMedia } from "../shared/extension-media";
 import { MEDIA_EXTENSIONS } from "../wiring/media-extensions";
-import { FINDER_KEY, type InstalledFinder } from "../shared/installed-finder";
+import { FINDER_KEY } from "../shared/installed-finder";
 import { HEIGHT_PATTERNS } from "../wiring/height-patterns";
 import { VIDEO_META } from "../wiring/video-meta";
 import { UrlHeights } from "../shared/url-heights";
@@ -43,4 +43,4 @@ const finder = new VideoFinder({
   ),
 });
 
-(globalThis as unknown as Record<string, InstalledFinder>)[FINDER_KEY] = finder;
+Reflect.set(globalThis, FINDER_KEY, finder);
