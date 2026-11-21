@@ -1,10 +1,28 @@
 import type {
   Attribute,
+  Attributed,
   Box,
+  Boxed,
   ElementTree,
-  PageElement,
+  Lineage,
+  Named,
+  ShadowHost,
   VideoElement,
+  WithAttributes,
+  WithText,
 } from "../../src/page/dom";
+
+// Every role a page element plays, together, as a real element would be.
+interface PageElement
+  extends
+    ElementTree<PageElement>,
+    Named,
+    ShadowHost<PageElement>,
+    Attributed,
+    WithAttributes,
+    WithText,
+    Boxed,
+    Lineage<PageElement> {}
 
 export interface FakeElement extends PageElement {
   readonly children: FakeElement[];
@@ -47,7 +65,9 @@ function matching(roots: FakeElement[], selector: string): FakeElement[] {
   );
 }
 
-function shadowRootOf(children: FakeElement[] | undefined): ElementTree | null {
+function shadowRootOf(
+  children: FakeElement[] | undefined,
+): ElementTree<PageElement> | null {
   return children === undefined
     ? null
     : { querySelectorAll: (selector: string) => matching(children, selector) };
@@ -85,7 +105,7 @@ export function element(localName: string, options: Options = {}): FakeElement {
 }
 
 // A document: looks things up among its top-level elements.
-export function tree(...roots: FakeElement[]): ElementTree {
+export function tree(...roots: FakeElement[]): ElementTree<PageElement> {
   return { querySelectorAll: (selector: string) => matching(roots, selector) };
 }
 

@@ -1,7 +1,6 @@
 // The little of the DOM the page script uses, so each piece can be tested
 // without a browser. Each finder depends on the role interfaces holding only
-// what it reads; PageElement is all of them together, and a real element is
-// one value that satisfies every role.
+// what it reads, and a real element is one value that satisfies every role.
 
 export interface Box {
   left: number;
@@ -16,11 +15,11 @@ export interface Attribute {
 }
 
 // A document or a shadow root: somewhere elements can be looked up.
-export interface ElementTree<E = PageElement> {
+export interface ElementTree<E> {
   querySelectorAll(selector: string): Iterable<E>;
 }
 
-interface Named {
+export interface Named {
   readonly localName: string;
 }
 
@@ -33,11 +32,11 @@ export interface Attributed {
   getAttribute(name: string): string | null;
 }
 
-interface WithAttributes {
+export interface WithAttributes {
   readonly attributes: Iterable<Attribute>;
 }
 
-interface WithText {
+export interface WithText {
   readonly textContent: string | null;
 }
 
@@ -59,17 +58,6 @@ export interface PlayerElement extends WithAttributes, Lineage<PlayerElement> {}
 
 // What the metadata search reads of a meta tag or a JSON-LD script.
 export interface MetadataElement extends Attributed, WithText {}
-
-export interface PageElement
-  extends
-    ElementTree,
-    Named,
-    ShadowHost<PageElement>,
-    Attributed,
-    WithAttributes,
-    WithText,
-    Boxed,
-    Lineage<PageElement> {}
 
 // A <video>, as found in the walk and then measured and climbed from. Its
 // <source> children are only asked for their address.
