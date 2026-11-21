@@ -68,6 +68,7 @@ import { SchemeReportListener } from "./scheme-report-listener";
 import { SCHEME_POLICY, UNKNOWN_SCHEME } from "./scheme-state";
 import { SchemeStore } from "./scheme-store";
 import { ConvertingTitle, FetchingTitle } from "./stage-titles";
+import { BusyTabs } from "./tab-locks";
 import { SystemClock } from "./system-clock";
 import { TabScheme } from "./tab-scheme";
 import { ToolbarIcon } from "./toolbar-icon";
@@ -192,6 +193,7 @@ const controller = new DownloadController({
   ),
   indicator,
   errors: new ChromeErrorExplainer(CHROME_TRANSLATIONS),
+  lock: new BusyTabs(),
 });
 const navigation = new NavigationReset(indicator);
 const schemeReports = new SchemeReportListener(toolbarScheme);

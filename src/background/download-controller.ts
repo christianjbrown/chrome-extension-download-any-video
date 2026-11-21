@@ -7,6 +7,7 @@ import type {
   Ranker,
   VideoDownloader,
 } from "./download-steps";
+import type { TabLock } from "./tab-locks";
 import type { DownloadIndicator, FinishedDownload } from "./toolbar";
 import type { VideoConverter } from "./video-converter";
 
@@ -23,6 +24,8 @@ export interface ControllerParts {
   readonly saver: VideoDownloader;
   readonly indicator: DownloadIndicator;
   readonly errors: ErrorExplainer;
+  // A click while the last one is still downloading does nothing.
+  readonly lock: TabLock;
 }
 
 // The frame whose title names the file: the page the person is on.
@@ -37,28 +40,12 @@ function topTitle(reports: readonly FrameReport[]): string | undefined {
 // A click on the toolbar button: find the video on that tab, make it an MP4
 // that plays everywhere, and download it.
 export class DownloadController {
-  private readonly busy = new Set<number>();
-
   constructor(private readonly parts: ControllerParts) {}
 
   async clicked(tab: ClickedTab): Promise<void> {
     const tabId = tab.id;
-    if (this.isFree(tabId)) {
-      await this.run(tabId);
-    }
-  }
-
-  // A click while the last one is still downloading does nothing.
-  private isFree(tabId: number | undefined): tabId is number {
-    return tabId !== undefined && !this.busy.has(tabId);
-  }
-
-  private async run(tabId: number): Promise<void> {
-    this.busy.add(tabId);
-    try {
-      await this.attempt(tabId);
-    } finally {
-      this.busy.delete(tabId);
+    if (tabId !== undefined) {
+      await this.parts.lock.runAlone(tabId, () => this.attempt(tabId));
     }
   }
 
