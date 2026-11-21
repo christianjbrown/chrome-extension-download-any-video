@@ -5,4 +5,5 @@ export interface StreamRefusals {
   readonly live: string;
   readonly noStreams: string;
   readonly emptyPlaylist: string;
+  readonly notAPlaylist: string;
 }

@@ -108,4 +108,5 @@ export const refusals: StreamRefusals = {
   live: "live",
   noStreams: "no streams",
   emptyPlaylist: "empty playlist",
+  notAPlaylist: "not a playlist",
 };

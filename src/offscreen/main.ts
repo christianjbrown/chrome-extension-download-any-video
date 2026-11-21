@@ -65,20 +65,24 @@ const fetcher = new SourceFetcher(
     [FILE_KIND]: new VideoFetcher((url, init) => fetch(url, init)),
     [PLAYLIST_KIND]: new StreamFetcher(
       new PlaylistReader(
-        new ByFormat<StreamReader>(media, {
-          [HLS_FORMAT]: new HlsTracks(
-            pieces,
-            hlsPlaylistParser(),
-            sizes,
-            STREAM_REFUSALS,
-          ),
-          [DASH_FORMAT]: new DashTracks(
-            pieces,
-            dashManifestParser(),
-            sizes,
-            STREAM_REFUSALS,
-          ),
-        }),
+        new ByFormat<StreamReader>(
+          media,
+          {
+            [HLS_FORMAT]: new HlsTracks(
+              pieces,
+              hlsPlaylistParser(),
+              sizes,
+              STREAM_REFUSALS,
+            ),
+            [DASH_FORMAT]: new DashTracks(
+              pieces,
+              dashManifestParser(),
+              sizes,
+              STREAM_REFUSALS,
+            ),
+          },
+          STREAM_REFUSALS,
+        ),
       ),
       new PieceFetcher(pieces, OFFSCREEN_CONFIG.parallelFetches),
       // The picture comes muxed or on its own, and the sound on its own.
