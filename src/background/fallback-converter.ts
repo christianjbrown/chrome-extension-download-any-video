@@ -1,18 +1,11 @@
 import type { Stage } from "../shared/conversion-messages";
-import {
-  FILE_KIND,
-  type MediaKinds,
-  type SavedExtensions,
-} from "../shared/media-types";
+import type { MediaTest, SavedExtensions } from "../shared/media-types";
 import {
   ConversionError,
   type StageProgressListener,
   type VideoConverter,
   type VideoSource,
 } from "./video-converter";
-
-// What the converter needs to know about a URL to fall back on it.
-type FileMedia = MediaKinds & SavedExtensions;
 
 function asItIs(url: string, media: SavedExtensions): VideoSource {
   return {
@@ -29,7 +22,9 @@ function asItIs(url: string, media: SavedExtensions): VideoSource {
 export class FallbackConverter implements VideoConverter {
   constructor(
     private readonly inner: VideoConverter,
-    private readonly media: FileMedia,
+    // Whether a URL is something Chrome can save as it is.
+    private readonly saveable: MediaTest,
+    private readonly media: SavedExtensions,
     // The stages whose failure still leaves a file worth saving as it is.
     private readonly recoverable: readonly Stage[],
   ) {}
@@ -41,10 +36,7 @@ export class FallbackConverter implements VideoConverter {
     try {
       return await this.inner.convert(url, onProgress);
     } catch (error) {
-      if (
-        this.worthFallingBackOn(error) &&
-        this.media.kindOf(url) === FILE_KIND
-      ) {
+      if (this.worthFallingBackOn(error) && this.saveable.matches(url)) {
         return asItIs(url, this.media);
       }
       throw error;

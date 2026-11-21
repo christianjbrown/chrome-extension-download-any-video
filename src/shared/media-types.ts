@@ -15,6 +15,12 @@ export interface MediaKinds {
   kindOf(url: string): MediaKind | undefined;
 }
 
+// A yes or no question about a URL, such as whether it can be saved as it is
+// or whether it is a playlist. The entry points decide which kinds say yes.
+export interface MediaTest {
+  matches(url: string): boolean;
+}
+
 // Which kind of playlist a URL names, when it names one.
 export interface PlaylistFormats {
   formatOf(url: string): PlaylistFormat | undefined;
