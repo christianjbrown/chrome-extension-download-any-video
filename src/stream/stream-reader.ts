@@ -1,4 +1,4 @@
-import { playlistFormat, type PlaylistFormat } from "../shared/media-urls";
+import type { PlaylistFormat, PlaylistFormats } from "../shared/media-types";
 import type { Track } from "./tracks";
 
 // Reads a playlist and says which pieces make up the video, by track.
@@ -14,10 +14,11 @@ export const NOT_A_PLAYLIST =
 export class PlaylistReader implements StreamReader {
   constructor(
     private readonly readers: Readonly<Record<PlaylistFormat, StreamReader>>,
+    private readonly formats: PlaylistFormats,
   ) {}
 
   tracks(url: string): Promise<Track[]> {
-    const format = playlistFormat(url);
+    const format = this.formats.formatOf(url);
     if (format === undefined) {
       return Promise.reject(new Error(NOT_A_PLAYLIST));
     }

@@ -1,3 +1,4 @@
+import { media } from "../shared/media";
 import {
   NOT_A_PLAYLIST,
   PlaylistReader,
@@ -9,7 +10,7 @@ describe("PlaylistReader", () => {
     tracks: vi.fn().mockResolvedValue([{ role: name, pieces: [] }]),
   });
   const readers = { hls: reader("hls"), dash: reader("dash") };
-  const playlists = new PlaylistReader(readers);
+  const playlists = new PlaylistReader(readers, media);
 
   it("hands each format to its own reader", async () => {
     await expect(playlists.tracks("https://x/v.m3u8")).resolves.toEqual([

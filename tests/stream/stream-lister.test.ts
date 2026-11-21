@@ -1,3 +1,4 @@
+import { media } from "../shared/media";
 import { NOT_A_PLAYLIST } from "../../src/stream/stream-reader";
 import {
   DashReferences,
@@ -95,20 +96,26 @@ describe("DashReferences", () => {
 
 describe("PlaylistLister", () => {
   it("hands each format to its lister", async () => {
-    const lister = new PlaylistLister({
-      hls: { references: vi.fn().mockResolvedValue(["h"]) },
-      dash: { references: vi.fn().mockResolvedValue(["d"]) },
-    });
+    const lister = new PlaylistLister(
+      {
+        hls: { references: vi.fn().mockResolvedValue(["h"]) },
+        dash: { references: vi.fn().mockResolvedValue(["d"]) },
+      },
+      media,
+    );
 
     await expect(lister.references("https://x/a.m3u8")).resolves.toEqual(["h"]);
     await expect(lister.references("https://x/a.mpd")).resolves.toEqual(["d"]);
   });
 
   it("refuses an address that is not a playlist", async () => {
-    const lister = new PlaylistLister({
-      hls: { references: vi.fn() },
-      dash: { references: vi.fn() },
-    });
+    const lister = new PlaylistLister(
+      {
+        hls: { references: vi.fn() },
+        dash: { references: vi.fn() },
+      },
+      media,
+    );
 
     await expect(lister.references("https://x/a.mp4")).rejects.toThrow(
       NOT_A_PLAYLIST,

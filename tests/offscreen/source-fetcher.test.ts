@@ -1,3 +1,4 @@
+import { media } from "../shared/media";
 import { SourceFetcher } from "../../src/offscreen/source-fetcher";
 
 describe("SourceFetcher", () => {
@@ -5,7 +6,7 @@ describe("SourceFetcher", () => {
     fetch: vi.fn().mockResolvedValue({ main: name, audio: undefined }),
   });
   const fetchers = { file: fetcher("file"), playlist: fetcher("playlist") };
-  const source = new SourceFetcher(fetchers);
+  const source = new SourceFetcher(fetchers, media);
   const progress = vi.fn();
 
   it("fetches a whole file and a playlist each their own way", async () => {

@@ -9,12 +9,13 @@ import {
   isConvertRequest,
 } from "../shared/conversion-messages";
 import { FFMPEG_FILES } from "../shared/extension-files";
+import { ExtensionMedia, MEDIA_EXTENSIONS } from "../shared/extension-media";
 import {
   DASH_FORMAT,
   FILE_KIND,
   HLS_FORMAT,
   PLAYLIST_KIND,
-} from "../shared/media-urls";
+} from "../shared/media-types";
 import { DashTracks } from "../stream/dash-tracks";
 import { HttpFetcher } from "../stream/fetching";
 import { HlsTracks } from "../stream/hls-tracks";
@@ -32,18 +33,25 @@ import { StreamInfoParser } from "./stream-info";
 import { Transcoder } from "./transcoder";
 import { VideoFetcher } from "./video-fetcher";
 
+const media = new ExtensionMedia(MEDIA_EXTENSIONS);
 const pieces = new HttpFetcher((url, init) => fetch(url, init));
 const handler = new ConvertHandler({
-  fetcher: new SourceFetcher({
-    [FILE_KIND]: new VideoFetcher((url, init) => fetch(url, init)),
-    [PLAYLIST_KIND]: new StreamFetcher(
-      new PlaylistReader({
-        [HLS_FORMAT]: new HlsTracks(pieces),
-        [DASH_FORMAT]: new DashTracks(pieces, parseXml),
-      }),
-      new PieceFetcher(pieces, OFFSCREEN_CONFIG.parallelFetches),
-    ),
-  }),
+  fetcher: new SourceFetcher(
+    {
+      [FILE_KIND]: new VideoFetcher((url, init) => fetch(url, init)),
+      [PLAYLIST_KIND]: new StreamFetcher(
+        new PlaylistReader(
+          {
+            [HLS_FORMAT]: new HlsTracks(pieces),
+            [DASH_FORMAT]: new DashTracks(pieces, parseXml),
+          },
+          media,
+        ),
+        new PieceFetcher(pieces, OFFSCREEN_CONFIG.parallelFetches),
+      ),
+    },
+    media,
+  ),
   transcoder: new Transcoder({
     engine: new FfmpegEngine(new FFmpeg(), {
       core: chrome.runtime.getURL(FFMPEG_FILES.core),

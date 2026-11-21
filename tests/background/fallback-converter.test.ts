@@ -1,3 +1,4 @@
+import { media } from "../shared/media";
 import { FallbackConverter } from "../../src/background/fallback-converter";
 import { ConversionError } from "../../src/background/video-converter";
 
@@ -13,7 +14,10 @@ describe("FallbackConverter", () => {
     const onProgress = vi.fn();
 
     await expect(
-      new FallbackConverter(inner).convert("https://x/a.webm", onProgress),
+      new FallbackConverter(inner, media).convert(
+        "https://x/a.webm",
+        onProgress,
+      ),
     ).resolves.toBe(source);
     expect(inner.convert).toHaveBeenCalledWith("https://x/a.webm", onProgress);
   });
@@ -30,7 +34,7 @@ describe("FallbackConverter", () => {
   ])("downloads the file as it is when it %s", async (_what, failure) => {
     const inner = { convert: vi.fn().mockRejectedValue(failure) };
 
-    const source = await new FallbackConverter(inner).convert(
+    const source = await new FallbackConverter(inner, media).convert(
       "https://x/a.WebM?x=1",
       vi.fn(),
     );
@@ -49,7 +53,7 @@ describe("FallbackConverter", () => {
     };
 
     await expect(
-      new FallbackConverter(inner).convert("https://x/v.m3u8", vi.fn()),
+      new FallbackConverter(inner, media).convert("https://x/v.m3u8", vi.fn()),
     ).rejects.toThrow("encrypted");
   });
 
@@ -61,7 +65,7 @@ describe("FallbackConverter", () => {
     };
 
     await expect(
-      new FallbackConverter(inner).convert("https://x/v.mpd", vi.fn()),
+      new FallbackConverter(inner, media).convert("https://x/v.mpd", vi.fn()),
     ).rejects.toThrow("no pieces");
   });
 
@@ -69,7 +73,7 @@ describe("FallbackConverter", () => {
     const broken = { convert: vi.fn().mockRejectedValue(new Error("boom")) };
 
     await expect(
-      new FallbackConverter(broken).convert("https://x/a.webm", vi.fn()),
+      new FallbackConverter(broken, media).convert("https://x/a.webm", vi.fn()),
     ).rejects.toThrow("boom");
   });
 });

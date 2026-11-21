@@ -1,6 +1,7 @@
 // The service worker: builds the object graph and connects it to Chrome's events.
 import { OFFSCREEN_PAGE, PAGE_SCRIPT_FILE } from "../shared/extension-files";
-import { DASH_FORMAT, HLS_FORMAT } from "../shared/media-urls";
+import { ExtensionMedia, MEDIA_EXTENSIONS } from "../shared/extension-media";
+import { DASH_FORMAT, HLS_FORMAT } from "../shared/media-types";
 import { isSchemeReport } from "../shared/scheme-messages";
 import { HttpFetcher } from "../stream/fetching";
 import {
@@ -55,22 +56,28 @@ const hiddenPage = new OffscreenDocument(
   chrome.runtime,
   OFFSCREEN_PAGE,
 );
+const media = new ExtensionMedia(MEDIA_EXTENSIONS);
 const playlists = new HttpFetcher((url, init) => fetch(url, init));
 const controller = new DownloadController({
   asker: new PageScript(chrome.scripting, PAGE_SCRIPT_FILE),
   filter: new PieceFilter(
-    new PlaylistLister({
-      [HLS_FORMAT]: new HlsReferences(playlists),
-      [DASH_FORMAT]: new DashReferences(playlists, parseXml),
-    }),
+    new PlaylistLister(
+      {
+        [HLS_FORMAT]: new HlsReferences(playlists),
+        [DASH_FORMAT]: new DashReferences(playlists, parseXml),
+      },
+      media,
+    ),
+    media,
   ),
-  ranker: new CandidateRanker(RANKING),
+  ranker: new CandidateRanker(RANKING, media),
   converter: new FallbackConverter(
     new OffscreenConverter({
       host: new ConversionHost(hiddenPage),
       runtime: chrome.runtime,
       nextId: () => crypto.randomUUID(),
     }),
+    media,
   ),
   names: new VideoFilename(new SystemClock(), BACKGROUND_CONFIG.maxStem),
   saver: new VideoSaver(

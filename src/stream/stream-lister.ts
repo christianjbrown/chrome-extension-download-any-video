@@ -1,7 +1,7 @@
 // Everything a playlist points at: its sub-playlists and every piece of every
 // track. A page's network log shows these too, and none of them is the whole
 // video, however much a lone init.mp4 or DASH_720.mp4 looks like one.
-import { playlistFormat, type PlaylistFormat } from "../shared/media-urls";
+import type { PlaylistFormat, PlaylistFormats } from "../shared/media-types";
 import { parseManifest } from "./dash-manifest";
 import type { TextFetcher } from "./fetching";
 import {
@@ -20,10 +20,11 @@ export interface StreamLister {
 export class PlaylistLister implements StreamLister {
   constructor(
     private readonly listers: Readonly<Record<PlaylistFormat, StreamLister>>,
+    private readonly formats: PlaylistFormats,
   ) {}
 
   references(url: string): Promise<string[]> {
-    const format = playlistFormat(url);
+    const format = this.formats.formatOf(url);
     if (format === undefined) {
       return Promise.reject(new Error(NOT_A_PLAYLIST));
     }
