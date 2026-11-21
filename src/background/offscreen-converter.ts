@@ -1,5 +1,6 @@
 import {
   CONVERT_REQUEST,
+  CONVERTED_EXTENSION,
   isConvertResponse,
   isProgressReport,
   type ConvertRequest,
@@ -29,7 +30,6 @@ export interface ConverterParts {
   readonly nextId: () => string;
 }
 
-export const CONVERTED_EXTENSION = "mp4";
 const NO_ANSWER = "The converter gave no answer";
 
 // Hands the video to the offscreen document and waits for the MP4 it makes.

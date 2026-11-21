@@ -1,6 +1,7 @@
 import {
   CandidateRanker,
   NOTHING_FOUND,
+  RANKING,
 } from "../../src/background/candidate-ranker";
 import type { VideoCandidate } from "../../src/shared/candidates";
 
@@ -19,7 +20,7 @@ const report = (...candidates: VideoCandidate[]) => ({
 });
 
 describe("CandidateRanker", () => {
-  const ranker = new CandidateRanker();
+  const ranker = new CandidateRanker(RANKING);
 
   it("takes the tallest file the player itself names, over sharper ones elsewhere", () => {
     const best = ranker.pick([
@@ -89,5 +90,22 @@ describe("CandidateRanker", () => {
     ).toThrow(NOTHING_FOUND);
     expect(() => ranker.pick([report(), report()])).toThrow(NOTHING_FOUND);
     expect(() => ranker.pick([])).toThrow(NOTHING_FOUND);
+  });
+
+  it("ranks by the policy it was given", () => {
+    const streamsFirst = new CandidateRanker({
+      kinds: ["playlist", "file"],
+      tiers: [["network"], ["element", "player"], ["metadata"]],
+    });
+
+    const best = streamsFirst.pick([
+      report(
+        c("https://cdn.example/hd.mp4", "player", 720),
+        c("https://cdn.example/pl.m3u8", "element"),
+        c("https://cdn.example/net.m3u8", "network"),
+      ),
+    ]);
+
+    expect(best.url).toBe("https://cdn.example/net.m3u8");
   });
 });

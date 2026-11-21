@@ -1,4 +1,4 @@
-import type { VideoCandidate } from "../shared/candidates";
+import { NETWORK_ORIGIN, type VideoCandidate } from "../shared/candidates";
 import { heightHint, mediaKind } from "../shared/media-urls";
 
 export interface NetworkLog {
@@ -16,6 +16,6 @@ export class NetworkFinder implements NetworkLog {
   find(): VideoCandidate[] {
     return this.resources()
       .filter((url) => mediaKind(url) !== undefined)
-      .map((url) => ({ url, origin: "network", height: heightHint(url) }));
+      .map((url) => ({ url, origin: NETWORK_ORIGIN, height: heightHint(url) }));
   }
 }

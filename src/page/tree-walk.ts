@@ -1,9 +1,11 @@
 import type { ElementTree, PageElement } from "./dom";
 
+const EVERY_ELEMENT = "*";
+
 // The elements of a tree, open shadow roots included, in document order.
 export function allElements(tree: ElementTree): PageElement[] {
   const found: PageElement[] = [];
-  for (const element of tree.querySelectorAll("*")) {
+  for (const element of tree.querySelectorAll(EVERY_ELEMENT)) {
     found.push(element);
     if (element.shadowRoot !== null) {
       found.push(...allElements(element.shadowRoot));

@@ -1,3 +1,4 @@
+import { INPUT_FLAG } from "./conversion-plan";
 import type { ProgressListener } from "./progress";
 
 export interface LogLine {
@@ -8,6 +9,12 @@ export interface ProgressTick {
   progress: number;
 }
 
+// The events @ffmpeg/ffmpeg names.
+const LOG_EVENT = "log";
+const PROGRESS_EVENT = "progress";
+
+const TEXT_NOT_VIDEO = "ffmpeg handed back text instead of a video";
+
 // The slice of @ffmpeg/ffmpeg's FFmpeg class this needs, so tests can fake it.
 export interface FfmpegApi {
   readonly loaded: boolean;
@@ -17,10 +24,16 @@ export interface FfmpegApi {
     workerURL: string;
     classWorkerURL: string;
   }): Promise<boolean>;
-  on(event: "log", callback: (event: LogLine) => void): void;
-  on(event: "progress", callback: (event: ProgressTick) => void): void;
-  off(event: "log", callback: (event: LogLine) => void): void;
-  off(event: "progress", callback: (event: ProgressTick) => void): void;
+  on(event: typeof LOG_EVENT, callback: (event: LogLine) => void): void;
+  on(
+    event: typeof PROGRESS_EVENT,
+    callback: (event: ProgressTick) => void,
+  ): void;
+  off(event: typeof LOG_EVENT, callback: (event: LogLine) => void): void;
+  off(
+    event: typeof PROGRESS_EVENT,
+    callback: (event: ProgressTick) => void,
+  ): void;
   exec(args: string[]): Promise<number>;
   writeFile(path: string, data: Uint8Array): Promise<boolean>;
   readFile(path: string): Promise<Uint8Array | string>;
@@ -103,11 +116,11 @@ export class FfmpegEngine implements TranscodeEngine {
     const listener = (event: LogLine): void => {
       lines.push(event.message);
     };
-    this.ffmpeg.on("log", listener);
+    this.ffmpeg.on(LOG_EVENT, listener);
     try {
-      await this.ffmpeg.exec(["-i", name]);
+      await this.ffmpeg.exec([INPUT_FLAG, name]);
     } finally {
-      this.ffmpeg.off("log", listener);
+      this.ffmpeg.off(LOG_EVENT, listener);
     }
     return lines;
   }
@@ -120,21 +133,21 @@ export class FfmpegEngine implements TranscodeEngine {
     const progress = (event: ProgressTick): void => {
       onProgress(clamp(event.progress));
     };
-    this.ffmpeg.on("log", log);
-    this.ffmpeg.on("progress", progress);
+    this.ffmpeg.on(LOG_EVENT, log);
+    this.ffmpeg.on(PROGRESS_EVENT, progress);
     try {
       const code = await this.ffmpeg.exec(args);
       return { code, complaint: complaintIn(lines) };
     } finally {
-      this.ffmpeg.off("log", log);
-      this.ffmpeg.off("progress", progress);
+      this.ffmpeg.off(LOG_EVENT, log);
+      this.ffmpeg.off(PROGRESS_EVENT, progress);
     }
   }
 
   async read(name: string): Promise<Uint8Array> {
     const data = await this.ffmpeg.readFile(name);
     if (typeof data === "string") {
-      throw new Error("ffmpeg handed back text instead of a video");
+      throw new Error(TEXT_NOT_VIDEO);
     }
     return data;
   }

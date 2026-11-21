@@ -15,7 +15,11 @@ export interface Piece {
 
 // What a track carries. A muxed track has picture and sound together, which
 // is how HLS usually ships; DASH keeps the two apart.
-export type TrackRole = "muxed" | "video" | "audio";
+export const MUXED_TRACK = "muxed";
+export const VIDEO_TRACK = "video";
+export const AUDIO_TRACK = "audio";
+export type TrackRole =
+  typeof MUXED_TRACK | typeof VIDEO_TRACK | typeof AUDIO_TRACK;
 
 export interface Track {
   readonly role: TrackRole;
@@ -31,6 +35,9 @@ export const LIVE_STREAM =
   "This is a live stream with no end, so there is no whole video to save";
 export const NO_STREAMS = "The playlist names no video to download";
 export const EMPTY_PLAYLIST = "The playlist lists no pieces to download";
+
+// A variant or representation that does not say how tall or how big it is.
+export const UNKNOWN_SIZE = 0;
 
 // Something offered at a size: a variant, a representation.
 export interface Sized {

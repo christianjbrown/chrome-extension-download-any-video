@@ -20,6 +20,10 @@ export interface DownloadCompletion {
 
 const COMPLETE = "complete";
 const INTERRUPTED = "interrupted";
+const NO_REASON = "no reason given";
+
+const stopped = (reason: string): string =>
+  `Chrome stopped the download (${reason})`;
 
 // Chrome says a download started; this waits for the file to actually land,
 // so the button can say so, or say why it did not.
@@ -38,11 +42,7 @@ export class DownloadWatcher implements DownloadCompletion {
           resolve();
         } else if (state === INTERRUPTED) {
           this.downloads.onChanged.removeListener(listener);
-          reject(
-            new Error(
-              `Chrome stopped the download (${delta.error?.current ?? "no reason given"})`,
-            ),
-          );
+          reject(new Error(stopped(delta.error?.current ?? NO_REASON)));
         }
       };
       this.downloads.onChanged.addListener(listener);

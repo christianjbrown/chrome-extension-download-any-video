@@ -1,12 +1,10 @@
 import type { TrackFetcher } from "../stream/piece-fetcher";
 import type { StreamReader } from "../stream/stream-reader";
-import { NO_STREAMS } from "../stream/tracks";
+import { AUDIO_TRACK, NO_STREAMS } from "../stream/tracks";
 import { concatenate } from "./bytes";
 import type { MediaInputs } from "./media-inputs";
 import type { ProgressListener } from "./progress";
 import type { Fetches } from "./video-fetcher";
-
-const AUDIO = "audio";
 
 // A video the page only offers as a playlist: the pieces are fetched and
 // joined into one file per track. Fragmented MP4 after its initialisation
@@ -25,8 +23,8 @@ export class StreamFetcher implements Fetches {
         onProgress(done / total);
       },
     });
-    const main = fetched.find((track) => track.role !== AUDIO);
-    const audio = fetched.find((track) => track.role === AUDIO);
+    const main = fetched.find((track) => track.role !== AUDIO_TRACK);
+    const audio = fetched.find((track) => track.role === AUDIO_TRACK);
     if (main === undefined) {
       throw new Error(NO_STREAMS);
     }

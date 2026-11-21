@@ -1,4 +1,4 @@
-import type { VideoCandidate } from "../shared/candidates";
+import { PLAYER_ORIGIN, type VideoCandidate } from "../shared/candidates";
 import { heightHint, mediaKind } from "../shared/media-urls";
 import type { PageElement } from "./dom";
 import { ancestors } from "./tree-walk";
@@ -11,7 +11,9 @@ export interface PlayerAttributes {
 // backslash that starts a JSON escape.
 const URL_PATTERN = /https?:\/\/[^\s"'<>\\`{}|^[\]]+/g;
 const JSON_ESCAPED_SLASH = /\\\//g;
+const SLASH = "/";
 const JSON_ESCAPED_AMPERSAND = /\\u0026/g;
+const AMPERSAND = "&";
 const TRAILING_PUNCTUATION = new Set([".", ",", ";", ":", ")"]);
 
 // A player built from custom elements keeps the video's addresses on its
@@ -30,13 +32,13 @@ export class PlayerAttributeFinder implements PlayerAttributes {
 
   private urlsIn(text: string): VideoCandidate[] {
     const plain = text
-      .replace(JSON_ESCAPED_SLASH, "/")
-      .replace(JSON_ESCAPED_AMPERSAND, "&");
+      .replace(JSON_ESCAPED_SLASH, SLASH)
+      .replace(JSON_ESCAPED_AMPERSAND, AMPERSAND);
     const found: VideoCandidate[] = [];
     for (const match of plain.matchAll(URL_PATTERN)) {
       const url = withoutTrailingPunctuation(match[0]);
       if (mediaKind(url) !== undefined) {
-        found.push({ url, origin: "player", height: heightHint(url) });
+        found.push({ url, origin: PLAYER_ORIGIN, height: heightHint(url) });
       }
     }
     return found;

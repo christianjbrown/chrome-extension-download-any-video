@@ -1,5 +1,5 @@
 import { CONVERT_STAGE, FETCH_STAGE } from "../shared/conversion-messages";
-import { fileExtension, mediaKind } from "../shared/media-urls";
+import { FILE_KIND, fileExtension, mediaKind } from "../shared/media-urls";
 import {
   ConversionError,
   type StageProgressListener,
@@ -16,7 +16,6 @@ function asItIs(url: string): VideoSource {
   };
 }
 
-const WHOLE_FILE = "file";
 // Both steps can fail on a video that is nonetheless a perfectly good file:
 // a server that only answers its own player, or a codec ffmpeg cannot read.
 const RECOVERABLE: readonly string[] = [FETCH_STAGE, CONVERT_STAGE];
@@ -25,7 +24,7 @@ function worthFallingBackOn(error: unknown, url: string): boolean {
   return (
     error instanceof ConversionError &&
     RECOVERABLE.includes(error.stage) &&
-    mediaKind(url) === WHOLE_FILE
+    mediaKind(url) === FILE_KIND
   );
 }
 

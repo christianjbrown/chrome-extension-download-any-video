@@ -1,3 +1,4 @@
+import { CONVERTED_EXTENSION } from "../shared/conversion-messages";
 import { kebab } from "./filename-text";
 
 export interface Clock {
@@ -9,10 +10,13 @@ export interface Filenames {
 }
 
 const FALLBACK_STEM = "video";
-const FALLBACK_EXTENSION = "mp4";
+const FALLBACK_EXTENSION = CONVERTED_EXTENSION;
+// Every part of the stamp but the year is two digits, so names sort by time.
+const PART_WIDTH = 2;
+const PAD = "0";
 
 function pad(number: number): string {
-  return String(number).padStart(2, "0");
+  return String(number).padStart(PART_WIDTH, PAD);
 }
 
 function stamp(date: Date): string {
@@ -24,10 +28,14 @@ function stamp(date: Date): string {
 // downloads sort by when they were taken. Servers name video files after
 // encodings, not content, so the page title is the name every time.
 export class VideoFilename implements Filenames {
-  constructor(private readonly clock: Clock) {}
+  constructor(
+    private readonly clock: Clock,
+    // The longest the title part of the name may be.
+    private readonly maxStem: number,
+  ) {}
 
   name(title: string, extension: string | undefined): string {
-    const stem = kebab(title) || FALLBACK_STEM;
+    const stem = kebab(title, this.maxStem) || FALLBACK_STEM;
     return `${stamp(this.clock.now())}-${stem}.${extension ?? FALLBACK_EXTENSION}`;
   }
 }

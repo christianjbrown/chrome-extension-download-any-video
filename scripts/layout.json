@@ -1,0 +1,15 @@
+{
+  "outdir": "dist",
+  "entryPoints": {
+    "background": "src/background/main.ts",
+    "page": "src/page/main.ts",
+    "offscreen": "src/offscreen/main.ts",
+    "ffmpeg-worker": "node_modules/@ffmpeg/ffmpeg/dist/esm/worker.js"
+  },
+  "ffmpegDir": "ffmpeg",
+  "ffmpegCoreFiles": [
+    "ffmpeg-core.js",
+    "ffmpeg-core.wasm",
+    "ffmpeg-core.worker.js"
+  ]
+}

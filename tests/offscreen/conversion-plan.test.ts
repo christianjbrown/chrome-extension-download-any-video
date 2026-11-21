@@ -6,7 +6,13 @@ import {
   OUTPUT_NAME,
 } from "../../src/offscreen/conversion-plan";
 
-const planner = new ConversionPlanner();
+const planner = new ConversionPlanner({
+  threads: 4,
+  preset: "veryfast",
+  crf: 20,
+  profile: "high",
+  audioBitrate: "160k",
+});
 
 const head = [
   "-threads",

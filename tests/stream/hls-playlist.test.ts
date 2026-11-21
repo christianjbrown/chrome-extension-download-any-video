@@ -33,6 +33,17 @@ describe("isMasterPlaylist", () => {
 describe("parseMasterPlaylist", () => {
   const parsed = parseMasterPlaylist(master, BASE);
 
+  it("ignores an address that no variant line came before", () => {
+    const stray = parseMasterPlaylist(
+      "#EXTM3U\nstray.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=1\nreal.m3u8\n",
+      BASE,
+    );
+
+    expect(stray.variants.map((variant) => variant.url)).toEqual([
+      "https://cdn.example/v/real.m3u8",
+    ]);
+  });
+
   it("lists the variants with their size, bits and sound group, resolved against the playlist", () => {
     expect(parsed.variants).toEqual([
       {

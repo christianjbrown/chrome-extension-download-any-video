@@ -2,6 +2,8 @@ import { kebab } from "../../src/background/filename-text";
 import { SystemClock } from "../../src/background/system-clock";
 import { VideoFilename } from "../../src/background/video-filename";
 
+const MAX_STEM = 80;
+
 describe("kebab", () => {
   it.each([
     [
@@ -11,16 +13,16 @@ describe("kebab", () => {
     ["  Café Déjà Vu!  ", "cafe-deja-vu"],
     ["ペンギン", "ペンギン"],
     ["...", ""],
-    ["a".repeat(100), "a".repeat(80)],
-    ["a".repeat(79) + " b", "a".repeat(79)],
+    ["a".repeat(100), "a".repeat(MAX_STEM)],
+    ["a".repeat(MAX_STEM - 1) + " b", "a".repeat(MAX_STEM - 1)],
   ])("turns %j into %j", (text, expected) => {
-    expect(kebab(text)).toBe(expected);
+    expect(kebab(text, MAX_STEM)).toBe(expected);
   });
 });
 
 describe("VideoFilename", () => {
   const clock = { now: () => new Date(2026, 10, 9, 16, 5) };
-  const names = new VideoFilename(clock);
+  const names = new VideoFilename(clock, MAX_STEM);
 
   it("names the file after the time and the page, with the extension it is given", () => {
     expect(names.name("My Cool Page", "webm")).toBe(
