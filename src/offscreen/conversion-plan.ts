@@ -77,26 +77,45 @@ const encodeAudio = (settings: EncodeSettings): readonly string[] => [
 // The index goes at the front of the file, so players start at once.
 const FAST_START: readonly string[] = ["-movflags", "+faststart"];
 
-function videoArguments(
-  video: VideoStream,
-  settings: EncodeSettings,
-): readonly string[] {
-  const alreadyCompatible =
-    video.codec === COMPATIBLE_VIDEO_CODEC &&
-    video.pixelFormat === COMPATIBLE_PIXEL_FORMAT;
-  return alreadyCompatible ? COPY_VIDEO : encodeVideo(settings);
+// A stream that can go into the MP4 without re-encoding, and how.
+interface Shortcut<S> {
+  readonly suits: (stream: S) => boolean;
+  readonly args: readonly string[];
 }
+
+// The first shortcut that suits the stream, or a re-encode when none does.
+// Another copyable codec is another entry here.
+function treatment<S>(
+  shortcuts: readonly Shortcut<S>[],
+  stream: S,
+  encode: readonly string[],
+): readonly string[] {
+  return shortcuts.find((shortcut) => shortcut.suits(stream))?.args ?? encode;
+}
+
+const VIDEO_SHORTCUTS: readonly Shortcut<VideoStream>[] = [
+  {
+    suits: (video) =>
+      video.codec === COMPATIBLE_VIDEO_CODEC &&
+      video.pixelFormat === COMPATIBLE_PIXEL_FORMAT,
+    args: COPY_VIDEO,
+  },
+];
+
+const AUDIO_SHORTCUTS: readonly Shortcut<AudioStream>[] = [
+  {
+    suits: (audio) => audio.codec === COMPATIBLE_AUDIO_CODEC,
+    args: COPY_AUDIO,
+  },
+];
 
 function audioArguments(
   audio: AudioStream | undefined,
   settings: EncodeSettings,
 ): readonly string[] {
-  if (audio === undefined) {
-    return [];
-  }
-  return audio.codec === COMPATIBLE_AUDIO_CODEC
-    ? COPY_AUDIO
-    : encodeAudio(settings);
+  return audio === undefined
+    ? []
+    : treatment(AUDIO_SHORTCUTS, audio, encodeAudio(settings));
 }
 
 interface Sound {
@@ -139,7 +158,7 @@ export class ConversionPlanner implements ConversionPlanning {
       FIRST_VIDEO_STREAM,
       MAP_FLAG,
       sound.map,
-      ...videoArguments(main.video, this.settings),
+      ...treatment(VIDEO_SHORTCUTS, main.video, encodeVideo(this.settings)),
       ...audioArguments(sound.stream, this.settings),
       ...FAST_START,
       OUTPUT_NAME,

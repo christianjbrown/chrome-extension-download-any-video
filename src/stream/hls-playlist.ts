@@ -113,6 +113,26 @@ function resolve(uri: string, baseUrl: string): string {
   return new URL(uri, baseUrl).href;
 }
 
+// What to do with a line that starts with each tag the reader cares about.
+type TagHandlers = readonly (readonly [string, (line: string) => void])[];
+
+// Hands each line to the handler for its tag. A line that is neither a tag
+// nor a comment is a URI. Reading another tag is another handler.
+function readLines(
+  text: string,
+  handlers: TagHandlers,
+  onUri: (uri: string) => void,
+): void {
+  for (const line of lines(text)) {
+    const handler = handlers.find(([tag]) => line.startsWith(tag));
+    if (handler !== undefined) {
+      handler[1](line);
+    } else if (!line.startsWith(COMMENT)) {
+      onUri(line);
+    }
+  }
+}
+
 export function isMasterPlaylist(text: string): boolean {
   return lines(text).some((line) => line.startsWith(STREAM_INF_TAG));
 }
@@ -146,27 +166,55 @@ function audioRendition(
   };
 }
 
+class MasterPlaylistReader {
+  private readonly variants: Variant[] = [];
+  private readonly audio: AudioRendition[] = [];
+  // A variant's attributes, waiting for the URI on the line after them.
+  private pending: Attributes | undefined;
+  private readonly handlers: TagHandlers = [
+    [
+      STREAM_INF_TAG,
+      (line) => {
+        this.pending = attributes(line);
+      },
+    ],
+    [
+      MEDIA_TAG,
+      (line) => {
+        this.media(attributes(line));
+      },
+    ],
+  ];
+
+  constructor(private readonly baseUrl: string) {}
+
+  read(text: string): MasterPlaylist {
+    readLines(text, this.handlers, (uri) => {
+      this.uri(uri);
+    });
+    return { variants: this.variants, audio: this.audio };
+  }
+
+  private media(found: Attributes): void {
+    const rendition = audioRendition(found, this.baseUrl);
+    if (rendition !== undefined) {
+      this.audio.push(rendition);
+    }
+  }
+
+  private uri(uri: string): void {
+    if (this.pending !== undefined) {
+      this.variants.push(variant(this.pending, resolve(uri, this.baseUrl)));
+      this.pending = undefined;
+    }
+  }
+}
+
 export function parseMasterPlaylist(
   text: string,
   baseUrl: string,
 ): MasterPlaylist {
-  const variants: Variant[] = [];
-  const audio: AudioRendition[] = [];
-  let pending: Attributes | undefined;
-  for (const line of lines(text)) {
-    if (line.startsWith(STREAM_INF_TAG)) {
-      pending = attributes(line);
-    } else if (line.startsWith(MEDIA_TAG)) {
-      const rendition = audioRendition(attributes(line), baseUrl);
-      if (rendition !== undefined) {
-        audio.push(rendition);
-      }
-    } else if (!line.startsWith(COMMENT) && pending !== undefined) {
-      variants.push(variant(pending, resolve(line, baseUrl)));
-      pending = undefined;
-    }
-  }
-  return { variants, audio };
+  return new MasterPlaylistReader(baseUrl).read(text);
 }
 
 // "length@offset", or just "length", which continues from the previous piece.
@@ -184,30 +232,38 @@ class MediaPlaylistReader {
   private encrypted = false;
   private pendingRange: string | undefined;
   private previousEnd = FILE_START;
+  private readonly handlers: TagHandlers = [
+    [
+      KEY_TAG,
+      (line) => {
+        this.key(attributes(line));
+      },
+    ],
+    [
+      MAP_TAG,
+      (line) => {
+        this.map(attributes(line));
+      },
+    ],
+    [
+      BYTERANGE_TAG,
+      (line) => {
+        this.pendingRange = line.slice(BYTERANGE_TAG.length);
+      },
+    ],
+  ];
 
   constructor(private readonly baseUrl: string) {}
 
   read(text: string): MediaPlaylist {
-    for (const line of lines(text)) {
-      this.line(line);
-    }
+    readLines(text, this.handlers, (uri) => {
+      this.segment(uri);
+    });
     return {
       init: this.init,
       segments: this.segments,
       encrypted: this.encrypted,
     };
-  }
-
-  private line(line: string): void {
-    if (line.startsWith(KEY_TAG)) {
-      this.key(attributes(line));
-    } else if (line.startsWith(MAP_TAG)) {
-      this.map(attributes(line));
-    } else if (line.startsWith(BYTERANGE_TAG)) {
-      this.pendingRange = line.slice(BYTERANGE_TAG.length);
-    } else if (!line.startsWith(COMMENT)) {
-      this.segment(line);
-    }
   }
 
   private key(found: Attributes): void {

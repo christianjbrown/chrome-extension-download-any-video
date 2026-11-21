@@ -9,9 +9,9 @@ import {
   PlaylistLister,
 } from "../stream/stream-lister";
 import { parseXml } from "../stream/xml-parser";
-import { CandidateRanker } from "./candidate-ranker";
+import { CandidateRanker, RANKING } from "./candidate-ranker";
 import { BACKGROUND_CONFIG } from "./config";
-import { ChromeErrorExplainer } from "./chrome-errors";
+import { CHROME_TRANSLATIONS, ChromeErrorExplainer } from "./chrome-errors";
 import { ClickScheme } from "./click-scheme";
 import { ClosedTabAction } from "./closed-tab-action";
 import { ConversionHost } from "./conversion-host";
@@ -64,7 +64,7 @@ const controller = new DownloadController({
       [DASH_FORMAT]: new DashReferences(playlists, parseXml),
     }),
   ),
-  ranker: new CandidateRanker(),
+  ranker: new CandidateRanker(RANKING),
   converter: new FallbackConverter(
     new OffscreenConverter({
       host: new ConversionHost(hiddenPage),
@@ -78,7 +78,7 @@ const controller = new DownloadController({
     new DownloadWatcher(chrome.downloads),
   ),
   indicator,
-  errors: new ChromeErrorExplainer(),
+  errors: new ChromeErrorExplainer(CHROME_TRANSLATIONS),
 });
 const navigation = new NavigationReset(indicator);
 
