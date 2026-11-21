@@ -3,11 +3,23 @@ import type { CandidateOrigin, VideoCandidate } from "../shared/candidates";
 import type {
   Boxed,
   ElementTree,
+  Lineage,
   MetadataElement,
   PlayerElement,
   ScannedElement,
+  ShadowHost,
   VideoElement,
 } from "./dom";
+
+// Every element of a tree, however the walk gets to them.
+export interface ElementWalk {
+  all<E extends ShadowHost<E>>(tree: ElementTree<E>): E[];
+}
+
+// An element's ancestors, nearest first.
+export interface LineageWalk {
+  ancestors<E extends Lineage<E>>(element: E): E[];
+}
 
 // Turns the addresses a finder came across into candidates, keeping only the
 // ones that are videos.

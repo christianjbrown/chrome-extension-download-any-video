@@ -48,3 +48,10 @@ export interface ErrorExplainer {
 export interface Slugger {
   slug(text: string, maxLength: number): string;
 }
+
+// Lets one piece of work run per tab at a time.
+export interface TabLock {
+  // Runs the work unless the tab's last work is still going, in which case it
+  // does nothing.
+  runAlone(tabId: number, work: () => Promise<void>): Promise<void>;
+}

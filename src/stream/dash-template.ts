@@ -33,7 +33,7 @@ const INIT_POSITION = 0;
 // A template without a media pattern names its pieces with nothing.
 const NO_MEDIA = "";
 
-interface Values {
+export interface Values {
   readonly RepresentationID: string;
   readonly Bandwidth: number;
   readonly Number: number;
@@ -45,13 +45,30 @@ function padded(value: string, width: string | undefined): string {
   return width === undefined ? value : value.padStart(Number(width), PAD);
 }
 
+function isValueName(values: Values, name: string): name is keyof Values {
+  return Object.hasOwn(values, name);
+}
+
+// What one named placeholder stands for. The pattern only matches names the
+// values have, so a name they lack is left as it was written.
+export function placeholderText(
+  values: Values,
+  name: string,
+  width: string | undefined,
+  written: string,
+): string {
+  return isValueName(values, name)
+    ? padded(String(values[name]), width)
+    : written;
+}
+
 function fill(template: string, values: Values): string {
   return template.replace(
     PLACEHOLDER,
-    (_match, name?: string, width?: string) =>
+    (written: string, name?: string, width?: string) =>
       name === undefined
         ? DOLLAR
-        : padded(String(values[name as keyof Values]), width),
+        : placeholderText(values, name, width, written),
   );
 }
 

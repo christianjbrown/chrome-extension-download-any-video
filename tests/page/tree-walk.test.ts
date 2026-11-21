@@ -1,22 +1,22 @@
-import { allElements, ancestors } from "../../src/page/tree-walk";
+import { ShadowLineage, ShadowTreeWalk } from "../../src/page/tree-walk";
 import { element, tree } from "./fakes";
 
-describe("allElements", () => {
+describe("ShadowTreeWalk", () => {
   it("lists every element in document order, open shadow roots included", () => {
     const inner = element("video");
     const host = element("my-player", {
       shadow: [element("div", { children: [inner] })],
     });
     const after = element("p");
-    const names = allElements(
-      tree(element("main", { children: [host] }), after),
-    ).map((found) => found.localName);
+    const names = new ShadowTreeWalk()
+      .all(tree(element("main", { children: [host] }), after))
+      .map((found) => found.localName);
 
     expect(names).toEqual(["main", "my-player", "div", "video", "p"]);
   });
 });
 
-describe("ancestors", () => {
+describe("ShadowLineage", () => {
   it("climbs through parents and out of shadow roots through their hosts", () => {
     const inner = element("video");
     const wrapper = element("div", { children: [inner] });
@@ -24,15 +24,12 @@ describe("ancestors", () => {
     const section = element("section", { children: [host] });
     element("body", { children: [section] });
 
-    expect(ancestors(inner).map((found) => found.localName)).toEqual([
-      "div",
-      "my-player",
-      "section",
-      "body",
-    ]);
+    expect(
+      new ShadowLineage().ancestors(inner).map((found) => found.localName),
+    ).toEqual(["div", "my-player", "section", "body"]);
   });
 
   it("is empty for the root", () => {
-    expect(ancestors(element("html"))).toEqual([]);
+    expect(new ShadowLineage().ancestors(element("html"))).toEqual([]);
   });
 });

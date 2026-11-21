@@ -41,10 +41,12 @@ describe("VideoFilename", () => {
 });
 
 describe("SystemClock", () => {
-  it("tells the time", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 0, 2, 3, 4));
-    expect(new SystemClock().now()).toEqual(new Date(2026, 0, 2, 3, 4));
-    vi.useRealTimers();
+  it("tells the time its source gives, read afresh each time", () => {
+    const times = [new Date(2026, 0, 2, 3, 4), new Date(2026, 0, 2, 3, 5)];
+    const source = vi.fn(() => times.shift()!);
+    const clock = new SystemClock(source);
+
+    expect(clock.now()).toEqual(new Date(2026, 0, 2, 3, 4));
+    expect(clock.now()).toEqual(new Date(2026, 0, 2, 3, 5));
   });
 });

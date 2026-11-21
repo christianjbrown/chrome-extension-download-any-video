@@ -41,7 +41,7 @@ export type ConvertResponse =
   | { readonly ok: false; readonly stage: Stage; readonly message: string };
 
 function isStage(value: unknown): value is Stage {
-  return (STAGES as readonly unknown[]).includes(value);
+  return STAGES.some((stage) => stage === value);
 }
 
 const REQUEST_SHAPE: Shape = {

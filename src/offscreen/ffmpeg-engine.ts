@@ -1,5 +1,5 @@
 import type { RunResult, TranscodeEngine } from "./conversion-parts";
-import { INPUT_FLAG } from "./conversion-plan";
+import { INPUT_FLAG } from "./ffmpeg-arguments";
 import type { ProgressListener } from "./progress";
 
 export interface LogLine {
@@ -56,26 +56,13 @@ function clamp(ratio: number): number {
   return Math.min(Math.max(ratio, NO_PROGRESS), ALL_DONE);
 }
 
-// What ffmpeg prints after the real reason: the running counter, the sign-off
-// and the wasm runtime's own exit note.
-const NOISE: readonly RegExp[] = [
-  /^\s*$/,
-  /^(frame|size)=/,
-  /^Conversion failed!$/,
-  /^Aborted\(/,
-];
-
-function complaintIn(lines: readonly string[]): string | undefined {
-  return lines
-    .findLast((line) => !NOISE.some((pattern) => pattern.test(line)))
-    ?.trim();
-}
-
 // ffmpeg.wasm, loaded from the extension's own files on first use.
 export class FfmpegEngine implements TranscodeEngine {
   constructor(
     private readonly ffmpeg: FfmpegApi,
     private readonly urls: CoreUrls,
+    // What ffmpeg prints after the real reason, to look past.
+    private readonly noise: readonly RegExp[],
   ) {}
 
   async ready(): Promise<void> {
@@ -120,11 +107,19 @@ export class FfmpegEngine implements TranscodeEngine {
     this.ffmpeg.on(PROGRESS_EVENT, progress);
     try {
       const code = await this.ffmpeg.exec(args);
-      return { code, complaint: complaintIn(lines) };
+      return { code, complaint: this.complaintIn(lines) };
     } finally {
       this.ffmpeg.off(LOG_EVENT, log);
       this.ffmpeg.off(PROGRESS_EVENT, progress);
     }
+  }
+
+  private complaintIn(lines: readonly string[]): string | undefined {
+    return lines.findLast((line) => !this.isNoise(line))?.trim();
+  }
+
+  private isNoise(line: string): boolean {
+    return this.noise.some((pattern) => pattern.test(line));
   }
 
   async read(name: string): Promise<Uint8Array> {

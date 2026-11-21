@@ -1,10 +1,14 @@
 import {
   equalTo,
+  everyItem,
   fits,
   isArray,
+  isFunction,
   isNumber,
   isRecord,
+  isRecordOrNull,
   isString,
+  oneOf,
 } from "../../src/shared/shape";
 
 describe("isRecord", () => {
@@ -40,5 +44,35 @@ describe("fits", () => {
   it("refuses a record with a field that fails or is missing", () => {
     expect(fits({ name: "a", size: "1" }, shape)).toBe(false);
     expect(fits({ name: "a" }, shape)).toBe(false);
+  });
+});
+
+describe("list and set tests", () => {
+  it("take a list only when every item passes", () => {
+    const strings = everyItem(isString);
+    expect([strings(["a"]), strings(["a", 1]), strings("a")]).toEqual([
+      true,
+      false,
+      false,
+    ]);
+  });
+
+  it("take one of a closed set of values", () => {
+    const sizes = oneOf(["s", "m"]);
+    expect([sizes("m"), sizes("l")]).toEqual([true, false]);
+  });
+});
+
+describe("function and nullable object tests", () => {
+  it("tell a function from anything else", () => {
+    expect([isFunction(() => 1), isFunction({})]).toEqual([true, false]);
+  });
+
+  it("take an object or null, and nothing else", () => {
+    expect([
+      isRecordOrNull(null),
+      isRecordOrNull({}),
+      isRecordOrNull("x"),
+    ]).toEqual([true, true, false]);
   });
 });

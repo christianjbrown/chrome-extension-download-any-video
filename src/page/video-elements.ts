@@ -3,27 +3,33 @@ import {
   UNKNOWN_HEIGHT,
   type VideoCandidate,
 } from "../shared/candidates";
-import { isWebUrl } from "../shared/media-urls";
+import type { AddressTest } from "../shared/address-test";
 import type {
   Attributed,
   ElementTree,
   ScannedElement,
   VideoElement,
 } from "./dom";
-import type { FoundVideo, VideoElements } from "./finder-parts";
-import { allElements } from "./tree-walk";
+import { isVideoElement } from "./element-checks";
+import type { ElementWalk, FoundVideo, VideoElements } from "./finder-parts";
 
-const VIDEO_TAG = "video";
 const SOURCE_SELECTOR = "source";
 const SOURCE_ATTRIBUTE = "src";
 // A <source> without an address has nothing to offer.
 const NO_ADDRESS = "";
 
 export class VideoElementFinder implements VideoElements {
+  constructor(
+    private readonly walk: ElementWalk,
+    // The addresses Chrome can download from.
+    private readonly fetchable: AddressTest,
+  ) {}
+
   find(tree: ElementTree<ScannedElement>): FoundVideo[] {
-    return allElements(tree)
-      .filter((element) => element.localName === VIDEO_TAG)
-      .map((element) => this.describe(element as VideoElement));
+    return this.walk
+      .all(tree)
+      .filter(isVideoElement)
+      .map((video) => this.describe(video));
   }
 
   private describe(video: VideoElement): FoundVideo {
@@ -40,7 +46,7 @@ export class VideoElementFinder implements VideoElements {
   // currentSrc is what the browser actually chose among the sources.
   private playing(video: VideoElement): VideoCandidate[] {
     return [video.currentSrc, video.src]
-      .filter((url) => isWebUrl(url))
+      .filter((url) => this.fetchable.matches(url))
       .map((url) => ({
         url,
         origin: ELEMENT_ORIGIN,
@@ -50,7 +56,7 @@ export class VideoElementFinder implements VideoElements {
 
   private source(source: Attributed): VideoCandidate[] {
     const url = addressOf(source);
-    return isWebUrl(url)
+    return this.fetchable.matches(url)
       ? [{ url, origin: ELEMENT_ORIGIN, height: UNKNOWN_HEIGHT }]
       : [];
   }

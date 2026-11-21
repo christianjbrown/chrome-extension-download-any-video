@@ -17,6 +17,24 @@ export const isNumber: FieldTest = (value) => typeof value === "number";
 
 export const isArray: FieldTest = (value) => Array.isArray(value);
 
+export const isFunction: FieldTest = (value) => typeof value === "function";
+
+// An object, or null where there is none.
+export const isRecordOrNull: FieldTest = (value) =>
+  value === null || isRecord(value);
+
+// A list whose every item passes the test.
+export const everyItem =
+  (test: FieldTest): FieldTest =>
+  (value) =>
+    Array.isArray(value) && value.every((item) => test(item));
+
+// One of a closed set of values.
+export const oneOf =
+  (values: readonly unknown[]): FieldTest =>
+  (value) =>
+    values.includes(value);
+
 export const equalTo =
   (expected: unknown): FieldTest =>
   (value) =>

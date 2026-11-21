@@ -2,14 +2,17 @@
 // it where the service worker's second call can reach it. It changes nothing on
 // the page and listens to nothing; it only answers.
 import { ExtensionMedia } from "../shared/extension-media";
-import { MEDIA_EXTENSIONS } from "../shared/media-extensions";
-import { FINDER_KEY, type InstalledFinder } from "../shared/installed-finder";
-import { HEIGHT_PATTERNS } from "../shared/height-patterns";
+import { MEDIA_EXTENSIONS } from "../wiring/media-extensions";
+import { FINDER_KEY } from "../shared/installed-finder";
+import { HEIGHT_PATTERNS } from "../wiring/height-patterns";
+import { VIDEO_META } from "../wiring/video-meta";
 import { UrlHeights } from "../shared/url-heights";
+import { WebUrls } from "../shared/web-urls";
 import { MediaCandidates } from "./media-candidates";
 import { NetworkFinder } from "./network-entries";
 import { MetadataFinder } from "./page-metadata";
 import { PlayerAttributeFinder } from "./player-attributes";
+import { ShadowLineage, ShadowTreeWalk } from "./tree-walk";
 import { VideoElementFinder } from "./video-elements";
 import { VideoFinder } from "./video-finder";
 import { VisibleVideoChooser } from "./visible-video";
@@ -24,15 +27,16 @@ const candidates = new MediaCandidates(
 const finder = new VideoFinder({
   tree: document,
   title: () => document.title,
-  elements: new VideoElementFinder(),
+  elements: new VideoElementFinder(new ShadowTreeWalk(), new WebUrls()),
   chooser: new VisibleVideoChooser(() => ({
     width: window.innerWidth,
     height: window.innerHeight,
   })),
-  player: new PlayerAttributeFinder(candidates),
+  player: new PlayerAttributeFinder(candidates, new ShadowLineage()),
   metadata: new MetadataFinder(
-    (text) => JSON.parse(text) as unknown,
+    (text): unknown => JSON.parse(text),
     candidates,
+    VIDEO_META,
   ),
   network: new NetworkFinder(
     () =>
@@ -41,4 +45,4 @@ const finder = new VideoFinder({
   ),
 });
 
-(globalThis as unknown as Record<string, InstalledFinder>)[FINDER_KEY] = finder;
+Reflect.set(globalThis, FINDER_KEY, finder);

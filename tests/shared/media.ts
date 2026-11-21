@@ -1,9 +1,9 @@
 import { ExtensionMedia } from "../../src/shared/extension-media";
 import { KindTest } from "../../src/shared/kind-test";
-import { MEDIA_EXTENSIONS } from "../../src/shared/media-extensions";
+import { MEDIA_EXTENSIONS } from "../../src/wiring/media-extensions";
 import { FILE_KIND, PLAYLIST_KIND } from "../../src/shared/media-types";
 import { PathExtensions } from "../../src/shared/path-extensions";
-import { HEIGHT_PATTERNS } from "../../src/shared/height-patterns";
+import { HEIGHT_PATTERNS } from "../../src/wiring/height-patterns";
 import { UrlHeights } from "../../src/shared/url-heights";
 
 // The extension's own reading of URLs, which the tests' addresses are written for.

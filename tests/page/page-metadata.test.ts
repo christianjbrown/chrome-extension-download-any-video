@@ -1,4 +1,5 @@
 import { MetadataFinder } from "../../src/page/page-metadata";
+import { VIDEO_META } from "../../src/wiring/video-meta";
 import { candidates } from "./candidates";
 import { element } from "./fakes";
 
@@ -23,6 +24,7 @@ describe("MetadataFinder", () => {
   const finder = new MetadataFinder(
     (text) => JSON.parse(text) as unknown,
     candidates,
+    VIDEO_META,
   );
 
   it("takes the video files the meta tags and structured data name", () => {

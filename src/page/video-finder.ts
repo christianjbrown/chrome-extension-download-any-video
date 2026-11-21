@@ -1,6 +1,6 @@
 import type { FrameReport, VideoCandidate } from "../shared/candidates";
 import type { InstalledFinder } from "../shared/installed-finder";
-import type { ElementTree } from "./dom";
+import type { ElementTree, MetadataElement, ScannedElement } from "./dom";
 import type {
   NetworkLog,
   PageMetadata,
@@ -10,7 +10,8 @@ import type {
 } from "./finder-parts";
 
 export interface FinderParts {
-  readonly tree: ElementTree;
+  // The document, read only as the element and metadata finders read it.
+  readonly tree: ElementTree<ScannedElement & MetadataElement>;
   readonly title: () => string;
   readonly elements: VideoElements;
   readonly chooser: VideoChooser;

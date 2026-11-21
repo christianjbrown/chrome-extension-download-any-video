@@ -8,11 +8,14 @@ export const ELEMENT_ORIGIN = "element";
 export const PLAYER_ORIGIN = "player";
 export const METADATA_ORIGIN = "metadata";
 export const NETWORK_ORIGIN = "network";
-export type CandidateOrigin =
-  | typeof ELEMENT_ORIGIN
-  | typeof PLAYER_ORIGIN
-  | typeof METADATA_ORIGIN
-  | typeof NETWORK_ORIGIN;
+// Another origin is another entry here, and the type follows it.
+export const CANDIDATE_ORIGINS = [
+  ELEMENT_ORIGIN,
+  PLAYER_ORIGIN,
+  METADATA_ORIGIN,
+  NETWORK_ORIGIN,
+] as const;
+export type CandidateOrigin = (typeof CANDIDATE_ORIGINS)[number];
 
 // The height of a video when neither the page nor the URL says.
 export const UNKNOWN_HEIGHT = 0;

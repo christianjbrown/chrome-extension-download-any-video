@@ -1,4 +1,5 @@
 import { DownloadController } from "../../src/background/download-controller";
+import { BusyTabs } from "../../src/background/tab-locks";
 import type { FrameReport } from "../../src/shared/candidates";
 import { fakeIndicator, plainErrors } from "./fakes";
 
@@ -40,6 +41,7 @@ function setup() {
     },
     indicator: fakeIndicator(),
     errors: plainErrors,
+    lock: new BusyTabs(),
   };
   return {
     parts,

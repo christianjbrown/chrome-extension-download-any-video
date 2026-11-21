@@ -1,6 +1,6 @@
 // The refusals Chrome words its own way, and what to say instead.
-// Another refusal is another entry here.
-import type { Translation } from "./chrome-errors";
+// Another refusal is another entry here. Part of the service worker's wiring.
+import type { Translation } from "../background/chrome-errors";
 
 const OWN_PAGES = "Chrome does not let extensions into its own pages";
 

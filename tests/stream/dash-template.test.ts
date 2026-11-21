@@ -1,4 +1,8 @@
-import { templatePieces, UNKNOWN_LENGTH } from "../../src/stream/dash-template";
+import {
+  placeholderText,
+  templatePieces,
+  UNKNOWN_LENGTH,
+} from "../../src/stream/dash-template";
 import { xml } from "./fakes";
 
 const context = {
@@ -85,5 +89,19 @@ describe("templatePieces", () => {
     expect(() =>
       templatePieces(template, { ...context, periodSeconds: undefined }),
     ).toThrow(UNKNOWN_LENGTH);
+  });
+});
+
+describe("placeholderText", () => {
+  const values = { RepresentationID: "v1", Bandwidth: 9, Number: 7, Time: 0 };
+
+  it("fills a named value, padded to the width asked for", () => {
+    expect(placeholderText(values, "Number", "3", "$Number%03d$")).toBe("007");
+  });
+
+  it("leaves a name the values lack as it was written", () => {
+    expect(placeholderText(values, "toString", undefined, "$toString$")).toBe(
+      "$toString$",
+    );
   });
 });
