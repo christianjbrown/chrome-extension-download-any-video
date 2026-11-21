@@ -19,15 +19,31 @@ export const isArray: FieldTest = (value) => Array.isArray(value);
 
 export const isFunction: FieldTest = (value) => typeof value === "function";
 
-// An object, or null where there is none.
-export const isRecordOrNull: FieldTest = (value) =>
-  value === null || isRecord(value);
-
 // A list whose every item passes the test.
 export const everyItem =
   (test: FieldTest): FieldTest =>
   (value) =>
     Array.isArray(value) && value.every((item) => test(item));
+
+// Something for...of can walk, such as a list or a DOM collection.
+export function isIterable(value: unknown): value is Iterable<unknown> {
+  return isRecord(value) && isFunction(Reflect.get(value, Symbol.iterator));
+}
+
+// A collection whose every item passes the test.
+export const everyIterated =
+  (test: FieldTest): FieldTest =>
+  (value) =>
+    isIterable(value) && Array.from(value).every((item) => test(item));
+
+// Nothing at all, or a value that passes the test.
+export const absentOr =
+  (test: FieldTest): FieldTest =>
+  (value) =>
+    ABSENT.includes(value) || test(value);
+
+// The two values that stand for nothing being there.
+const ABSENT: readonly unknown[] = [undefined, null];
 
 // One of a closed set of values.
 export const oneOf =
