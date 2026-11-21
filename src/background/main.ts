@@ -5,6 +5,7 @@ import { DASH_FORMAT, HLS_FORMAT } from "../shared/media-types";
 import { isSchemeReport } from "../shared/scheme-messages";
 import { ByFormat } from "../stream/by-format";
 import { DashManifestParser } from "../stream/dash-manifest";
+import { DASH_PIECE_SOURCES } from "../stream/dash-pieces";
 import { DashReferences } from "../stream/dash-references";
 import { HttpFetcher } from "../stream/fetching";
 import { HlsPlaylistParser } from "../stream/hls-playlist";
@@ -68,7 +69,7 @@ const controller = new DownloadController({
         [HLS_FORMAT]: new HlsReferences(playlists, new HlsPlaylistParser()),
         [DASH_FORMAT]: new DashReferences(
           playlists,
-          new DashManifestParser(parseXml),
+          new DashManifestParser(parseXml, DASH_PIECE_SOURCES),
         ),
       }),
     ),

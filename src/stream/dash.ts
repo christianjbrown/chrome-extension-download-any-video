@@ -2,6 +2,7 @@
 // first period, each with the pieces that make it up. DASH keeps picture and
 // sound in separate representations.
 import { AUDIO_TRACK, VIDEO_TRACK, type Piece, type Sized } from "./tracks";
+import type { XmlElement } from "./xml";
 
 // DASH keeps picture and sound apart, so a representation is one or the other.
 export const DASH_ROLES = [VIDEO_TRACK, AUDIO_TRACK] as const;
@@ -29,4 +30,14 @@ export interface TemplateContext {
   readonly baseUrl: string;
   // The period's length in seconds, when the manifest says.
   readonly periodSeconds: number | undefined;
+}
+
+// One way a manifest can name a representation's pieces: a list, a template.
+// It answers nothing when the representation does not use it.
+export interface PieceSource {
+  pieces(
+    set: XmlElement,
+    representation: XmlElement,
+    context: TemplateContext,
+  ): Piece[] | undefined;
 }

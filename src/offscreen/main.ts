@@ -18,6 +18,7 @@ import {
 } from "../shared/media-types";
 import { ByFormat } from "../stream/by-format";
 import { DashManifestParser } from "../stream/dash-manifest";
+import { DASH_PIECE_SOURCES } from "../stream/dash-pieces";
 import { DashTracks } from "../stream/dash-tracks";
 import { HttpFetcher } from "../stream/fetching";
 import { HlsPlaylistParser } from "../stream/hls-playlist";
@@ -49,7 +50,7 @@ const handler = new ConvertHandler({
             [HLS_FORMAT]: new HlsTracks(pieces, new HlsPlaylistParser()),
             [DASH_FORMAT]: new DashTracks(
               pieces,
-              new DashManifestParser(parseXml),
+              new DashManifestParser(parseXml, DASH_PIECE_SOURCES),
             ),
           }),
         ),

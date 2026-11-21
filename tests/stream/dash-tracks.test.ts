@@ -1,4 +1,5 @@
 import { DashManifestParser } from "../../src/stream/dash-manifest";
+import { DASH_PIECE_SOURCES } from "../../src/stream/dash-pieces";
 import { DashTracks } from "../../src/stream/dash-tracks";
 import {
   EMPTY_PLAYLIST,
@@ -45,7 +46,10 @@ function reader(root: XmlElement) {
   const parse = vi.fn().mockReturnValue(root);
   return {
     parse,
-    tracks: new DashTracks(fetcher, new DashManifestParser(parse)),
+    tracks: new DashTracks(
+      fetcher,
+      new DashManifestParser(parse, DASH_PIECE_SOURCES),
+    ),
   };
 }
 

@@ -6,10 +6,10 @@ import {
   type DashParsing,
   type DashRepresentation,
   type DashRole,
+  type PieceSource,
   type TemplateContext,
 } from "./dash";
 import { ATTRIBUTES, ELEMENTS } from "./dash-names";
-import { templatePieces } from "./dash-template";
 import { durationSeconds } from "./iso-duration";
 import { UNKNOWN_SIZE, type Piece } from "./tracks";
 import {
@@ -26,92 +26,6 @@ const DYNAMIC = "dynamic";
 const NO_ID = "";
 // A representation that says nothing of its type is neither picture nor sound.
 const NO_TYPE = "";
-
-// "first-last", both byte positions inclusive.
-const RANGE_SEPARATOR = "-";
-// A piece without its own address is its base address.
-const SAME_ADDRESS = "";
-// A piece without a range is the whole of its address.
-const WHOLE = "";
-
-function piece(
-  url: string | undefined,
-  range: string | undefined,
-  baseUrl: string,
-): Piece {
-  const positions = (range ?? WHOLE).split(RANGE_SEPARATOR);
-  const first = Number(positions[0]);
-  const last = Number(positions[1]);
-  return {
-    url: new URL(url ?? SAME_ADDRESS, baseUrl).href,
-    range:
-      range === undefined
-        ? undefined
-        : { offset: first, length: last - first + 1 },
-  };
-}
-
-// A SegmentList names each piece itself.
-function listPieces(list: XmlElement, baseUrl: string): Piece[] {
-  const pieces: Piece[] = [];
-  const initialization = childNamed(list, ELEMENTS.initialization);
-  if (initialization !== undefined) {
-    pieces.push(
-      piece(
-        initialization.attribute(ATTRIBUTES.sourceUrl),
-        initialization.attribute(ATTRIBUTES.range),
-        baseUrl,
-      ),
-    );
-  }
-  for (const segment of childrenNamed(list, ELEMENTS.segmentUrl)) {
-    pieces.push(
-      piece(
-        segment.attribute(ATTRIBUTES.media),
-        segment.attribute(ATTRIBUTES.mediaRange),
-        baseUrl,
-      ),
-    );
-  }
-  return pieces;
-}
-
-// A representation's template fills in what the set's leaves out.
-function merged(set: XmlElement, own: XmlElement | undefined): XmlElement {
-  if (own === undefined) {
-    return set;
-  }
-  return {
-    name: own.name,
-    text: own.text,
-    children: own.children.length === 0 ? set.children : own.children,
-    attribute: (name) => own.attribute(name) ?? set.attribute(name),
-  };
-}
-
-// A list, a template, or neither, in which case the representation is one
-// whole file at its base address (SegmentBase, or nothing at all).
-function representationPieces(
-  set: XmlElement,
-  representation: XmlElement,
-  context: TemplateContext,
-): Piece[] {
-  const list =
-    childNamed(representation, ELEMENTS.segmentList) ??
-    childNamed(set, ELEMENTS.segmentList);
-  if (list !== undefined) {
-    return listPieces(list, context.baseUrl);
-  }
-  const setTemplate = childNamed(set, ELEMENTS.segmentTemplate);
-  const ownTemplate = childNamed(representation, ELEMENTS.segmentTemplate);
-  if (setTemplate !== undefined) {
-    return templatePieces(merged(setTemplate, ownTemplate), context);
-  }
-  if (ownTemplate !== undefined) {
-    return templatePieces(ownTemplate, context);
-  }
-  return [{ url: context.baseUrl, range: undefined }];
-}
 
 // A BaseURL child narrows the address everything below it is relative to.
 function baseUrlOf(element: XmlElement, parent: string): string {
@@ -140,9 +54,14 @@ interface Period {
 }
 
 // Parses the text as XML, then reads the first period only: a single video is
-// one period.
+// one period. The first source that names a representation's pieces wins;
+// when none does, the representation is one whole file at its base address
+// (SegmentBase, or nothing at all).
 export class DashManifestParser implements DashParsing {
-  constructor(private readonly xml: XmlParser) {}
+  constructor(
+    private readonly xml: XmlParser,
+    private readonly sources: readonly PieceSource[],
+  ) {}
 
   parse(text: string, url: string): DashManifest {
     const root = this.xml(text);
@@ -194,10 +113,24 @@ export class DashManifestParser implements DashParsing {
             height: Number(
               representation.attribute(ATTRIBUTES.height) ?? UNKNOWN_SIZE,
             ),
-            pieces: representationPieces(set, representation, context),
+            pieces: this.pieces(set, representation, context),
           },
         ];
       },
     );
+  }
+
+  private pieces(
+    set: XmlElement,
+    representation: XmlElement,
+    context: TemplateContext,
+  ): Piece[] {
+    for (const source of this.sources) {
+      const pieces = source.pieces(set, representation, context);
+      if (pieces !== undefined) {
+        return pieces;
+      }
+    }
+    return [{ url: context.baseUrl, range: undefined }];
   }
 }
