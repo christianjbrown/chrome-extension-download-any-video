@@ -1,20 +1,10 @@
 import type { Sequencer } from "../shared/sequencer";
 import type { HiddenPage } from "./hidden-page";
+import type { OffscreenPage } from "./offscreen-page";
 
 export interface OffscreenApi {
-  createDocument(parameters: {
-    url: string;
-    reasons: string[];
-    justification: string;
-  }): Promise<void>;
+  createDocument(parameters: OffscreenPage): Promise<void>;
   closeDocument(): Promise<void>;
-}
-
-// The extension's page to open, and what Chrome is told it is for.
-export interface OffscreenPage {
-  readonly url: string;
-  readonly reasons: string[];
-  readonly justification: string;
 }
 
 const OFFSCREEN_CONTEXT = "OFFSCREEN_DOCUMENT";
