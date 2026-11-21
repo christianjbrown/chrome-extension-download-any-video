@@ -21,6 +21,7 @@ import { ConversionHost } from "./conversion-host";
 import { DownloadWatcher } from "./download-completion";
 import { DownloadController } from "./download-controller";
 import { FallbackConverter } from "./fallback-converter";
+import { KebabSlugger } from "./filename-text";
 import { NavigationReset } from "./navigation-reset";
 import { OffscreenConverter } from "./offscreen-converter";
 import { OffscreenDocument } from "./offscreen-document";
@@ -84,7 +85,11 @@ const controller = new DownloadController({
     }),
     media,
   ),
-  names: new VideoFilename(new SystemClock(), BACKGROUND_CONFIG.maxStem),
+  names: new VideoFilename(
+    new SystemClock(),
+    new KebabSlugger(),
+    BACKGROUND_CONFIG.maxStem,
+  ),
   saver: new VideoSaver(
     chrome.downloads,
     new DownloadWatcher(chrome.downloads),

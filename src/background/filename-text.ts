@@ -1,5 +1,6 @@
 // Page titles are somebody else's text, so nothing reaches a filename until
 // it has been through this.
+import type { Slugger } from "./download-steps";
 
 // Latin accents only (é to e); other scripts' marks, like Japanese ペ, recombine.
 const LATIN_ACCENTS = /[\u0300-\u036f]/g;
@@ -7,7 +8,7 @@ const NOT_A_WORD = /[^\p{L}\p{N}]+/u;
 const SEPARATOR = "-";
 
 // The words of the text, lower case and joined by dashes, cut to maxLength.
-export function kebab(text: string, maxLength: number): string {
+function kebab(text: string, maxLength: number): string {
   const words = text
     .normalize("NFKD")
     .replace(LATIN_ACCENTS, "")
@@ -25,4 +26,10 @@ function trimDashes(text: string): string {
     end -= 1;
   }
   return text.slice(0, end);
+}
+
+export class KebabSlugger implements Slugger {
+  slug(text: string, maxLength: number): string {
+    return kebab(text, maxLength);
+  }
 }

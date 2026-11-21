@@ -1,6 +1,5 @@
 import { CONVERTED_EXTENSION } from "../shared/conversion-messages";
-import type { Clock, Filenames } from "./download-steps";
-import { kebab } from "./filename-text";
+import type { Clock, Filenames, Slugger } from "./download-steps";
 
 const FALLBACK_STEM = "video";
 const FALLBACK_EXTENSION = CONVERTED_EXTENSION;
@@ -23,12 +22,13 @@ function stamp(date: Date): string {
 export class VideoFilename implements Filenames {
   constructor(
     private readonly clock: Clock,
+    private readonly slugger: Slugger,
     // The longest the title part of the name may be.
     private readonly maxStem: number,
   ) {}
 
   name(title: string, extension: string | undefined): string {
-    const stem = kebab(title, this.maxStem) || FALLBACK_STEM;
+    const stem = this.slugger.slug(title, this.maxStem) || FALLBACK_STEM;
     return `${stamp(this.clock.now())}-${stem}.${extension ?? FALLBACK_EXTENSION}`;
   }
 }
