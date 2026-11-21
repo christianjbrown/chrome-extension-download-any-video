@@ -1,14 +1,8 @@
 import { DashManifestParser } from "../../src/stream/dash-manifest";
 import { DashTracks } from "../../src/stream/dash-tracks";
 import { SharpestFirst } from "../../src/stream/sharpest-first";
-import {
-  EMPTY_PLAYLIST,
-  ENCRYPTED_STREAM,
-  LIVE_STREAM,
-  NO_STREAMS,
-} from "../../src/stream/tracks";
 import type { XmlElement } from "../../src/stream/xml";
-import { FakeFetcher, pieceSources, xml } from "./fakes";
+import { FakeFetcher, pieceSources, refusals, xml } from "./fakes";
 
 const MPD = "https://cdn.example/v/manifest.mpd";
 
@@ -50,6 +44,7 @@ function reader(root: XmlElement) {
       fetcher,
       new DashManifestParser({ parse }, pieceSources),
       new SharpestFirst(),
+      refusals,
     ),
   };
 }
@@ -88,15 +83,15 @@ describe("DashTracks", () => {
   });
 
   it.each([
-    [manifest({ type: "dynamic" }), LIVE_STREAM],
+    [manifest({ type: "dynamic" }), refusals.live],
     [
       manifest(
         {},
         xml("AdaptationSet", { children: [xml("ContentProtection")] }),
       ),
-      ENCRYPTED_STREAM,
+      refusals.encrypted,
     ],
-    [manifest({}, representation("audio", 0, 1, "a.mp4")), NO_STREAMS],
+    [manifest({}, representation("audio", 0, 1, "a.mp4")), refusals.noStreams],
   ])("says why a stream cannot be downloaded: %s", async (root, message) => {
     const { tracks } = reader(root);
 
@@ -124,6 +119,6 @@ describe("DashTracks", () => {
       }),
     );
 
-    await expect(tracks.tracks(MPD)).rejects.toThrow(EMPTY_PLAYLIST);
+    await expect(tracks.tracks(MPD)).rejects.toThrow(refusals.emptyPlaylist);
   });
 });

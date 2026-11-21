@@ -1,12 +1,14 @@
 import {
+  absentOr,
   equalTo,
+  everyIterated,
   everyItem,
   fits,
   isArray,
   isFunction,
+  isIterable,
   isNumber,
   isRecord,
-  isRecordOrNull,
   isString,
   oneOf,
 } from "../../src/shared/shape";
@@ -63,16 +65,38 @@ describe("list and set tests", () => {
   });
 });
 
-describe("function and nullable object tests", () => {
+describe("function and nullable tests", () => {
   it("tell a function from anything else", () => {
     expect([isFunction(() => 1), isFunction({})]).toEqual([true, false]);
   });
 
-  it("take an object or null, and nothing else", () => {
+  it("take nothing at all, or a value that passes", () => {
+    const absentOrString = absentOr(isString);
     expect([
-      isRecordOrNull(null),
-      isRecordOrNull({}),
-      isRecordOrNull("x"),
-    ]).toEqual([true, true, false]);
+      absentOrString(null),
+      absentOrString(undefined),
+      absentOrString("x"),
+      absentOrString(1),
+    ]).toEqual([true, true, true, false]);
+  });
+});
+
+describe("iterable tests", () => {
+  it("take what for...of can walk, and nothing else", () => {
+    expect([
+      isIterable([]),
+      isIterable(new Set()),
+      isIterable({}),
+      isIterable("text"),
+    ]).toEqual([true, true, false, false]);
+  });
+
+  it("check every item of a collection", () => {
+    const strings = everyIterated(isString);
+    expect([
+      strings(new Set(["a", "b"])),
+      strings(["a", 1]),
+      strings({ length: 0 }),
+    ]).toEqual([true, false, false]);
   });
 });

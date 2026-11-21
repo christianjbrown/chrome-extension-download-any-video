@@ -10,6 +10,7 @@ import { OFFSCREEN_PAGE, PAGE_SCRIPT_FILE } from "../shared/extension-files";
 import { ExtensionMedia } from "../shared/extension-media";
 import { KindTest } from "../shared/kind-test";
 import { MEDIA_EXTENSIONS } from "../wiring/media-extensions";
+import { STREAM_REFUSALS } from "../wiring/stream-refusals";
 import { PathExtensions } from "../shared/path-extensions";
 import { SerialQueue } from "../shared/serial-queue";
 import {
@@ -114,10 +115,14 @@ const controller = new DownloadController({
   asker: new PageScript(chrome.scripting, PAGE_SCRIPT_FILE),
   filter: new PieceFilter(
     new PlaylistLister(
-      new ByFormat<StreamLister>(media, {
-        [HLS_FORMAT]: new HlsReferences(playlists, hlsPlaylistParser()),
-        [DASH_FORMAT]: new DashReferences(playlists, dashManifestParser()),
-      }),
+      new ByFormat<StreamLister>(
+        media,
+        {
+          [HLS_FORMAT]: new HlsReferences(playlists, hlsPlaylistParser()),
+          [DASH_FORMAT]: new DashReferences(playlists, dashManifestParser()),
+        },
+        STREAM_REFUSALS,
+      ),
     ),
     isPlaylist,
   ),

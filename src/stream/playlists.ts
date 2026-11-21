@@ -15,9 +15,6 @@ export interface StreamLister {
 
 // The one of several handlers that suits a playlist's format.
 export interface FormatChoice<T> {
-  // Throws NOT_A_PLAYLIST when the address is not a playlist it knows.
+  // Throws when the address is not a playlist it knows.
   handlerFor(url: string): T;
 }
-
-export const NOT_A_PLAYLIST =
-  "That address is not a playlist this extension knows";

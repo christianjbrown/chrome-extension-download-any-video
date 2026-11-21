@@ -23,12 +23,19 @@ import {
   InstructionPart,
 } from "../stream/xml-parts";
 
-// The HLS tags each kind of playlist is read with. Another tag is another
-// class and one more entry here.
+// The HLS tags each kind of playlist is read with, made fresh for every
+// playlist, and which of them takes the URIs. Another tag is another class
+// and one more entry here.
 export function hlsPlaylistParser(): HlsPlaylistParser {
   return new HlsPlaylistParser({
-    master: [new StreamInfTag(), new MediaTag()],
-    media: [new KeyTag(), new MapTag(), new ByteRangeTag()],
+    master: () => {
+      const variants = new StreamInfTag();
+      return { tags: [variants, new MediaTag()], uris: variants };
+    },
+    media: () => {
+      const segments = new ByteRangeTag();
+      return { tags: [new KeyTag(), new MapTag(), segments], uris: segments };
+    },
   });
 }
 

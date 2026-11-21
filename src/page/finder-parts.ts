@@ -30,8 +30,10 @@ export interface UrlCandidates {
   ): VideoCandidate[];
 }
 
-// What the page has fetched that is a video.
-export interface NetworkLog {
+// One place a frame's video can be named: the video in view, the page's
+// metadata, what the page fetched. The finder asks each in the order it is
+// given them.
+export interface CandidateSource {
   find(): VideoCandidate[];
 }
 

@@ -4,6 +4,7 @@ import type {
   ConvertRequest,
   ConvertResponse,
   ProgressReport,
+  Stage,
 } from "../shared/conversion-messages";
 import type { MediaInputs } from "./media-inputs";
 import type { ProgressListener } from "./progress";
@@ -21,6 +22,31 @@ export interface ObjectUrls {
 // One conversion request, start to finish.
 export interface ConvertHandling {
   handle(request: ConvertRequest): Promise<ConvertResponse>;
+}
+
+// One piece of work in a conversion, taking what the piece before it handed on.
+export interface ConversionStep<I, O> {
+  run(input: I, onProgress: ProgressListener): Promise<O>;
+}
+
+// Where a conversion went wrong, and why.
+interface StageFailure {
+  readonly ok: false;
+  readonly stage: Stage;
+  readonly message: string;
+}
+
+// What a stage hands on, or why it could not.
+export type StageOutcome<O> =
+  { readonly ok: true; readonly value: O } | StageFailure;
+
+// The listener for progress within one stage of the job in hand.
+export type StageReporter = (stage: Stage) => ProgressListener;
+
+// A conversion's stages, or one of them: steps that report progress and
+// fail under one stage's name.
+export interface ConversionStages<I, O> {
+  run(input: I, reporter: StageReporter): Promise<StageOutcome<O>>;
 }
 
 // Fetches the video at a URL, a file or a playlist, into memory.

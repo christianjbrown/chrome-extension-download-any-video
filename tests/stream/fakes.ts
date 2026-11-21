@@ -12,6 +12,7 @@ import {
   StreamInfTag,
 } from "../../src/stream/hls-tags";
 import type { Progress } from "../../src/stream/progress";
+import type { StreamRefusals } from "../../src/stream/refusals";
 import type { ByteRange } from "../../src/stream/tracks";
 import type { XmlElement } from "../../src/stream/xml";
 import { XmlReader } from "../../src/stream/xml-parser";
@@ -80,8 +81,14 @@ export const pieceSources = [
 
 // The HLS tags the entry points hand a playlist parser.
 export const hlsTags: HlsTags = {
-  master: [new StreamInfTag(), new MediaTag()],
-  media: [new KeyTag(), new MapTag(), new ByteRangeTag()],
+  master: () => {
+    const variants = new StreamInfTag();
+    return { tags: [variants, new MediaTag()], uris: variants };
+  },
+  media: () => {
+    const segments = new ByteRangeTag();
+    return { tags: [new KeyTag(), new MapTag(), segments], uris: segments };
+  },
 };
 
 // Parses XML with the parts the entry points list, in their order.
@@ -94,3 +101,12 @@ export const xmlReader = new XmlReader({
     new ChildElementPart(),
   ],
 });
+
+// Refusal wording for the readers, one word each so a test sees which applied.
+export const refusals: StreamRefusals = {
+  encrypted: "encrypted",
+  live: "live",
+  noStreams: "no streams",
+  emptyPlaylist: "empty playlist",
+  notAPlaylist: "not a playlist",
+};

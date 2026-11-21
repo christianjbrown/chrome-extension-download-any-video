@@ -1,5 +1,5 @@
 import { OffscreenConverter } from "../../src/background/offscreen-converter";
-import { CONVERTED_EXTENSION } from "../../src/shared/conversion-messages";
+import { CONVERTED_EXTENSION } from "../../src/shared/converted-format";
 import { ConversionError } from "../../src/background/video-converter";
 
 type Listener = (message: unknown) => void;
