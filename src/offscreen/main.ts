@@ -21,7 +21,15 @@ import {
 } from "../stream/dash-pieces";
 import { DashTracks } from "../stream/dash-tracks";
 import { HttpFetcher } from "../stream/fetching";
+import type { HlsTags } from "../stream/hls";
 import { HlsPlaylistParser } from "../stream/hls-playlist";
+import {
+  ByteRangeTag,
+  KeyTag,
+  MapTag,
+  MediaTag,
+  StreamInfTag,
+} from "../stream/hls-tags";
 import { HlsTracks } from "../stream/hls-tracks";
 import { PieceFetcher } from "../stream/piece-fetcher";
 import { AUDIO_TRACK, MUXED_TRACK, VIDEO_TRACK } from "../stream/tracks";
@@ -46,6 +54,12 @@ import { VideoFetcher } from "./video-fetcher";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 
 const media = new ExtensionMedia(MEDIA_EXTENSIONS);
+// The HLS tags each kind of playlist is read with. Another tag is another
+// class and one more entry here.
+const hlsTags: HlsTags = {
+  master: [new StreamInfTag(), new MediaTag()],
+  media: [new KeyTag(), new MapTag(), new ByteRangeTag()],
+};
 // The ways a DASH manifest names its pieces, most specific first. Another way
 // is another entry here.
 const pieceSources = [new SegmentListSource(), new SegmentTemplateSource()];
@@ -66,7 +80,7 @@ const listener = new ConvertListener(
             new ByFormat<StreamReader>(media, {
               [HLS_FORMAT]: new HlsTracks(
                 pieces,
-                new HlsPlaylistParser(),
+                new HlsPlaylistParser(hlsTags),
                 sizes,
               ),
               [DASH_FORMAT]: new DashTracks(

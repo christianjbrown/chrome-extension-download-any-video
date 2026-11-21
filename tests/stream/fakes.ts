@@ -3,6 +3,14 @@ import {
   SegmentTemplateSource,
 } from "../../src/stream/dash-pieces";
 import type { ByteFetcher, TextFetcher } from "../../src/stream/fetchers";
+import type { HlsTags } from "../../src/stream/hls";
+import {
+  ByteRangeTag,
+  KeyTag,
+  MapTag,
+  MediaTag,
+  StreamInfTag,
+} from "../../src/stream/hls-tags";
 import type { Progress } from "../../src/stream/progress";
 import type { ByteRange } from "../../src/stream/tracks";
 import type { XmlElement } from "../../src/stream/xml";
@@ -61,3 +69,9 @@ export const pieceSources = [
   new SegmentListSource(),
   new SegmentTemplateSource(),
 ];
+
+// The HLS tags the entry points hand a playlist parser.
+export const hlsTags: HlsTags = {
+  master: [new StreamInfTag(), new MediaTag()],
+  media: [new KeyTag(), new MapTag(), new ByteRangeTag()],
+};

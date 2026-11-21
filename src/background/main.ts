@@ -26,7 +26,15 @@ import {
 } from "../stream/dash-pieces";
 import { DashReferences } from "../stream/dash-references";
 import { HttpFetcher } from "../stream/fetching";
+import type { HlsTags } from "../stream/hls";
 import { HlsPlaylistParser } from "../stream/hls-playlist";
+import {
+  ByteRangeTag,
+  KeyTag,
+  MapTag,
+  MediaTag,
+  StreamInfTag,
+} from "../stream/hls-tags";
 import { HlsReferences } from "../stream/hls-references";
 import { PlaylistLister } from "../stream/playlist-lister";
 import type { StreamLister } from "../stream/playlists";
@@ -111,6 +119,12 @@ const ranking: RankingPolicy = {
   // word, and the network log is whatever was fetched.
   tiers: [[ELEMENT_ORIGIN, PLAYER_ORIGIN], [METADATA_ORIGIN], [NETWORK_ORIGIN]],
 };
+// The HLS tags each kind of playlist is read with. Another tag is another
+// class and one more entry here.
+const hlsTags: HlsTags = {
+  master: [new StreamInfTag(), new MediaTag()],
+  media: [new KeyTag(), new MapTag(), new ByteRangeTag()],
+};
 // The ways a DASH manifest names its pieces, most specific first. Another way
 // is another entry here.
 const pieceSources = [new SegmentListSource(), new SegmentTemplateSource()];
@@ -120,7 +134,10 @@ const controller = new DownloadController({
   filter: new PieceFilter(
     new PlaylistLister(
       new ByFormat<StreamLister>(media, {
-        [HLS_FORMAT]: new HlsReferences(playlists, new HlsPlaylistParser()),
+        [HLS_FORMAT]: new HlsReferences(
+          playlists,
+          new HlsPlaylistParser(hlsTags),
+        ),
         [DASH_FORMAT]: new DashReferences(
           playlists,
           new DashManifestParser(parseXml, pieceSources),

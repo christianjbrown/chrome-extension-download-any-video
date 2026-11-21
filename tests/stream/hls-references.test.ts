@@ -1,6 +1,6 @@
 import { HlsPlaylistParser } from "../../src/stream/hls-playlist";
 import { HlsReferences } from "../../src/stream/hls-references";
-import { FakeFetcher } from "./fakes";
+import { FakeFetcher, hlsTags } from "./fakes";
 
 const MASTER = "https://cdn.example/v/master.m3u8";
 
@@ -18,7 +18,7 @@ describe("HlsReferences", () => {
           "#EXT-X-ENDLIST",
         ].join("\n"),
       }),
-      new HlsPlaylistParser(),
+      new HlsPlaylistParser(hlsTags),
     );
 
     await expect(
@@ -46,7 +46,7 @@ describe("HlsReferences", () => {
         "https://cdn.example/v/audio/index.m3u8":
           '#EXTM3U\n#EXT-X-MAP:URI="init.mp4"\n#EXTINF:1,\na0.m4s',
       }),
-      new HlsPlaylistParser(),
+      new HlsPlaylistParser(hlsTags),
     );
 
     await expect(lister.references(MASTER)).resolves.toEqual([
