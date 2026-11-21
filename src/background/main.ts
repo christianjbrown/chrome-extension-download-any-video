@@ -2,7 +2,6 @@
 import { OFFSCREEN_PAGE, PAGE_SCRIPT_FILE } from "../shared/extension-files";
 import { ExtensionMedia, MEDIA_EXTENSIONS } from "../shared/extension-media";
 import { DASH_FORMAT, HLS_FORMAT } from "../shared/media-types";
-import { isSchemeReport } from "../shared/scheme-messages";
 import { ByFormat } from "../stream/by-format";
 import { DashManifestParser } from "../stream/dash-manifest";
 import { DASH_PIECE_SOURCES } from "../stream/dash-pieces";
@@ -28,6 +27,7 @@ import { OffscreenDocument } from "./offscreen-document";
 import { PageScript } from "./page-script";
 import { PieceFilter } from "./piece-filter";
 import { QuietProgress } from "./quiet-progress";
+import { SchemeReportListener } from "./scheme-report-listener";
 import { SCHEME_POLICY, UNKNOWN_SCHEME } from "./scheme-state";
 import { SchemeStore } from "./scheme-store";
 import { SystemClock } from "./system-clock";
@@ -93,6 +93,7 @@ const controller = new DownloadController({
   errors: new ChromeErrorExplainer(CHROME_TRANSLATIONS),
 });
 const navigation = new NavigationReset(indicator);
+const schemeReports = new SchemeReportListener(toolbarScheme);
 
 chrome.action.onClicked.addListener((tab) => {
   void controller.clicked(tab);
@@ -104,9 +105,7 @@ chrome.tabs.onUpdated.addListener((tabId, change) => {
   void navigation.changed(tabId, change);
 });
 chrome.runtime.onMessage.addListener((message: unknown) => {
-  if (isSchemeReport(message)) {
-    void toolbarScheme.deviceIs(message.scheme);
-  }
+  schemeReports.received(message);
 });
 // The hidden page is open for as long as Chrome runs, so a change of colour
 // scheme reaches a sleeping service worker. Chrome starts without the page,
