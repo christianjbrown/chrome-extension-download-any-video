@@ -1,12 +1,14 @@
 // Streams that can go into the MP4 as they are, without re-encoding.
 import {
-  AUDIO_CODEC_FLAG,
   COMPATIBLE_AUDIO_CODEC,
   COMPATIBLE_PIXEL_FORMAT,
   COMPATIBLE_VIDEO_CODEC,
+} from "./compatible-format";
+import {
+  AUDIO_CODEC_FLAG,
   COPY_CODEC,
   VIDEO_CODEC_FLAG,
-} from "./compatible-format";
+} from "./ffmpeg-arguments";
 import type { AudioStream, Shortcut, VideoStream } from "./conversion-parts";
 
 // H.264 with 4:2:0 colour already plays everywhere.

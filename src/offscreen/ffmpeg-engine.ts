@@ -1,5 +1,5 @@
 import type { RunResult, TranscodeEngine } from "./conversion-parts";
-import { INPUT_FLAG } from "./conversion-plan";
+import { INPUT_FLAG } from "./ffmpeg-arguments";
 import type { ProgressListener } from "./progress";
 
 export interface LogLine {
