@@ -1,7 +1,5 @@
-import {
-  ExtensionMedia,
-  MEDIA_EXTENSIONS,
-} from "../../src/shared/extension-media";
+import { ExtensionMedia } from "../../src/shared/extension-media";
+import { MEDIA_EXTENSIONS } from "../../src/shared/media-extensions";
 
 const media = new ExtensionMedia(MEDIA_EXTENSIONS);
 

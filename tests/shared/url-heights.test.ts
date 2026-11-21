@@ -1,4 +1,5 @@
-import { HEIGHT_PATTERNS, UrlHeights } from "../../src/shared/url-heights";
+import { HEIGHT_PATTERNS } from "../../src/shared/height-patterns";
+import { UrlHeights } from "../../src/shared/url-heights";
 
 describe("UrlHeights", () => {
   const heights = new UrlHeights(HEIGHT_PATTERNS);

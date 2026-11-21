@@ -4,7 +4,8 @@
 // page once the last download has landed.
 import { DARK_SCHEME_QUERY } from "../shared/colour-scheme";
 import { FFMPEG_FILES } from "../shared/extension-files";
-import { ExtensionMedia, MEDIA_EXTENSIONS } from "../shared/extension-media";
+import { ExtensionMedia } from "../shared/extension-media";
+import { MEDIA_EXTENSIONS } from "../shared/media-extensions";
 import {
   DASH_FORMAT,
   FILE_KIND,

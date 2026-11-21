@@ -1,8 +1,5 @@
 import {
-  DASH_FORMAT,
   FILE_KIND,
-  HLS_FORMAT,
-  PLAYLIST_KIND,
   type MediaKind,
   type MediaKinds,
   type PlaylistFormat,
@@ -17,20 +14,6 @@ export interface MediaType {
   // Which playlist it is, for a playlist.
   readonly format: PlaylistFormat | undefined;
 }
-
-const FILE: MediaType = { kind: FILE_KIND, format: undefined };
-
-// Every extension a video turns up under. Another format is another entry.
-export const MEDIA_EXTENSIONS: ReadonlyMap<string, MediaType> = new Map([
-  ["mp4", FILE],
-  ["m4v", FILE],
-  ["mov", FILE],
-  ["webm", FILE],
-  ["ogv", FILE],
-  ["mkv", FILE],
-  ["m3u8", { kind: PLAYLIST_KIND, format: HLS_FORMAT }],
-  ["mpd", { kind: PLAYLIST_KIND, format: DASH_FORMAT }],
-]);
 
 // Tells what a URL is from the extension on its path alone.
 export class ExtensionMedia

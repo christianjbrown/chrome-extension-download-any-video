@@ -1,7 +1,8 @@
 // The service worker: builds the object graph and connects it to Chrome's events.
 import { CONVERT_STAGE, FETCH_STAGE } from "../shared/conversion-messages";
 import { OFFSCREEN_PAGE, PAGE_SCRIPT_FILE } from "../shared/extension-files";
-import { ExtensionMedia, MEDIA_EXTENSIONS } from "../shared/extension-media";
+import { ExtensionMedia } from "../shared/extension-media";
+import { MEDIA_EXTENSIONS } from "../shared/media-extensions";
 import { DASH_FORMAT, HLS_FORMAT } from "../shared/media-types";
 import { ByFormat } from "../stream/by-format";
 import { DashManifestParser } from "../stream/dash-manifest";
@@ -17,7 +18,8 @@ import { PlaylistLister } from "../stream/playlist-lister";
 import type { StreamLister } from "../stream/playlists";
 import { parseXml } from "../stream/xml-parser";
 import { CandidateRanker, RANKING } from "./candidate-ranker";
-import { CHROME_TRANSLATIONS, ChromeErrorExplainer } from "./chrome-errors";
+import { ChromeErrorExplainer } from "./chrome-errors";
+import { CHROME_TRANSLATIONS } from "./chrome-translations";
 import { ClickScheme } from "./click-scheme";
 import { ClosedTabAction } from "./closed-tab-action";
 import { BACKGROUND_CONFIG } from "./config";
