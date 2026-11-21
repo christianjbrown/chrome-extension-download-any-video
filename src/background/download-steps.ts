@@ -43,3 +43,8 @@ export interface DownloadCompletion {
 export interface ErrorExplainer {
   explain(error: unknown): string;
 }
+
+// Turns a page title into the part of a filename that names the video.
+export interface Slugger {
+  slug(text: string, maxLength: number): string;
+}
