@@ -1,4 +1,4 @@
-import { CONVERTED_EXTENSION } from "../shared/conversion-messages";
+import { CONVERTED_EXTENSION } from "../shared/converted-format";
 import {
   COMPATIBLE_AUDIO_CODEC,
   COMPATIBLE_PIXEL_FORMAT,

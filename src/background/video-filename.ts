@@ -1,4 +1,4 @@
-import { CONVERTED_EXTENSION } from "../shared/conversion-messages";
+import { CONVERTED_EXTENSION } from "../shared/converted-format";
 import type { Clock, Filenames, Slugger } from "./download-steps";
 
 const FALLBACK_STEM = "video";

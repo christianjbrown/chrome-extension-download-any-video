@@ -1,4 +1,4 @@
-import { CONVERTED_TYPE } from "../shared/conversion-messages";
+import { CONVERTED_TYPE } from "../shared/converted-format";
 import type { ObjectUrls } from "./conversion-parts";
 
 // The part of the URL class that hands out blob URLs.

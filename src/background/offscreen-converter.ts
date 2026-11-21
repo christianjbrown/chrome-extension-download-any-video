@@ -1,12 +1,12 @@
 import {
   CONVERT_REQUEST,
-  CONVERTED_EXTENSION,
   isConvertResponse,
   isProgressReport,
   type ConvertRequest,
   type ConvertResponse,
   type ProgressReport,
 } from "../shared/conversion-messages";
+import { CONVERTED_EXTENSION } from "../shared/converted-format";
 import type { OffscreenHost } from "./hidden-page";
 import {
   ConversionError,

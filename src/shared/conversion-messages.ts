@@ -19,10 +19,6 @@ export const CONVERT_STAGE = "convert";
 const STAGES = [FETCH_STAGE, CONVERT_STAGE] as const;
 export type Stage = (typeof STAGES)[number];
 
-// What a conversion makes, as a filename ends and as a blob is typed.
-export const CONVERTED_EXTENSION = "mp4";
-export const CONVERTED_TYPE = "video/mp4";
-
 export interface ConvertRequest {
   readonly type: typeof CONVERT_REQUEST;
   readonly jobId: string;
