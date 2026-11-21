@@ -5,9 +5,9 @@ import type {
   Filenames,
   FrameAsker,
   Ranker,
+  TabLock,
   VideoDownloader,
 } from "./download-steps";
-import type { TabLock } from "./tab-locks";
 import type { DownloadIndicator, FinishedDownload } from "./toolbar";
 import type { VideoConverter } from "./video-converter";
 

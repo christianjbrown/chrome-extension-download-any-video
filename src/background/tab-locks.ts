@@ -1,10 +1,6 @@
-// Lets one piece of work run per tab at a time.
-export interface TabLock {
-  // Runs the work unless the tab's last work is still going, in which case it
-  // does nothing.
-  runAlone(tabId: number, work: () => Promise<void>): Promise<void>;
-}
+import type { TabLock } from "./download-steps";
 
+// Remembers which tabs are busy, for as long as their work runs.
 export class BusyTabs implements TabLock {
   private readonly busy = new Set<number>();
 

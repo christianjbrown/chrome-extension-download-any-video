@@ -34,7 +34,7 @@ const finder = new VideoFinder({
   })),
   player: new PlayerAttributeFinder(candidates, new ShadowLineage()),
   metadata: new MetadataFinder(
-    (text) => JSON.parse(text) as unknown,
+    (text): unknown => JSON.parse(text),
     candidates,
     VIDEO_META,
   ),
