@@ -1,4 +1,5 @@
 import { ToolbarIndicator } from "../../src/background/toolbar-indicator";
+import { TOOLBAR_LOOKS } from "../../src/background/toolbar-looks";
 
 function action() {
   return {
@@ -60,7 +61,7 @@ describe("ToolbarIndicator", () => {
   ])("shows $title on that tab only", async ({ show, text, color, title }) => {
     const toolbar = action();
 
-    await show(new ToolbarIndicator(toolbar));
+    await show(new ToolbarIndicator(toolbar, TOOLBAR_LOOKS));
 
     expect(toolbar.setBadgeText).toHaveBeenCalledWith({ tabId: 3, text });
     expect(toolbar.setBadgeBackgroundColor).toHaveBeenCalledWith({
@@ -68,27 +69,5 @@ describe("ToolbarIndicator", () => {
       color,
     });
     expect(toolbar.setTitle).toHaveBeenCalledWith({ tabId: 3, title });
-  });
-
-  it("only redraws progress when the number on the button would change", async () => {
-    const toolbar = action();
-    const indicator = new ToolbarIndicator(toolbar);
-
-    await indicator.showProgress(3, "convert", 0.421);
-    await indicator.showProgress(3, "convert", 0.424);
-    await indicator.showProgress(3, "convert", 0.43);
-    await indicator.showProgress(4, "convert", 0.43);
-    await indicator.showDone(3, { filename: "clip.mp4", converted: true });
-    await indicator.showProgress(3, "convert", 0.43);
-
-    expect(
-      toolbar.setBadgeText.mock.calls.map(([call]: unknown[]) => call),
-    ).toEqual([
-      { tabId: 3, text: "42%" },
-      { tabId: 3, text: "43%" },
-      { tabId: 4, text: "43%" },
-      { tabId: 3, text: "✓" },
-      { tabId: 3, text: "43%" },
-    ]);
   });
 });

@@ -23,17 +23,22 @@ import { OffscreenConverter } from "./offscreen-converter";
 import { OffscreenDocument } from "./offscreen-document";
 import { PageScript } from "./page-script";
 import { PieceFilter } from "./piece-filter";
+import { QuietProgress } from "./quiet-progress";
 import { SCHEME_POLICY, UNKNOWN_SCHEME } from "./scheme-state";
 import { SchemeStore } from "./scheme-store";
 import { SystemClock } from "./system-clock";
 import { TabScheme } from "./tab-scheme";
 import { ToolbarIcon } from "./toolbar-icon";
 import { ToolbarIndicator } from "./toolbar-indicator";
+import { TOOLBAR_LOOKS } from "./toolbar-looks";
 import { ToolbarScheme } from "./toolbar-scheme";
 import { VideoFilename } from "./video-filename";
 import { VideoSaver } from "./video-saver";
 
-const indicator = new ToolbarIndicator(new ClosedTabAction(chrome.action));
+const indicator = new QuietProgress(
+  new ToolbarIndicator(new ClosedTabAction(chrome.action), TOOLBAR_LOOKS),
+  TOOLBAR_LOOKS,
+);
 const toolbarScheme = new ToolbarScheme(
   new SchemeStore(chrome.storage.local, UNKNOWN_SCHEME),
   new ToolbarIcon(chrome.action),

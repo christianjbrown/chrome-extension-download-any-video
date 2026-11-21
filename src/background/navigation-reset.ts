@@ -1,4 +1,4 @@
-import type { DownloadIndicator } from "./toolbar-indicator";
+import type { IdleIndicator } from "./toolbar-indicator";
 
 export interface TabChange {
   status?: string | undefined;
@@ -9,7 +9,7 @@ const LOADING = "loading";
 
 // A new page in the tab is a new video, so the button goes back to normal.
 export class NavigationReset {
-  constructor(private readonly indicator: DownloadIndicator) {}
+  constructor(private readonly indicator: IdleIndicator) {}
 
   async changed(tabId: number, change: TabChange): Promise<void> {
     if (change.status === LOADING) {
