@@ -1,10 +1,9 @@
 import {
   CandidateRanker,
   NOTHING_FOUND,
-  RANKING,
 } from "../../src/background/candidate-ranker";
 import type { VideoCandidate } from "../../src/shared/candidates";
-import { media } from "../shared/media";
+import { playlists, saveable } from "../shared/media";
 
 const c = (
   url: string,
@@ -21,7 +20,11 @@ const report = (...candidates: VideoCandidate[]) => ({
 });
 
 describe("CandidateRanker", () => {
-  const ranker = new CandidateRanker(RANKING, media);
+  // The order the service worker is wired with.
+  const ranker = new CandidateRanker({
+    kinds: [saveable, playlists],
+    tiers: [["element", "player"], ["metadata"], ["network"]],
+  });
 
   it("takes the tallest file the player itself names, over sharper ones elsewhere", () => {
     const best = ranker.pick([
@@ -94,13 +97,10 @@ describe("CandidateRanker", () => {
   });
 
   it("ranks by the policy it was given", () => {
-    const streamsFirst = new CandidateRanker(
-      {
-        kinds: ["playlist", "file"],
-        tiers: [["network"], ["element", "player"], ["metadata"]],
-      },
-      media,
-    );
+    const streamsFirst = new CandidateRanker({
+      kinds: [playlists, saveable],
+      tiers: [["network"], ["element", "player"], ["metadata"]],
+    });
 
     const best = streamsFirst.pick([
       report(

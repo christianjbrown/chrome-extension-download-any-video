@@ -1,52 +1,31 @@
-import {
-  ELEMENT_ORIGIN,
-  METADATA_ORIGIN,
-  NETWORK_ORIGIN,
-  PLAYER_ORIGIN,
-  type CandidateOrigin,
-  type FrameReport,
-  type VideoCandidate,
+import type {
+  CandidateOrigin,
+  FrameReport,
+  VideoCandidate,
 } from "../shared/candidates";
-import {
-  FILE_KIND,
-  PLAYLIST_KIND,
-  type MediaKind,
-  type MediaKinds,
-} from "../shared/media-types";
+import type { MediaTest } from "../shared/media-types";
 import type { Ranker } from "./download-steps";
 
 export const NOTHING_FOUND = "No video found on this page";
 
 // Which candidates come first: every kind in turn, and within a kind every
-// tier of origins in turn, the sharpest of the first tier that has any.
+// tier of origins in turn, the sharpest of the first tier that has any. The
+// service worker's entry point says what the order is.
 export interface RankingPolicy {
-  readonly kinds: readonly MediaKind[];
+  readonly kinds: readonly MediaTest[];
   readonly tiers: readonly (readonly CandidateOrigin[])[];
 }
-
-export const RANKING: RankingPolicy = {
-  // A whole file first, since Chrome can save it as it is; a stream only when
-  // there is no file, since its pieces have to be fetched and stitched first.
-  kinds: [FILE_KIND, PLAYLIST_KIND],
-  // Origins that describe the same thing are weighed together: the player's
-  // element and its attributes are one video, the metadata is the page's
-  // word, and the network log is whatever was fetched.
-  tiers: [[ELEMENT_ORIGIN, PLAYER_ORIGIN], [METADATA_ORIGIN], [NETWORK_ORIGIN]],
-};
 
 // Picks the sharpest video from the most trustworthy place that has one.
 // The top frame's word comes first, since that is the page the person is on.
 export class CandidateRanker implements Ranker {
-  constructor(
-    private readonly policy: RankingPolicy,
-    private readonly kinds: MediaKinds,
-  ) {}
+  constructor(private readonly policy: RankingPolicy) {}
 
   pick(reports: readonly FrameReport[]): VideoCandidate {
     const candidates = reports.flatMap((report) => report.candidates);
     for (const kind of this.policy.kinds) {
       const best = mostTrusted(
-        candidates.filter((c) => this.kinds.kindOf(c.url) === kind),
+        candidates.filter((c) => kind.matches(c.url)),
         this.policy.tiers,
       );
       if (best !== undefined) {
