@@ -6,7 +6,7 @@ describe("SourceFetcher", () => {
     fetch: vi.fn().mockResolvedValue({ main: name, audio: undefined }),
   });
   const fetchers = { file: fetcher("file"), playlist: fetcher("playlist") };
-  const source = new SourceFetcher(fetchers, media);
+  const source = new SourceFetcher(fetchers, media, "file");
   const progress = vi.fn();
 
   it("fetches a whole file and a playlist each their own way", async () => {
@@ -28,6 +28,17 @@ describe("SourceFetcher", () => {
     await source.fetch("https://x/video?id=1", progress);
 
     expect(fetchers.file.fetch).toHaveBeenLastCalledWith(
+      "https://x/video?id=1",
+      progress,
+    );
+  });
+
+  it("takes an address that says nothing for the kind it was told to", async () => {
+    const streams = new SourceFetcher(fetchers, media, "playlist");
+
+    await streams.fetch("https://x/video?id=1", progress);
+
+    expect(fetchers.playlist.fetch).toHaveBeenLastCalledWith(
       "https://x/video?id=1",
       progress,
     );

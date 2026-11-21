@@ -78,6 +78,9 @@ const listener = new ConvertListener(
         ),
       },
       media,
+      // An address that says nothing is taken for a file, since that is what
+      // Chrome would do with it.
+      FILE_KIND,
     ),
     transcoder: new Transcoder({
       engine: new FfmpegEngine(new FFmpeg(), {
