@@ -1,5 +1,5 @@
 import type { FrameReport, VideoCandidate } from "../shared/candidates";
-import { PLAYLIST_KIND, type MediaKinds } from "../shared/media-types";
+import type { MediaTest } from "../shared/media-types";
 import type { StreamLister } from "../stream/playlists";
 import type { CandidateFilter } from "./download-steps";
 
@@ -13,7 +13,8 @@ import type { CandidateFilter } from "./download-steps";
 export class PieceFilter implements CandidateFilter {
   constructor(
     private readonly lister: StreamLister,
-    private readonly kinds: MediaKinds,
+    // Whether a candidate is a playlist, whose pieces it stands for.
+    private readonly playlists: MediaTest,
   ) {}
 
   async filter(reports: readonly FrameReport[]): Promise<FrameReport[]> {
@@ -34,7 +35,7 @@ export class PieceFilter implements CandidateFilter {
     const playlists = new Set(
       candidates
         .map((candidate) => candidate.url)
-        .filter((url) => this.kinds.kindOf(url) === PLAYLIST_KIND),
+        .filter((url) => this.playlists.matches(url)),
     );
     const references = await Promise.all(
       Array.from(playlists, (url) =>

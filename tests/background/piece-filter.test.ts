@@ -1,6 +1,6 @@
 import { PieceFilter } from "../../src/background/piece-filter";
 import type { VideoCandidate } from "../../src/shared/candidates";
-import { media } from "../shared/media";
+import { playlists } from "../shared/media";
 
 const c = (url: string, origin: VideoCandidate["origin"] = "network") => ({
   url,
@@ -19,7 +19,7 @@ describe("PieceFilter", () => {
           "https://cdn.example/v/low/index.m3u8",
         ]),
     };
-    const filter = new PieceFilter(lister, media);
+    const filter = new PieceFilter(lister, playlists);
     const reports = [
       {
         title: "Top",
@@ -53,7 +53,7 @@ describe("PieceFilter", () => {
     const lister = {
       references: vi.fn().mockResolvedValue(["https://cdn.example/x.ts"]),
     };
-    const filter = new PieceFilter(lister, media);
+    const filter = new PieceFilter(lister, playlists);
     const reports = [
       {
         title: "Top",
@@ -74,7 +74,7 @@ describe("PieceFilter", () => {
     const lister = {
       references: vi.fn().mockRejectedValue(new Error("HTTP 403")),
     };
-    const filter = new PieceFilter(lister, media);
+    const filter = new PieceFilter(lister, playlists);
     const reports = [
       {
         title: "Top",
@@ -90,7 +90,7 @@ describe("PieceFilter", () => {
 
   it("compares an address that is not a URL as it is", async () => {
     const lister = { references: vi.fn().mockResolvedValue(["not a url"]) };
-    const filter = new PieceFilter(lister, media);
+    const filter = new PieceFilter(lister, playlists);
     const reports = [
       {
         title: "Top",

@@ -1,9 +1,22 @@
 // The service worker: builds the object graph and connects it to Chrome's events.
+import {
+  ELEMENT_ORIGIN,
+  METADATA_ORIGIN,
+  NETWORK_ORIGIN,
+  PLAYER_ORIGIN,
+} from "../shared/candidates";
 import { CONVERT_STAGE, FETCH_STAGE } from "../shared/conversion-messages";
 import { OFFSCREEN_PAGE, PAGE_SCRIPT_FILE } from "../shared/extension-files";
 import { ExtensionMedia } from "../shared/extension-media";
+import { KindTest } from "../shared/kind-test";
 import { MEDIA_EXTENSIONS } from "../shared/media-extensions";
-import { DASH_FORMAT, HLS_FORMAT } from "../shared/media-types";
+import { PathExtensions } from "../shared/path-extensions";
+import {
+  DASH_FORMAT,
+  FILE_KIND,
+  HLS_FORMAT,
+  PLAYLIST_KIND,
+} from "../shared/media-types";
 import { ByFormat } from "../stream/by-format";
 import { DashManifestParser } from "../stream/dash-manifest";
 import {
@@ -17,7 +30,7 @@ import { HlsReferences } from "../stream/hls-references";
 import { PlaylistLister } from "../stream/playlist-lister";
 import type { StreamLister } from "../stream/playlists";
 import { parseXml } from "../stream/xml-parser";
-import { CandidateRanker, RANKING } from "./candidate-ranker";
+import { CandidateRanker, type RankingPolicy } from "./candidate-ranker";
 import { ChromeErrorExplainer } from "./chrome-errors";
 import { CHROME_TRANSLATIONS } from "./chrome-translations";
 import { ClickScheme } from "./click-scheme";
@@ -75,6 +88,19 @@ const hiddenPage = new OffscreenDocument(
   OFFSCREEN_PAGE,
 );
 const media = new ExtensionMedia(MEDIA_EXTENSIONS);
+// Which kinds Chrome can save as they are, and which are playlists of pieces.
+// Another kind joins whichever set it belongs to here.
+const isSaveable = new KindTest(media, new Set([FILE_KIND]));
+const isPlaylist = new KindTest(media, new Set([PLAYLIST_KIND]));
+const ranking: RankingPolicy = {
+  // A whole file first, since Chrome can save it as it is; a stream only when
+  // there is no file, since its pieces have to be fetched and stitched first.
+  kinds: [isSaveable, isPlaylist],
+  // Origins that describe the same thing are weighed together: the player's
+  // element and its attributes are one video, the metadata is the page's
+  // word, and the network log is whatever was fetched.
+  tiers: [[ELEMENT_ORIGIN, PLAYER_ORIGIN], [METADATA_ORIGIN], [NETWORK_ORIGIN]],
+};
 // The ways a DASH manifest names its pieces, most specific first. Another way
 // is another entry here.
 const pieceSources = [new SegmentListSource(), new SegmentTemplateSource()];
@@ -91,16 +117,17 @@ const controller = new DownloadController({
         ),
       }),
     ),
-    media,
+    isPlaylist,
   ),
-  ranker: new CandidateRanker(RANKING, media),
+  ranker: new CandidateRanker(ranking),
   converter: new FallbackConverter(
     new OffscreenConverter({
       host: new ConversionHost(hiddenPage),
       runtime: chrome.runtime,
       nextId: () => crypto.randomUUID(),
     }),
-    media,
+    isSaveable,
+    new PathExtensions(isSaveable),
     // Both steps can fail on a video that is nonetheless a perfectly good
     // file: a server that only answers its own player, or a codec ffmpeg
     // cannot read.

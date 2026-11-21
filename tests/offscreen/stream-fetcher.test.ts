@@ -9,6 +9,12 @@ const tracks: Track[] = [
   { role: "audio", pieces: [{ url: "https://x/a.m4s", range: undefined }] },
 ];
 
+// The roles the offscreen page is wired with.
+const roles = {
+  main: new Set(["muxed", "video"] as const),
+  audio: new Set(["audio"] as const),
+};
+
 function setup(fetched: FetchedTrack[]) {
   const reader = { tracks: vi.fn().mockResolvedValue(tracks) };
   const pieces = {
@@ -17,7 +23,7 @@ function setup(fetched: FetchedTrack[]) {
       return Promise.resolve(fetched);
     }),
   };
-  return { reader, pieces, fetcher: new StreamFetcher(reader, pieces) };
+  return { reader, pieces, fetcher: new StreamFetcher(reader, pieces, roles) };
 }
 
 describe("StreamFetcher", () => {

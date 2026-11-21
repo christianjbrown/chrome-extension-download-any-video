@@ -23,6 +23,7 @@ import { HttpFetcher } from "../stream/fetching";
 import { HlsPlaylistParser } from "../stream/hls-playlist";
 import { HlsTracks } from "../stream/hls-tracks";
 import { PieceFetcher } from "../stream/piece-fetcher";
+import { AUDIO_TRACK, MUXED_TRACK, VIDEO_TRACK } from "../stream/tracks";
 import { SharpestFirst } from "../stream/sharpest-first";
 import type { StreamReader } from "../stream/playlists";
 import { PlaylistReader } from "../stream/stream-reader";
@@ -75,9 +76,17 @@ const listener = new ConvertListener(
             }),
           ),
           new PieceFetcher(pieces, OFFSCREEN_CONFIG.parallelFetches),
+          // The picture comes muxed or on its own, and the sound on its own.
+          {
+            main: new Set([MUXED_TRACK, VIDEO_TRACK]),
+            audio: new Set([AUDIO_TRACK]),
+          },
         ),
       },
       media,
+      // An address that says nothing is taken for a file, since that is what
+      // Chrome would do with it.
+      FILE_KIND,
     ),
     transcoder: new Transcoder({
       engine: new FfmpegEngine(new FFmpeg(), {

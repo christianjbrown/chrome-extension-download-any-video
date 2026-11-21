@@ -5,7 +5,7 @@ import {
 } from "../../src/shared/conversion-messages";
 import { FallbackConverter } from "../../src/background/fallback-converter";
 import { ConversionError } from "../../src/background/video-converter";
-import { media } from "../shared/media";
+import { extensions, saveable } from "../shared/media";
 
 const recoverable: readonly Stage[] = [FETCH_STAGE, CONVERT_STAGE];
 
@@ -21,7 +21,7 @@ describe("FallbackConverter", () => {
     const onProgress = vi.fn();
 
     await expect(
-      new FallbackConverter(inner, media, recoverable).convert(
+      new FallbackConverter(inner, saveable, extensions, recoverable).convert(
         "https://x/a.webm",
         onProgress,
       ),
@@ -43,7 +43,8 @@ describe("FallbackConverter", () => {
 
     const source = await new FallbackConverter(
       inner,
-      media,
+      saveable,
+      extensions,
       recoverable,
     ).convert("https://x/a.WebM?x=1", vi.fn());
 
@@ -61,7 +62,7 @@ describe("FallbackConverter", () => {
     };
 
     await expect(
-      new FallbackConverter(inner, media, recoverable).convert(
+      new FallbackConverter(inner, saveable, extensions, recoverable).convert(
         "https://x/v.m3u8",
         vi.fn(),
       ),
@@ -76,7 +77,7 @@ describe("FallbackConverter", () => {
     };
 
     await expect(
-      new FallbackConverter(inner, media, recoverable).convert(
+      new FallbackConverter(inner, saveable, extensions, recoverable).convert(
         "https://x/v.mpd",
         vi.fn(),
       ),
@@ -87,7 +88,7 @@ describe("FallbackConverter", () => {
     const broken = { convert: vi.fn().mockRejectedValue(new Error("boom")) };
 
     await expect(
-      new FallbackConverter(broken, media, recoverable).convert(
+      new FallbackConverter(broken, saveable, extensions, recoverable).convert(
         "https://x/a.webm",
         vi.fn(),
       ),
@@ -102,7 +103,7 @@ describe("FallbackConverter", () => {
     };
 
     await expect(
-      new FallbackConverter(inner, media, [FETCH_STAGE]).convert(
+      new FallbackConverter(inner, saveable, extensions, [FETCH_STAGE]).convert(
         "https://x/a.webm",
         vi.fn(),
       ),
