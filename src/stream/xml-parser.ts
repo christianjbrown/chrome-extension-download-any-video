@@ -3,6 +3,7 @@
 // by machines, so this covers well-formed XML and nothing more forgiving.
 import { NOT_FOUND } from "../shared/search";
 import type { XmlElement } from "./xml";
+import { decodeEntities } from "./xml-entities";
 
 export const UNREADABLE_MANIFEST = "The video's manifest could not be read";
 
@@ -22,19 +23,6 @@ const NAMESPACE_SEPARATOR = ":";
 const QUOTES = ['"', "'"];
 const WHITESPACE = /\s/;
 const NAME_END = /[\s/>=]/;
-const ENTITY = /&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi;
-const NAMED_ENTITIES: ReadonlyMap<string, string> = new Map([
-  ["amp", "&"],
-  ["lt", "<"],
-  ["gt", ">"],
-  ["quot", '"'],
-  ["apos", "'"],
-]);
-const HEX_PREFIX = "#x";
-const DECIMAL_PREFIX = "#";
-const HEX = 16;
-const DECIMAL = 10;
-
 export function parseXml(text: string): XmlElement {
   return new XmlScanner(text).document();
 }
@@ -59,8 +47,49 @@ class Element implements XmlElement {
   }
 }
 
+// What may sit around the root element, each skipped through its end.
+const PROLOG_PARTS: readonly (readonly [string, string])[] = [
+  [COMMENT_START, COMMENT_END],
+  [INSTRUCTION_START, INSTRUCTION_END],
+  [DECLARATION_START, CLOSE],
+];
+
+// How a part of an element's content starts, and what reading it does.
+type ContentReaders = readonly (readonly [
+  string,
+  (element: Element) => void,
+])[];
+
 class XmlScanner {
   private at = 0;
+  // Comments come before CDATA, which comes before any other markup, since
+  // each starts the same way as the next.
+  private readonly contentReaders: ContentReaders = [
+    [
+      COMMENT_START,
+      () => {
+        this.skipPast(COMMENT_END);
+      },
+    ],
+    [
+      CDATA_START,
+      (element) => {
+        element.addText(this.until(CDATA_START, CDATA_END));
+      },
+    ],
+    [
+      INSTRUCTION_START,
+      () => {
+        this.skipPast(INSTRUCTION_END);
+      },
+    ],
+    [
+      OPEN,
+      (element) => {
+        element.children.push(this.element());
+      },
+    ],
+  ];
 
   constructor(private readonly text: string) {}
 
@@ -77,82 +106,100 @@ class XmlScanner {
   // Declarations, processing instructions, comments and whitespace around
   // the root element.
   private skipProlog(): void {
-    for (;;) {
+    do {
       this.skipWhitespace();
-      if (this.lookingAt(COMMENT_START)) {
-        this.skipPast(COMMENT_END);
-      } else if (this.lookingAt(INSTRUCTION_START)) {
-        this.skipPast(INSTRUCTION_END);
-      } else if (this.lookingAt(DECLARATION_START)) {
-        this.skipPast(CLOSE);
-      } else {
-        return;
-      }
+    } while (this.skippedPrologPart());
+  }
+
+  private skippedPrologPart(): boolean {
+    const part = PROLOG_PARTS.find(([start]) => this.lookingAt(start));
+    if (part === undefined) {
+      return false;
     }
+    this.skipPast(part[1]);
+    return true;
   }
 
   private element(): Element {
     this.expect(OPEN);
     const element = new Element(localName(this.name()), this.attributes());
-    if (this.lookingAt(SLASH)) {
-      this.at += SLASH.length;
-      this.expect(CLOSE);
-      return element;
-    }
+    return this.lookingAt(SLASH)
+      ? this.selfClosed(element)
+      : this.withContent(element);
+  }
+
+  private selfClosed(element: Element): Element {
+    this.at += SLASH.length;
+    this.expect(CLOSE);
+    return element;
+  }
+
+  private withContent(element: Element): Element {
     this.expect(CLOSE);
     this.content(element);
     this.expect(CLOSING_TAG_START);
-    if (localName(this.name()) !== element.name) {
-      throw unreadable();
-    }
+    this.expectName(element.name);
     this.skipWhitespace();
     this.expect(CLOSE);
     return element;
   }
 
+  private expectName(name: string): void {
+    if (localName(this.name()) !== name) {
+      throw unreadable();
+    }
+  }
+
   private attributes(): Map<string, string> {
     const found = new Map<string, string>();
-    for (;;) {
-      this.skipWhitespace();
-      if (this.lookingAt(SLASH) || this.lookingAt(CLOSE)) {
-        return found;
-      }
+    while (this.attributeAhead()) {
       const name = this.name();
       this.skipWhitespace();
       this.expect(EQUALS);
       this.skipWhitespace();
       found.set(name, this.quoted());
     }
+    return found;
+  }
+
+  // Whether another attribute follows, past any whitespace before it.
+  private attributeAhead(): boolean {
+    this.skipWhitespace();
+    return !this.lookingAt(SLASH) && !this.lookingAt(CLOSE);
   }
 
   // Everything between an element's tags: text, comments and child elements.
   private content(element: Element): void {
     while (!this.lookingAt(CLOSING_TAG_START)) {
-      if (this.at >= this.text.length) {
-        throw unreadable();
-      }
-      if (this.lookingAt(COMMENT_START)) {
-        this.skipPast(COMMENT_END);
-      } else if (this.lookingAt(CDATA_START)) {
-        element.addText(this.until(CDATA_START, CDATA_END));
-      } else if (this.lookingAt(INSTRUCTION_START)) {
-        this.skipPast(INSTRUCTION_END);
-      } else if (this.lookingAt(OPEN)) {
-        element.children.push(this.element());
-      } else {
-        element.addText(decodeEntities(this.textUntil(OPEN)));
-      }
+      this.contentPart(element);
+    }
+  }
+
+  private contentPart(element: Element): void {
+    this.expectMore();
+    const reader = this.contentReaders.find(([start]) => this.lookingAt(start));
+    if (reader === undefined) {
+      element.addText(decodeEntities(this.textUntil(OPEN)));
+      return;
+    }
+    reader[1](element);
+  }
+
+  // An element still open at the end of the text was never closed.
+  private expectMore(): void {
+    if (this.at >= this.text.length) {
+      throw unreadable();
     }
   }
 
   private name(): string {
     const start = this.at;
-    while (
-      this.at < this.text.length &&
-      !NAME_END.test(this.text.charAt(this.at))
-    ) {
-      this.at += 1;
-    }
+    this.skipWhile((char) => !NAME_END.test(char));
+    return this.since(start);
+  }
+
+  // The text read since start, which a name cannot leave empty.
+  private since(start: number): string {
     if (this.at === start) {
       throw unreadable();
     }
@@ -165,36 +212,55 @@ class XmlScanner {
       throw unreadable();
     }
     this.at += quote.length;
-    return decodeEntities(this.textUntil(quote, true));
+    return decodeEntities(this.textThrough(quote));
   }
 
-  // The text up to a marker, which is skipped too when asked.
-  private textUntil(marker: string, consume = false): string {
+  // The text up to a marker, stopping at it.
+  private textUntil(marker: string): string {
+    const end = this.next(marker);
+    const found = this.text.slice(this.at, end);
+    this.at = end;
+    return found;
+  }
+
+  // The text up to a marker, skipping the marker too.
+  private textThrough(marker: string): string {
+    const found = this.textUntil(marker);
+    this.at += marker.length;
+    return found;
+  }
+
+  // Where the marker next turns up, which it has to.
+  private next(marker: string): number {
     const end = this.text.indexOf(marker, this.at);
     if (end === NOT_FOUND) {
       throw unreadable();
     }
-    const found = this.text.slice(this.at, end);
-    this.at = consume ? end + marker.length : end;
-    return found;
+    return end;
   }
 
   private until(start: string, end: string): string {
     this.at += start.length;
-    return this.textUntil(end, true);
+    return this.textThrough(end);
   }
 
   private skipPast(marker: string): void {
-    this.textUntil(marker, true);
+    this.textThrough(marker);
   }
 
   private skipWhitespace(): void {
-    while (
-      this.at < this.text.length &&
-      WHITESPACE.test(this.text.charAt(this.at))
-    ) {
+    this.skipWhile((char) => WHITESPACE.test(char));
+  }
+
+  private skipWhile(test: (char: string) => boolean): void {
+    while (this.nextPasses(test)) {
       this.at += 1;
     }
+  }
+
+  // Whether there is a character left, and it passes the test.
+  private nextPasses(test: (char: string) => boolean): boolean {
+    return this.at < this.text.length && test(this.text.charAt(this.at));
   }
 
   private lookingAt(marker: string): boolean {
@@ -212,21 +278,6 @@ class XmlScanner {
 // The name without its namespace prefix, as a DOM's localName would be.
 function localName(name: string): string {
   return name.slice(name.lastIndexOf(NAMESPACE_SEPARATOR) + 1);
-}
-
-function decodeEntities(text: string): string {
-  return text.replace(ENTITY, (_, entity: string) => {
-    const lower = entity.toLowerCase();
-    const named = NAMED_ENTITIES.get(lower);
-    if (named !== undefined) {
-      return named;
-    }
-    return lower.startsWith(HEX_PREFIX)
-      ? String.fromCodePoint(parseInt(lower.slice(HEX_PREFIX.length), HEX))
-      : String.fromCodePoint(
-          parseInt(lower.slice(DECIMAL_PREFIX.length), DECIMAL),
-        );
-  });
 }
 
 function unreadable(): Error {

@@ -3,7 +3,12 @@
 import type { TemplateContext } from "./dash";
 import { ATTRIBUTES, ELEMENTS } from "./dash-names";
 import type { Piece } from "./tracks";
-import { childNamed, childrenNamed, type XmlElement } from "./xml";
+import {
+  childNamed,
+  childrenNamed,
+  numberAttribute,
+  type XmlElement,
+} from "./xml";
 
 export const UNKNOWN_LENGTH =
   "The manifest does not say how long the video is, so its pieces cannot be counted";
@@ -35,16 +40,18 @@ interface Values {
   readonly Time: number;
 }
 
+// A value padded with zeros to the width the placeholder asks for, if any.
+function padded(value: string, width: string | undefined): string {
+  return width === undefined ? value : value.padStart(Number(width), PAD);
+}
+
 function fill(template: string, values: Values): string {
   return template.replace(
     PLACEHOLDER,
-    (_match, name?: string, width?: string) => {
-      if (name === undefined) {
-        return DOLLAR;
-      }
-      const value = String(values[name as keyof Values]);
-      return width === undefined ? value : value.padStart(Number(width), PAD);
-    },
+    (_match, name?: string, width?: string) =>
+      name === undefined
+        ? DOLLAR
+        : padded(String(values[name as keyof Values]), width),
   );
 }
 
@@ -53,11 +60,15 @@ function segmentTimes(
   template: XmlElement,
   context: TemplateContext,
 ): { time: number; number: number }[] {
-  const timescale = Number(
-    template.attribute(ATTRIBUTES.timescale) ?? DEFAULT_TIMESCALE,
+  const timescale = numberAttribute(
+    template,
+    ATTRIBUTES.timescale,
+    DEFAULT_TIMESCALE,
   );
-  const startNumber = Number(
-    template.attribute(ATTRIBUTES.startNumber) ?? DEFAULT_START_NUMBER,
+  const startNumber = numberAttribute(
+    template,
+    ATTRIBUTES.startNumber,
+    DEFAULT_START_NUMBER,
   );
   const timeline = childNamed(template, ELEMENTS.segmentTimeline);
   const times =
@@ -89,7 +100,7 @@ function repeatCount(
   periodTicks: number,
 ): number {
   const duration = Number(entry.attribute(ATTRIBUTES.length));
-  const repeat = Number(entry.attribute(ATTRIBUTES.repeats) ?? NO_REPEATS);
+  const repeat = numberAttribute(entry, ATTRIBUTES.repeats, NO_REPEATS);
   return repeat === UNTIL_END
     ? Math.ceil((periodTicks - time) / duration)
     : repeat + 1;
@@ -102,19 +113,62 @@ function timelineTimes(
   periodSeconds: number | undefined,
   timescale: number,
 ): number[] {
-  const periodTicks = (periodSeconds ?? NO_LENGTH) * timescale;
+  const periodTicks = ticksIn(periodSeconds, timescale);
   const times: number[] = [];
-  let time = PERIOD_START;
+  let end = PERIOD_START;
   for (const entry of childrenNamed(timeline, ELEMENTS.timelineEntry)) {
-    time = Number(entry.attribute(ATTRIBUTES.start) ?? time);
-    const duration = Number(entry.attribute(ATTRIBUTES.length));
-    const count = repeatCount(entry, time, periodTicks);
-    for (let i = 0; i < count; i += 1) {
-      times.push(time);
-      time += duration;
-    }
+    end = addEntry(times, entry, end, periodTicks);
   }
   return times;
+}
+
+function ticksIn(periodSeconds: number | undefined, timescale: number): number {
+  return (periodSeconds ?? NO_LENGTH) * timescale;
+}
+
+// Adds an S entry's start times to the list, and says where the entry ends,
+// which is where the next one starts when it does not say.
+function addEntry(
+  times: number[],
+  entry: XmlElement,
+  previousEnd: number,
+  periodTicks: number,
+): number {
+  let time = numberAttribute(entry, ATTRIBUTES.start, previousEnd);
+  const duration = Number(entry.attribute(ATTRIBUTES.length));
+  const count = repeatCount(entry, time, periodTicks);
+  for (let i = 0; i < count; i += 1) {
+    times.push(time);
+    time += duration;
+  }
+  return time;
+}
+
+// The values every piece of the representation fills in the same way.
+type Fixed = Pick<Values, "RepresentationID" | "Bandwidth">;
+
+function pieceAt(url: string, baseUrl: string): Piece {
+  return { url: new URL(url, baseUrl).href, range: undefined };
+}
+
+function initPieces(
+  template: XmlElement,
+  fixed: Fixed,
+  baseUrl: string,
+): Piece[] {
+  const initialization = template.attribute(ATTRIBUTES.initialization);
+  return initialization === undefined
+    ? []
+    : [
+        pieceAt(
+          fill(initialization, {
+            ...fixed,
+            Number: INIT_POSITION,
+            Time: INIT_POSITION,
+          }),
+          baseUrl,
+        ),
+      ];
 }
 
 // Every piece the template names, the initialisation first when it has one.
@@ -122,24 +176,18 @@ export function templatePieces(
   template: XmlElement,
   context: TemplateContext,
 ): Piece[] {
-  const base = {
+  const fixed: Fixed = {
     RepresentationID: context.representationId,
     Bandwidth: context.bandwidth,
   };
-  const pieces: Piece[] = [];
-  const initialization = template.attribute(ATTRIBUTES.initialization);
-  if (initialization !== undefined) {
-    const url = fill(initialization, {
-      ...base,
-      Number: INIT_POSITION,
-      Time: INIT_POSITION,
-    });
-    pieces.push({ url: new URL(url, context.baseUrl).href, range: undefined });
-  }
   const media = template.attribute(ATTRIBUTES.media) ?? NO_MEDIA;
-  for (const { time, number } of segmentTimes(template, context)) {
-    const url = fill(media, { ...base, Number: number, Time: time });
-    pieces.push({ url: new URL(url, context.baseUrl).href, range: undefined });
-  }
-  return pieces;
+  return [
+    ...initPieces(template, fixed, context.baseUrl),
+    ...segmentTimes(template, context).map(({ time, number }) =>
+      pieceAt(
+        fill(media, { ...fixed, Number: number, Time: time }),
+        context.baseUrl,
+      ),
+    ),
+  ];
 }

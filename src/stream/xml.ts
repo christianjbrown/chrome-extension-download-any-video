@@ -28,3 +28,12 @@ export function hasDescendantNamed(element: XmlElement, name: string): boolean {
     (child) => child.name === name || hasDescendantNamed(child, name),
   );
 }
+
+// An attribute's value as a number, or the fallback when it is missing.
+export function numberAttribute(
+  element: XmlElement,
+  name: string,
+  fallback: number,
+): number {
+  return Number(element.attribute(name) ?? fallback);
+}
