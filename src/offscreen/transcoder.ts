@@ -1,16 +1,14 @@
+import type {
+  ConversionPlanning,
+  RunResult,
+  StreamInfo,
+  StreamInfoParsing,
+  TranscodeEngine,
+  Transcodes,
+} from "./conversion-parts";
 import { AUDIO_INPUT_NAME, INPUT_NAME, OUTPUT_NAME } from "./conversion-plan";
-import type { ConversionPlanning } from "./conversion-plan";
-import type { RunResult, TranscodeEngine } from "./ffmpeg-engine";
 import type { MediaInputs } from "./media-inputs";
 import type { ProgressListener } from "./progress";
-import type { StreamInfo, StreamInfoParsing } from "./stream-info";
-
-export interface Transcodes {
-  transcode(
-    inputs: MediaInputs,
-    onProgress: ProgressListener,
-  ): Promise<Uint8Array>;
-}
 
 export interface TranscoderParts {
   readonly engine: TranscodeEngine;

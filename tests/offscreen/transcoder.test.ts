@@ -1,4 +1,4 @@
-import type { RunResult } from "../../src/offscreen/ffmpeg-engine";
+import type { RunResult } from "../../src/offscreen/conversion-parts";
 import { Transcoder } from "../../src/offscreen/transcoder";
 
 function setup() {

@@ -1,4 +1,4 @@
-import type { Clock } from "./video-filename";
+import type { Clock } from "./download-steps";
 
 export class SystemClock implements Clock {
   now(): Date {

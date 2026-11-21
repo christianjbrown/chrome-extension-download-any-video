@@ -1,4 +1,4 @@
-import type { ByteFetcher, TextFetcher } from "../../src/stream/fetching";
+import type { ByteFetcher, TextFetcher } from "../../src/stream/fetchers";
 import type { Progress } from "../../src/stream/progress";
 import type { ByteRange } from "../../src/stream/tracks";
 import type { XmlElement } from "../../src/stream/xml";

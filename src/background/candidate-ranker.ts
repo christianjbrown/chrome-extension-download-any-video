@@ -9,15 +9,11 @@ import {
 } from "../shared/candidates";
 import {
   FILE_KIND,
-  mediaKind,
   PLAYLIST_KIND,
   type MediaKind,
-} from "../shared/media-urls";
-
-export interface Ranker {
-  // The one to download, or why there is none.
-  pick(reports: readonly FrameReport[]): VideoCandidate;
-}
+  type MediaKinds,
+} from "../shared/media-types";
+import type { Ranker } from "./download-steps";
 
 export const NOTHING_FOUND = "No video found on this page";
 
@@ -41,13 +37,16 @@ export const RANKING: RankingPolicy = {
 // Picks the sharpest video from the most trustworthy place that has one.
 // The top frame's word comes first, since that is the page the person is on.
 export class CandidateRanker implements Ranker {
-  constructor(private readonly policy: RankingPolicy) {}
+  constructor(
+    private readonly policy: RankingPolicy,
+    private readonly kinds: MediaKinds,
+  ) {}
 
   pick(reports: readonly FrameReport[]): VideoCandidate {
     const candidates = reports.flatMap((report) => report.candidates);
     for (const kind of this.policy.kinds) {
       const best = mostTrusted(
-        candidates.filter((c) => mediaKind(c.url) === kind),
+        candidates.filter((c) => this.kinds.kindOf(c.url) === kind),
         this.policy.tiers,
       );
       if (best !== undefined) {

@@ -4,6 +4,7 @@ import {
   RANKING,
 } from "../../src/background/candidate-ranker";
 import type { VideoCandidate } from "../../src/shared/candidates";
+import { media } from "../shared/media";
 
 const c = (
   url: string,
@@ -20,7 +21,7 @@ const report = (...candidates: VideoCandidate[]) => ({
 });
 
 describe("CandidateRanker", () => {
-  const ranker = new CandidateRanker(RANKING);
+  const ranker = new CandidateRanker(RANKING, media);
 
   it("takes the tallest file the player itself names, over sharper ones elsewhere", () => {
     const best = ranker.pick([
@@ -93,10 +94,13 @@ describe("CandidateRanker", () => {
   });
 
   it("ranks by the policy it was given", () => {
-    const streamsFirst = new CandidateRanker({
-      kinds: ["playlist", "file"],
-      tiers: [["network"], ["element", "player"], ["metadata"]],
-    });
+    const streamsFirst = new CandidateRanker(
+      {
+        kinds: ["playlist", "file"],
+        tiers: [["network"], ["element", "player"], ["metadata"]],
+      },
+      media,
+    );
 
     const best = streamsFirst.pick([
       report(

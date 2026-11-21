@@ -1,4 +1,4 @@
-import type { IdleIndicator } from "./toolbar-indicator";
+import type { IdleIndicator } from "./toolbar";
 
 export interface TabChange {
   status?: string | undefined;

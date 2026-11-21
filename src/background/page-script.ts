@@ -1,4 +1,5 @@
 import type { FrameReport } from "../shared/candidates";
+import type { FrameAsker } from "./download-steps";
 
 interface FrameResult {
   frameId: number;
@@ -16,12 +17,6 @@ type Injection =
 
 export interface ScriptingApi {
   executeScript(injection: Injection): Promise<FrameResult[]>;
-}
-
-// The script that looks for the video in each frame of a tab.
-export interface FrameAsker {
-  // What every frame Chrome lets the extension into says, top frame first.
-  ask(tabId: number): Promise<FrameReport[]>;
 }
 
 const TOP_FRAME = 0;

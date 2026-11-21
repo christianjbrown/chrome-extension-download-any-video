@@ -1,33 +1,12 @@
-// Reads HLS playlists (RFC 8216). A master playlist names variants of the
-// same video at different sizes, each a media playlist; a media playlist
-// lists the pieces of one variant.
+// Reads HLS playlists (RFC 8216) line by line.
+import type {
+  AudioRendition,
+  HlsParsing,
+  MasterPlaylist,
+  MediaPlaylist,
+  Variant,
+} from "./hls";
 import { UNKNOWN_SIZE, type ByteRange, type Piece } from "./tracks";
-
-export interface Variant {
-  readonly url: string;
-  readonly height: number;
-  readonly bandwidth: number;
-  // The EXT-X-MEDIA group its sound comes from, when named.
-  readonly audioGroup: string | undefined;
-}
-
-// A separately fetched sound track, which a variant names by group.
-export interface AudioRendition {
-  readonly group: string;
-  readonly url: string;
-  readonly isDefault: boolean;
-}
-
-export interface MasterPlaylist {
-  readonly variants: readonly Variant[];
-  readonly audio: readonly AudioRendition[];
-}
-
-export interface MediaPlaylist {
-  readonly init: Piece | undefined;
-  readonly segments: readonly Piece[];
-  readonly encrypted: boolean;
-}
 
 const STREAM_INF_TAG = "#EXT-X-STREAM-INF:";
 const MEDIA_TAG = "#EXT-X-MEDIA:";
@@ -133,10 +112,6 @@ function readLines(
   }
 }
 
-export function isMasterPlaylist(text: string): boolean {
-  return lines(text).some((line) => line.startsWith(STREAM_INF_TAG));
-}
-
 function variant(found: Attributes, url: string): Variant {
   const resolution = RESOLUTION.exec(
     found.get(ATTRIBUTES.resolution) ?? NONE_GIVEN,
@@ -208,13 +183,6 @@ class MasterPlaylistReader {
       this.pending = undefined;
     }
   }
-}
-
-export function parseMasterPlaylist(
-  text: string,
-  baseUrl: string,
-): MasterPlaylist {
-  return new MasterPlaylistReader(baseUrl).read(text);
 }
 
 // "length@offset", or just "length", which continues from the previous piece.
@@ -292,9 +260,17 @@ class MediaPlaylistReader {
   }
 }
 
-export function parseMediaPlaylist(
-  text: string,
-  baseUrl: string,
-): MediaPlaylist {
-  return new MediaPlaylistReader(baseUrl).read(text);
+// Each read is a fresh reader, since reading keeps track of the lines so far.
+export class HlsPlaylistParser implements HlsParsing {
+  isMaster(text: string): boolean {
+    return lines(text).some((line) => line.startsWith(STREAM_INF_TAG));
+  }
+
+  master(text: string, baseUrl: string): MasterPlaylist {
+    return new MasterPlaylistReader(baseUrl).read(text);
+  }
+
+  media(text: string, baseUrl: string): MediaPlaylist {
+    return new MediaPlaylistReader(baseUrl).read(text);
+  }
 }

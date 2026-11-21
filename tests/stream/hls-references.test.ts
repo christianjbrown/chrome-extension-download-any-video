@@ -1,10 +1,5 @@
-import { NOT_A_PLAYLIST } from "../../src/stream/stream-reader";
-import {
-  DashReferences,
-  HlsReferences,
-  PlaylistLister,
-} from "../../src/stream/stream-lister";
-import { parseXml } from "../../src/stream/xml-parser";
+import { HlsPlaylistParser } from "../../src/stream/hls-playlist";
+import { HlsReferences } from "../../src/stream/hls-references";
 import { FakeFetcher } from "./fakes";
 
 const MASTER = "https://cdn.example/v/master.m3u8";
@@ -23,6 +18,7 @@ describe("HlsReferences", () => {
           "#EXT-X-ENDLIST",
         ].join("\n"),
       }),
+      new HlsPlaylistParser(),
     );
 
     await expect(
@@ -50,6 +46,7 @@ describe("HlsReferences", () => {
         "https://cdn.example/v/audio/index.m3u8":
           '#EXTM3U\n#EXT-X-MAP:URI="init.mp4"\n#EXTINF:1,\na0.m4s',
       }),
+      new HlsPlaylistParser(),
     );
 
     await expect(lister.references(MASTER)).resolves.toEqual([
@@ -61,57 +58,5 @@ describe("HlsReferences", () => {
       "https://cdn.example/v/audio/init.mp4",
       "https://cdn.example/v/audio/a0.m4s",
     ]);
-  });
-});
-
-describe("DashReferences", () => {
-  it("lists the pieces of every representation", async () => {
-    const lister = new DashReferences(
-      new FakeFetcher({
-        "https://cdn.example/d/manifest.mpd": [
-          '<MPD type="static">',
-          "<Period>",
-          '<AdaptationSet contentType="video">',
-          '<Representation id="v" bandwidth="1"><BaseURL>DASH_720.mp4</BaseURL></Representation>',
-          "</AdaptationSet>",
-          '<AdaptationSet contentType="audio">',
-          '<Representation id="a" bandwidth="1"><BaseURL>DASH_AUDIO_128.mp4</BaseURL></Representation>',
-          "</AdaptationSet>",
-          "</Period>",
-          "</MPD>",
-        ].join(""),
-      }),
-      parseXml,
-    );
-
-    await expect(
-      lister.references("https://cdn.example/d/manifest.mpd"),
-    ).resolves.toEqual([
-      "https://cdn.example/d/DASH_720.mp4",
-      "https://cdn.example/d/DASH_AUDIO_128.mp4",
-    ]);
-  });
-});
-
-describe("PlaylistLister", () => {
-  it("hands each format to its lister", async () => {
-    const lister = new PlaylistLister({
-      hls: { references: vi.fn().mockResolvedValue(["h"]) },
-      dash: { references: vi.fn().mockResolvedValue(["d"]) },
-    });
-
-    await expect(lister.references("https://x/a.m3u8")).resolves.toEqual(["h"]);
-    await expect(lister.references("https://x/a.mpd")).resolves.toEqual(["d"]);
-  });
-
-  it("refuses an address that is not a playlist", async () => {
-    const lister = new PlaylistLister({
-      hls: { references: vi.fn() },
-      dash: { references: vi.fn() },
-    });
-
-    await expect(lister.references("https://x/a.mp4")).rejects.toThrow(
-      NOT_A_PLAYLIST,
-    );
   });
 });

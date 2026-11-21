@@ -2,80 +2,88 @@
 // runs. It has ffmpeg.wasm in it for converting videos, and it watches
 // Chrome's colour scheme for the service worker, which swaps it for a fresh
 // page once the last download has landed.
-import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { DARK_SCHEME_QUERY } from "../shared/colour-scheme";
-import {
-  CONVERTED_TYPE,
-  isConvertRequest,
-} from "../shared/conversion-messages";
 import { FFMPEG_FILES } from "../shared/extension-files";
+import { ExtensionMedia, MEDIA_EXTENSIONS } from "../shared/extension-media";
 import {
   DASH_FORMAT,
   FILE_KIND,
   HLS_FORMAT,
   PLAYLIST_KIND,
-} from "../shared/media-urls";
+} from "../shared/media-types";
+import { ByFormat } from "../stream/by-format";
+import { DashManifestParser } from "../stream/dash-manifest";
+import { DASH_PIECE_SOURCES } from "../stream/dash-pieces";
 import { DashTracks } from "../stream/dash-tracks";
 import { HttpFetcher } from "../stream/fetching";
+import { HlsPlaylistParser } from "../stream/hls-playlist";
 import { HlsTracks } from "../stream/hls-tracks";
 import { PieceFetcher } from "../stream/piece-fetcher";
+import { SharpestFirst } from "../stream/sharpest-first";
+import type { StreamReader } from "../stream/playlists";
 import { PlaylistReader } from "../stream/stream-reader";
 import { parseXml } from "../stream/xml-parser";
+import { BlobUrls } from "./blob-urls";
 import { OFFSCREEN_CONFIG } from "./config";
 import { ConversionPlanner } from "./conversion-plan";
 import { ConvertHandler } from "./convert-handler";
+import { ConvertListener } from "./convert-listener";
 import { FfmpegEngine } from "./ffmpeg-engine";
+import { RuntimeProgress } from "./runtime-progress";
 import { SchemeReporter } from "./scheme-reporter";
 import { SourceFetcher } from "./source-fetcher";
 import { StreamFetcher } from "./stream-fetcher";
 import { StreamInfoParser } from "./stream-info";
 import { Transcoder } from "./transcoder";
 import { VideoFetcher } from "./video-fetcher";
+import { FFmpeg } from "@ffmpeg/ffmpeg";
 
+const media = new ExtensionMedia(MEDIA_EXTENSIONS);
+const sizes = new SharpestFirst();
 const pieces = new HttpFetcher((url, init) => fetch(url, init));
-const handler = new ConvertHandler({
-  fetcher: new SourceFetcher({
-    [FILE_KIND]: new VideoFetcher((url, init) => fetch(url, init)),
-    [PLAYLIST_KIND]: new StreamFetcher(
-      new PlaylistReader({
-        [HLS_FORMAT]: new HlsTracks(pieces),
-        [DASH_FORMAT]: new DashTracks(pieces, parseXml),
-      }),
-      new PieceFetcher(pieces, OFFSCREEN_CONFIG.parallelFetches),
+const listener = new ConvertListener(
+  new ConvertHandler({
+    fetcher: new SourceFetcher(
+      {
+        [FILE_KIND]: new VideoFetcher((url, init) => fetch(url, init)),
+        [PLAYLIST_KIND]: new StreamFetcher(
+          new PlaylistReader(
+            new ByFormat<StreamReader>(media, {
+              [HLS_FORMAT]: new HlsTracks(
+                pieces,
+                new HlsPlaylistParser(),
+                sizes,
+              ),
+              [DASH_FORMAT]: new DashTracks(
+                pieces,
+                new DashManifestParser(parseXml, DASH_PIECE_SOURCES),
+                sizes,
+              ),
+            }),
+          ),
+          new PieceFetcher(pieces, OFFSCREEN_CONFIG.parallelFetches),
+        ),
+      },
+      media,
     ),
-  }),
-  transcoder: new Transcoder({
-    engine: new FfmpegEngine(new FFmpeg(), {
-      core: chrome.runtime.getURL(FFMPEG_FILES.core),
-      wasm: chrome.runtime.getURL(FFMPEG_FILES.wasm),
-      worker: chrome.runtime.getURL(FFMPEG_FILES.worker),
-      classWorker: chrome.runtime.getURL(FFMPEG_FILES.classWorker),
+    transcoder: new Transcoder({
+      engine: new FfmpegEngine(new FFmpeg(), {
+        core: chrome.runtime.getURL(FFMPEG_FILES.core),
+        wasm: chrome.runtime.getURL(FFMPEG_FILES.wasm),
+        worker: chrome.runtime.getURL(FFMPEG_FILES.worker),
+        classWorker: chrome.runtime.getURL(FFMPEG_FILES.classWorker),
+      }),
+      parser: new StreamInfoParser(),
+      planner: new ConversionPlanner(OFFSCREEN_CONFIG.encoding),
     }),
-    parser: new StreamInfoParser(),
-    planner: new ConversionPlanner(OFFSCREEN_CONFIG.encoding),
+    urls: new BlobUrls(URL),
+    progress: new RuntimeProgress(chrome.runtime),
   }),
-  urls: {
-    create: (data) =>
-      URL.createObjectURL(
-        new Blob([data as BlobPart], { type: CONVERTED_TYPE }),
-      ),
-  },
-  progress: {
-    send: (report) => {
-      // Nobody listening is not a problem worth stopping for.
-      chrome.runtime.sendMessage(report).catch(() => undefined);
-    },
-  },
-});
+);
 
 chrome.runtime.onMessage.addListener(
-  (message: unknown, _sender, sendResponse) => {
-    if (!isConvertRequest(message)) {
-      return false;
-    }
-    void handler.handle(message).then(sendResponse);
-    return true;
-  },
+  (message: unknown, _sender, sendResponse) =>
+    listener.received(message, sendResponse),
 );
 
 new SchemeReporter(

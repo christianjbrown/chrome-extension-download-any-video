@@ -6,6 +6,13 @@ import { NOT_FOUND } from "../shared/search";
 const DATE_PART = /^P(?:(\d+)D)?$/;
 const TIME_PART = /^(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/;
 const TIME_MARK = "T";
+// Where each count sits among the patterns' groups.
+const DAYS_GROUP = 1;
+const HOURS_GROUP = 1;
+const MINUTES_GROUP = 2;
+const SECONDS_GROUP = 3;
+// A part the duration leaves out counts for nothing.
+const LEFT_OUT = 0;
 
 const HOURS_IN_DAY = 24;
 const MINUTES_IN_HOUR = 60;
@@ -26,7 +33,7 @@ function parts(text: string): Parts {
 }
 
 function count(group: string | undefined): number {
-  return Number(group ?? 0);
+  return Number(group ?? LEFT_OUT);
 }
 
 // The duration in seconds, or nothing when the text is not one.
@@ -41,9 +48,9 @@ export function durationSeconds(text: string | undefined): number | undefined {
     return undefined;
   }
   return (
-    count(dateMatch[1]) * SECONDS_IN_DAY +
-    count(timeMatch[1]) * SECONDS_IN_HOUR +
-    count(timeMatch[2]) * SECONDS_IN_MINUTE +
-    count(timeMatch[3])
+    count(dateMatch[DAYS_GROUP]) * SECONDS_IN_DAY +
+    count(timeMatch[HOURS_GROUP]) * SECONDS_IN_HOUR +
+    count(timeMatch[MINUTES_GROUP]) * SECONDS_IN_MINUTE +
+    count(timeMatch[SECONDS_GROUP])
   );
 }

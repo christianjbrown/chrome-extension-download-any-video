@@ -10,18 +10,8 @@ import type {
   ScannedElement,
   VideoElement,
 } from "./dom";
+import type { FoundVideo, VideoElements } from "./finder-parts";
 import { allElements } from "./tree-walk";
-
-// A <video> on the page, with the addresses it plays from. A player that feeds
-// the element itself (a blob: source) leaves the list empty.
-export interface FoundVideo {
-  readonly element: VideoElement;
-  readonly candidates: readonly VideoCandidate[];
-}
-
-export interface VideoElements {
-  find(tree: ElementTree<ScannedElement>): FoundVideo[];
-}
 
 const VIDEO_TAG = "video";
 const SOURCE_SELECTOR = "source";

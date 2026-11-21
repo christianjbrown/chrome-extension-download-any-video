@@ -45,16 +45,7 @@ export interface Sized {
   readonly bandwidth: number;
 }
 
-// The tallest, and among equals the one with the most bits.
-export function sharpest<T extends Sized>(items: readonly T[]): T | undefined {
-  return items.reduce<T | undefined>(
-    (best, item) => (best === undefined || sharper(item, best) ? item : best),
-    undefined,
-  );
-}
-
-function sharper(a: Sized, b: Sized): boolean {
-  return (
-    a.height > b.height || (a.height === b.height && a.bandwidth > b.bandwidth)
-  );
+// Which of several sizes of the same video to download.
+export interface SizeChoice {
+  best<T extends Sized>(items: readonly T[]): T | undefined;
 }

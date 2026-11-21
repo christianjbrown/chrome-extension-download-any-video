@@ -1,4 +1,6 @@
+import { HlsPlaylistParser } from "../../src/stream/hls-playlist";
 import { HlsTracks } from "../../src/stream/hls-tracks";
+import { SharpestFirst } from "../../src/stream/sharpest-first";
 import {
   EMPTY_PLAYLIST,
   ENCRYPTED_STREAM,
@@ -15,7 +17,13 @@ describe("HlsTracks", () => {
   it("takes a media playlist as one muxed track", async () => {
     const fetcher = new FakeFetcher({ [MASTER]: media("a.ts", "b.ts") });
 
-    await expect(new HlsTracks(fetcher).tracks(MASTER)).resolves.toEqual([
+    await expect(
+      new HlsTracks(
+        fetcher,
+        new HlsPlaylistParser(),
+        new SharpestFirst(),
+      ).tracks(MASTER),
+    ).resolves.toEqual([
       {
         role: "muxed",
         pieces: [
@@ -34,7 +42,13 @@ describe("HlsTracks", () => {
         '#EXTM3U\n#EXT-X-MAP:URI="init.mp4"\n#EXTINF:4,\nseg.m4s\n',
     });
 
-    await expect(new HlsTracks(fetcher).tracks(MASTER)).resolves.toEqual([
+    await expect(
+      new HlsTracks(
+        fetcher,
+        new HlsPlaylistParser(),
+        new SharpestFirst(),
+      ).tracks(MASTER),
+    ).resolves.toEqual([
       {
         role: "muxed",
         pieces: [
@@ -53,7 +67,13 @@ describe("HlsTracks", () => {
       "https://cdn.example/v/fr.m3u8": media("fr.m4s"),
     });
 
-    await expect(new HlsTracks(fetcher).tracks(MASTER)).resolves.toEqual([
+    await expect(
+      new HlsTracks(
+        fetcher,
+        new HlsPlaylistParser(),
+        new SharpestFirst(),
+      ).tracks(MASTER),
+    ).resolves.toEqual([
       { role: "video", pieces: [piece("https://cdn.example/v/v.m4s")] },
       { role: "audio", pieces: [piece("https://cdn.example/v/fr.m4s")] },
     ]);
@@ -67,7 +87,11 @@ describe("HlsTracks", () => {
       "https://cdn.example/v/en.m3u8": media("en.m4s"),
     });
 
-    const tracks = await new HlsTracks(fetcher).tracks(MASTER);
+    const tracks = await new HlsTracks(
+      fetcher,
+      new HlsPlaylistParser(),
+      new SharpestFirst(),
+    ).tracks(MASTER);
 
     expect(tracks[1]?.pieces).toEqual([piece("https://cdn.example/v/en.m4s")]);
   });
@@ -79,7 +103,11 @@ describe("HlsTracks", () => {
       "https://cdn.example/v/video.m3u8": media("v.ts"),
     });
 
-    const tracks = await new HlsTracks(fetcher).tracks(MASTER);
+    const tracks = await new HlsTracks(
+      fetcher,
+      new HlsPlaylistParser(),
+      new SharpestFirst(),
+    ).tracks(MASTER);
 
     expect(tracks.map((track) => track.role)).toEqual(["muxed"]);
   });
@@ -94,8 +122,12 @@ describe("HlsTracks", () => {
   ])("says why %j cannot be downloaded", async (text, message) => {
     const fetcher = new FakeFetcher({ [MASTER]: text });
 
-    await expect(new HlsTracks(fetcher).tracks(MASTER)).rejects.toThrow(
-      message,
-    );
+    await expect(
+      new HlsTracks(
+        fetcher,
+        new HlsPlaylistParser(),
+        new SharpestFirst(),
+      ).tracks(MASTER),
+    ).rejects.toThrow(message);
   });
 });

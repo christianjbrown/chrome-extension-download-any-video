@@ -1,10 +1,6 @@
 import { METADATA_ORIGIN, type VideoCandidate } from "../shared/candidates";
-import { heightHint, mediaKind } from "../shared/media-urls";
 import type { ElementTree, MetadataElement } from "./dom";
-
-export interface PageMetadata {
-  find(tree: ElementTree<MetadataElement>): VideoCandidate[];
-}
+import type { PageMetadata, UrlCandidates } from "./finder-parts";
 
 export type JsonParser = (text: string) => unknown;
 
@@ -34,7 +30,10 @@ const isObject = (value: unknown): value is JsonObject =>
 // A page's own word on what its video is: the Open Graph tags and any
 // schema.org VideoObject in its structured data.
 export class MetadataFinder implements PageMetadata {
-  constructor(private readonly parseJson: JsonParser) {}
+  constructor(
+    private readonly parseJson: JsonParser,
+    private readonly found: UrlCandidates,
+  ) {}
 
   find(tree: ElementTree<MetadataElement>): VideoCandidate[] {
     const urls: string[] = [];
@@ -44,13 +43,7 @@ export class MetadataFinder implements PageMetadata {
     for (const script of tree.querySelectorAll(JSON_LD_SELECTOR)) {
       urls.push(...this.contentUrls(script.textContent));
     }
-    return urls
-      .filter((url) => mediaKind(url) !== undefined)
-      .map((url) => ({
-        url,
-        origin: METADATA_ORIGIN,
-        height: heightHint(url),
-      }));
+    return this.found.candidates(urls, METADATA_ORIGIN);
   }
 
   private contentUrls(text: string | null): string[] {

@@ -1,4 +1,4 @@
-import type { EncodeSettings } from "./conversion-plan";
+import type { EncodeSettings } from "./conversion-parts";
 
 // Settings for the offscreen document. Only its entry point reads them, and
 // hands each one to the part that needs it.

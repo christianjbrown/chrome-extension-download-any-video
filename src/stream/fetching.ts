@@ -1,13 +1,6 @@
 // Fetching the playlists and pieces of a stream.
+import type { ByteFetcher, TextFetcher } from "./fetchers";
 import type { ByteRange } from "./tracks";
-
-export interface TextFetcher {
-  text(url: string): Promise<string>;
-}
-
-export interface ByteFetcher {
-  bytes(url: string, range?: ByteRange): Promise<ArrayBuffer>;
-}
 
 interface FetchedResponse {
   readonly ok: boolean;

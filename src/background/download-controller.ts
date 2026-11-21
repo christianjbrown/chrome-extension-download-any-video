@@ -1,12 +1,13 @@
-import type { Ranker } from "./candidate-ranker";
-import type { ErrorExplainer } from "./chrome-errors";
-import type { FrameAsker } from "./page-script";
-import type { CandidateFilter } from "./piece-filter";
-import type { DownloadIndicator } from "./toolbar-indicator";
-import type { FinishedDownload } from "./toolbar-looks";
+import type {
+  CandidateFilter,
+  ErrorExplainer,
+  Filenames,
+  FrameAsker,
+  Ranker,
+  VideoDownloader,
+} from "./download-steps";
+import type { DownloadIndicator, FinishedDownload } from "./toolbar";
 import type { VideoConverter } from "./video-converter";
-import type { Filenames } from "./video-filename";
-import type { VideoDownloader } from "./video-saver";
 
 export interface ClickedTab {
   id?: number | undefined;
@@ -22,6 +23,11 @@ export interface ControllerParts {
   readonly indicator: DownloadIndicator;
   readonly errors: ErrorExplainer;
 }
+
+// The frame whose title names the file: the page the person is on.
+const TOP_FRAME = 0;
+// A page with no title, which leaves the filename to fall back on its own.
+const UNTITLED = "";
 
 // A click on the toolbar button: find the video on that tab, make it an MP4
 // that plays everywhere, and download it.
@@ -64,7 +70,7 @@ export class DownloadController {
     );
     try {
       const filename = this.parts.names.name(
-        reports[0]?.title ?? "",
+        reports[TOP_FRAME]?.title ?? UNTITLED,
         source.extension,
       );
       await this.parts.saver.save(source.url, filename);

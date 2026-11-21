@@ -1,5 +1,11 @@
-import { parseManifest } from "../../src/stream/dash-manifest";
+import { DashManifestParser } from "../../src/stream/dash-manifest";
+import { DASH_PIECE_SOURCES } from "../../src/stream/dash-pieces";
+import type { XmlElement } from "../../src/stream/xml";
 import { xml } from "./fakes";
+
+// The XML parser hands back whatever root the test built.
+const parseManifest = (root: XmlElement, url: string) =>
+  new DashManifestParser(() => root, DASH_PIECE_SOURCES).parse("<MPD/>", url);
 
 const MPD = "https://cdn.example/v/manifest.mpd";
 const piece = (url: string, range?: { offset: number; length: number }) => ({
@@ -7,7 +13,7 @@ const piece = (url: string, range?: { offset: number; length: number }) => ({
   range,
 });
 
-describe("parseManifest", () => {
+describe("DashManifestParser", () => {
   it("reads whole-file representations with nested base URLs, as a link-sharing site serves them", () => {
     const root = xml("MPD", {
       attributes: { mediaPresentationDuration: "PT12S" },
@@ -299,5 +305,34 @@ describe("parseManifest", () => {
       encrypted: false,
       representations: [],
     });
+  });
+});
+
+describe("DashManifestParser sources", () => {
+  const root = xml("MPD", {
+    children: [
+      xml("Period", {
+        children: [
+          xml("AdaptationSet", {
+            attributes: { contentType: "video" },
+            children: [xml("Representation", { attributes: { id: "v" } })],
+          }),
+        ],
+      }),
+    ],
+  });
+
+  it("takes the pieces from the first source that names them", () => {
+    const parser = new DashManifestParser(
+      () => root,
+      [
+        { pieces: () => undefined },
+        { pieces: (_set, _rep, context) => [piece(`${context.baseUrl}#own`)] },
+      ],
+    );
+
+    expect(parser.parse("<MPD/>", MPD).representations[0]?.pieces).toEqual([
+      piece(`${MPD}#own`),
+    ]);
   });
 });

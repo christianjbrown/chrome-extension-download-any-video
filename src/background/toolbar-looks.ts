@@ -3,28 +3,7 @@ import {
   FETCH_STAGE,
   type Stage,
 } from "../shared/conversion-messages";
-
-// What the toolbar button shows: the badge, its colour and the tooltip.
-export interface Look {
-  readonly badge: string;
-  readonly colour: string;
-  readonly title: string;
-}
-
-export interface FinishedDownload {
-  readonly filename: string;
-  // False when the file is the site's own, because converting it did not work.
-  readonly converted: boolean;
-}
-
-// How the button looks at each point of a download.
-export interface ToolbarLooks {
-  idle(): Look;
-  busy(): Look;
-  progress(stage: Stage, ratio: number): Look;
-  done(download: FinishedDownload): Look;
-  error(message: string): Look;
-}
+import type { FinishedDownload, ToolbarLooks } from "./toolbar";
 
 const RED = "#dc2626";
 const BLUE = "#1a73e8";

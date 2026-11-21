@@ -1,9 +1,9 @@
-import type { Mocked } from "vitest";
-import type { ErrorExplainer } from "../../src/background/chrome-errors";
+import type { ErrorExplainer } from "../../src/background/download-steps";
 import type {
   DownloadIndicator,
   IdleIndicator,
-} from "../../src/background/toolbar-indicator";
+} from "../../src/background/toolbar";
+import type { Mocked } from "vitest";
 
 export function fakeIndicator(): Mocked<IdleIndicator & DownloadIndicator> {
   return {

@@ -1,11 +1,7 @@
 import { PLAYER_ORIGIN, type VideoCandidate } from "../shared/candidates";
-import { heightHint, mediaKind } from "../shared/media-urls";
 import type { PlayerElement } from "./dom";
+import type { PlayerAttributes, UrlCandidates } from "./finder-parts";
 import { ancestors } from "./tree-walk";
-
-export interface PlayerAttributes {
-  find(video: PlayerElement): VideoCandidate[];
-}
 
 // Characters that end a URL in an attribute: quotes, brackets, blanks, and the
 // backslash that starts a JSON escape.
@@ -20,29 +16,26 @@ const TRAILING_PUNCTUATION = new Set([".", ",", ";", ":", ")"]);
 // attributes, often inside JSON, while the <video> inside it plays a blob.
 // Every URL with a video extension on the player's lineage is a candidate.
 export class PlayerAttributeFinder implements PlayerAttributes {
+  constructor(private readonly found: UrlCandidates) {}
+
   find(video: PlayerElement): VideoCandidate[] {
-    const found: VideoCandidate[] = [];
+    const urls: string[] = [];
     for (const element of [video, ...ancestors(video)]) {
       for (const attribute of element.attributes) {
-        found.push(...this.urlsIn(attribute.value));
+        urls.push(...urlsIn(attribute.value));
       }
     }
-    return found;
+    return this.found.candidates(urls, PLAYER_ORIGIN);
   }
+}
 
-  private urlsIn(text: string): VideoCandidate[] {
-    const plain = text
-      .replace(JSON_ESCAPED_SLASH, SLASH)
-      .replace(JSON_ESCAPED_AMPERSAND, AMPERSAND);
-    const found: VideoCandidate[] = [];
-    for (const match of plain.matchAll(URL_PATTERN)) {
-      const url = withoutTrailingPunctuation(match[0]);
-      if (mediaKind(url) !== undefined) {
-        found.push({ url, origin: PLAYER_ORIGIN, height: heightHint(url) });
-      }
-    }
-    return found;
-  }
+function urlsIn(text: string): string[] {
+  const plain = text
+    .replace(JSON_ESCAPED_SLASH, SLASH)
+    .replace(JSON_ESCAPED_AMPERSAND, AMPERSAND);
+  return Array.from(plain.matchAll(URL_PATTERN), (match) =>
+    withoutTrailingPunctuation(match[0]),
+  );
 }
 
 // A URL quoted in prose or JSON can end on the sentence's full stop.

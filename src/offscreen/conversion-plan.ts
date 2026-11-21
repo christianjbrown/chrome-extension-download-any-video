@@ -1,5 +1,11 @@
 import { CONVERTED_EXTENSION } from "../shared/conversion-messages";
-import type { AudioStream, StreamInfo, VideoStream } from "./stream-info";
+import type {
+  AudioStream,
+  ConversionPlanning,
+  EncodeSettings,
+  StreamInfo,
+  VideoStream,
+} from "./conversion-parts";
 
 export const INPUT_NAME = "input";
 // A stream's sound, when it came as a separate track.
@@ -9,28 +15,6 @@ export const OUTPUT_NAME = `output.${CONVERTED_EXTENSION}`;
 // The flag that names an input file, in a plan and when asking about a file.
 export const INPUT_FLAG = "-i";
 const MAP_FLAG = "-map";
-
-export interface ConversionPlanning {
-  // The ffmpeg arguments that turn the inputs into OUTPUT_NAME: the picture
-  // from INPUT_NAME, the sound from AUDIO_INPUT_NAME when there is one and
-  // otherwise from INPUT_NAME too.
-  plan(main: StreamInfo, audio: StreamInfo | undefined): string[];
-}
-
-// How hard ffmpeg works on a video it has to re-encode, and what it aims for.
-export interface EncodeSettings {
-  // Left to pick its own thread count, ffmpeg.wasm's multi-threaded build
-  // asks for more workers than it has and deadlocks.
-  readonly threads: number;
-  // x264's speed against size trade.
-  readonly preset: string;
-  // x264's constant quality: lower looks better and takes more room.
-  readonly crf: number;
-  // The H.264 profile, which decides which players can open the file.
-  readonly profile: string;
-  // What the sound is re-encoded at, in ffmpeg's own notation.
-  readonly audioBitrate: string;
-}
 
 export const NO_VIDEO = "There is no picture in that file, only sound";
 
@@ -44,38 +28,54 @@ const FIRST_VIDEO_STREAM = "0:v:0";
 const FIRST_AUDIO_STREAM_IF_ANY = "0:a:0?";
 const SECOND_INPUT_AUDIO_IF_ANY = "1:a:0?";
 
+// ffmpeg's own flags and values, as its command line spells them.
+const THREADS_FLAG = "-threads";
+const VIDEO_CODEC_FLAG = "-c:v";
+const AUDIO_CODEC_FLAG = "-c:a";
+const PRESET_FLAG = "-preset";
+const CRF_FLAG = "-crf";
+const PIXEL_FORMAT_FLAG = "-pix_fmt";
+const PROFILE_FLAG = "-profile:v";
+const VIDEO_FILTER_FLAG = "-vf";
+const AUDIO_BITRATE_FLAG = "-b:a";
+const MOV_FLAGS_FLAG = "-movflags";
+// Keeps a stream's encoded bytes as they are.
+const COPY_CODEC = "copy";
+const H264_ENCODER = "libx264";
+// The index goes at the front of the file, so players start at once.
+const FAST_START_FLAG = "+faststart";
+
 const threads = (settings: EncodeSettings): readonly string[] => [
-  "-threads",
+  THREADS_FLAG,
   String(settings.threads),
 ];
 
-const COPY_VIDEO: readonly string[] = ["-c:v", "copy"];
+const COPY_VIDEO: readonly string[] = [VIDEO_CODEC_FLAG, COPY_CODEC];
 // H.264 needs even dimensions, so odd ones are rounded up by a pixel.
 const EVEN_DIMENSIONS = "scale=ceil(iw/2)*2:ceil(ih/2)*2";
 const encodeVideo = (settings: EncodeSettings): readonly string[] => [
   ...threads(settings),
-  "-c:v",
-  "libx264",
-  "-preset",
+  VIDEO_CODEC_FLAG,
+  H264_ENCODER,
+  PRESET_FLAG,
   settings.preset,
-  "-crf",
+  CRF_FLAG,
   String(settings.crf),
-  "-pix_fmt",
+  PIXEL_FORMAT_FLAG,
   COMPATIBLE_PIXEL_FORMAT,
-  "-profile:v",
+  PROFILE_FLAG,
   settings.profile,
-  "-vf",
+  VIDEO_FILTER_FLAG,
   EVEN_DIMENSIONS,
 ];
-const COPY_AUDIO: readonly string[] = ["-c:a", "copy"];
+const COPY_AUDIO: readonly string[] = [AUDIO_CODEC_FLAG, COPY_CODEC];
 const encodeAudio = (settings: EncodeSettings): readonly string[] => [
-  "-c:a",
+  AUDIO_CODEC_FLAG,
   COMPATIBLE_AUDIO_CODEC,
-  "-b:a",
+  AUDIO_BITRATE_FLAG,
   settings.audioBitrate,
 ];
-// The index goes at the front of the file, so players start at once.
-const FAST_START: readonly string[] = ["-movflags", "+faststart"];
+const FAST_START: readonly string[] = [MOV_FLAGS_FLAG, FAST_START_FLAG];
 
 // A stream that can go into the MP4 without re-encoding, and how.
 interface Shortcut<S> {

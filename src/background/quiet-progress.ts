@@ -1,11 +1,11 @@
 import type { Stage } from "../shared/conversion-messages";
-import type { DownloadIndicator, IdleIndicator } from "./toolbar-indicator";
-import type { FinishedDownload, Look } from "./toolbar-looks";
-
-// The one look this needs, to tell whether progress would show anything new.
-export interface ProgressLooks {
-  progress(stage: Stage, ratio: number): Look;
-}
+import type {
+  DownloadIndicator,
+  FinishedDownload,
+  IdleIndicator,
+  Look,
+  ProgressLooks,
+} from "./toolbar";
 
 const shownAs = (look: Look): string => `${look.badge} ${look.title}`;
 

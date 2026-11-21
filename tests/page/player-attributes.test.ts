@@ -1,8 +1,9 @@
 import { PlayerAttributeFinder } from "../../src/page/player-attributes";
+import { candidates } from "./candidates";
 import { element, video } from "./fakes";
 
 describe("PlayerAttributeFinder", () => {
-  const finder = new PlayerAttributeFinder();
+  const finder = new PlayerAttributeFinder(candidates);
 
   it("reads video addresses off the player's lineage, JSON escapes and all", () => {
     const clip = video({
