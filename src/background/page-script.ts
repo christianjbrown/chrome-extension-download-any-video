@@ -1,5 +1,5 @@
 import type { FrameReport } from "../shared/candidates";
-import { fits, isArray, isRecord, isString } from "../shared/shape";
+import { isFrameReport } from "../shared/candidate-checks";
 import type { FrameAsker } from "./download-steps";
 
 interface FrameResult {
@@ -23,12 +23,21 @@ export interface ScriptingApi {
 const TOP_FRAME = 0;
 
 // Runs in the page, so it can only reach what the injected file left there. The
-// name is spelt out rather than imported: the function is serialised. A test
-// pins it to FINDER_KEY.
+// name is spelt out rather than imported, and the checks are written inside:
+// the function is serialised. A test pins the name to FINDER_KEY. Anything
+// other than a finder there answers nothing, as no finder at all does.
 function installedReport(): unknown {
-  return (
-    globalThis as unknown as Record<string, { find(): unknown } | undefined>
-  ).__downloadAnyVideo?.find();
+  interface Finder {
+    find(): unknown;
+  }
+  const isObject = (value: unknown): value is object =>
+    typeof value === "object" && value !== null;
+  const canFind = (value: object): value is Finder =>
+    "find" in value && typeof value.find === "function";
+  const isFinder = (value: unknown): value is Finder =>
+    isObject(value) && canFind(value);
+  const finder: unknown = Reflect.get(globalThis, "__downloadAnyVideo");
+  return isFinder(finder) ? finder.find() : undefined;
 }
 
 export class PageScript implements FrameAsker {
@@ -55,12 +64,6 @@ export class PageScript implements FrameAsker {
           Number(b.frameId === TOP_FRAME) - Number(a.frameId === TOP_FRAME),
       )
       .map((frame) => frame.result)
-      .filter(isReport);
+      .filter(isFrameReport);
   }
-}
-
-const REPORT_SHAPE = { title: isString, candidates: isArray };
-
-function isReport(value: unknown): value is FrameReport {
-  return isRecord(value) && fits(value, REPORT_SHAPE);
 }

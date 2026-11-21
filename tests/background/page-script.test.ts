@@ -11,7 +11,12 @@ function setup(results: unknown[]) {
   return { scripting, script: new PageScript(scripting, "page.js") };
 }
 
-const report = (title: string) => ({ title, candidates: [] });
+const report = (title: string) => ({
+  title,
+  candidates: [
+    { url: "https://cdn.example/a.mp4", origin: "element", height: 0 },
+  ],
+});
 
 describe("PageScript", () => {
   it("injects the file into every frame, then asks each for its report, top frame first", async () => {
@@ -21,6 +26,7 @@ describe("PageScript", () => {
       { frameId: 13, result: undefined },
       { frameId: 14, result: { title: 5 } },
       { frameId: 15 },
+      { frameId: 16, result: { title: "bad", candidates: [{ url: 1 }] } },
     ]);
 
     await expect(script.ask(7)).resolves.toEqual([
@@ -49,5 +55,9 @@ describe("PageScript", () => {
     vi.stubGlobal(FINDER_KEY, { find: () => report("here") });
 
     expect(func()).toEqual(report("here"));
+    vi.stubGlobal(FINDER_KEY, { find: "not a function" });
+    expect(func()).toBeUndefined();
+    vi.stubGlobal(FINDER_KEY, "not a finder");
+    expect(func()).toBeUndefined();
   });
 });
