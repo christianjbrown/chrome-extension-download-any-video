@@ -136,7 +136,7 @@ const controller = new DownloadController({
     [FETCH_STAGE, CONVERT_STAGE],
   ),
   names: new VideoFilename(
-    new SystemClock(),
+    new SystemClock(() => new Date()),
     new KebabSlugger(),
     BACKGROUND_CONFIG.maxStem,
   ),
