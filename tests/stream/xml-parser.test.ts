@@ -70,4 +70,10 @@ describe("parseXml", () => {
   ])("refuses %s", (_, text) => {
     expect(() => parseXml(text)).toThrow(UNREADABLE_MANIFEST);
   });
+
+  it("starts each parse over, even after one that failed", () => {
+    expect(() => parseXml("<MPD><Period>")).toThrow(UNREADABLE_MANIFEST);
+    expect(parseXml("<MPD/>").name).toBe("MPD");
+    expect(parseXml('<Other a="1"/>').attribute("a")).toBe("1");
+  });
 });

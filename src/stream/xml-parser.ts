@@ -17,16 +17,6 @@ const QUOTES = ['"', "'"];
 const WHITESPACE = /\s/;
 const NAME_END = /[\s/>=]/;
 
-// Parses a manifest with the parts of XML the entry points list. Each parse
-// is a fresh scanner, since scanning keeps track of where it has got to.
-export class XmlReader implements XmlParser {
-  constructor(private readonly parts: XmlParts) {}
-
-  parse(text: string): XmlElement {
-    return new XmlScanner(text, this.parts).document();
-  }
-}
-
 // An element as the scanner builds it. Its text is its own, not its
 // children's, which is all a manifest's BaseURL needs.
 class Element implements XmlElement, XmlContent {
@@ -51,15 +41,22 @@ class Element implements XmlElement, XmlContent {
   }
 }
 
-class XmlScanner implements XmlCursor {
+// Parses a manifest with the parts of XML the entry points list. Scanning
+// keeps track of where it has got to, so each parse starts that over; a parse
+// runs to the end before another can start.
+export class XmlReader implements XmlParser, XmlCursor {
+  private text = "";
   private at = 0;
 
-  constructor(
-    private readonly text: string,
-    private readonly parts: XmlParts,
-  ) {}
+  constructor(private readonly parts: XmlParts) {}
 
-  document(): XmlElement {
+  parse(text: string): XmlElement {
+    this.text = text;
+    this.at = 0;
+    return this.document();
+  }
+
+  private document(): XmlElement {
     this.skipProlog();
     const root = this.element();
     this.skipProlog();
