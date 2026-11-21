@@ -1,4 +1,4 @@
-import { VisibleVideoChooser } from "../../src/page/visible-video";
+import { VisibleVideoChooser, type Placed } from "../../src/page/visible-video";
 import { video } from "./fakes";
 
 const viewport = { width: 1000, height: 800 };
@@ -38,6 +38,6 @@ describe("VisibleVideoChooser", () => {
   });
 
   it("chooses nothing from nothing", () => {
-    expect(chooser.choose([])).toBeUndefined();
+    expect(chooser.choose<Placed>([])).toBeUndefined();
   });
 });

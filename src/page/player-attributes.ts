@@ -1,10 +1,10 @@
 import { PLAYER_ORIGIN, type VideoCandidate } from "../shared/candidates";
 import { heightHint, mediaKind } from "../shared/media-urls";
-import type { PageElement } from "./dom";
+import type { PlayerElement } from "./dom";
 import { ancestors } from "./tree-walk";
 
 export interface PlayerAttributes {
-  find(video: PageElement): VideoCandidate[];
+  find(video: PlayerElement): VideoCandidate[];
 }
 
 // Characters that end a URL in an attribute: quotes, brackets, blanks, and the
@@ -20,7 +20,7 @@ const TRAILING_PUNCTUATION = new Set([".", ",", ";", ":", ")"]);
 // attributes, often inside JSON, while the <video> inside it plays a blob.
 // Every URL with a video extension on the player's lineage is a candidate.
 export class PlayerAttributeFinder implements PlayerAttributes {
-  find(video: PageElement): VideoCandidate[] {
+  find(video: PlayerElement): VideoCandidate[] {
     const found: VideoCandidate[] = [];
     for (const element of [video, ...ancestors(video)]) {
       for (const attribute of element.attributes) {

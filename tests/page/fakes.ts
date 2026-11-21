@@ -10,6 +10,7 @@ export interface FakeElement extends PageElement {
   readonly children: FakeElement[];
   parentElement: FakeElement | null;
   host: FakeElement | null;
+  getRootNode(): { readonly host: FakeElement | null };
 }
 
 interface Options {
