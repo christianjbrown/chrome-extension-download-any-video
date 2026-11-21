@@ -1,6 +1,14 @@
 // What the service worker and the offscreen document say to each other. The
 // worker asks for one URL to be turned into an H.264 MP4; the document reports
 // progress while it works and answers once with a blob URL, or with why not.
+import {
+  equalTo,
+  fits,
+  isNumber,
+  isRecord,
+  isString,
+  type Shape,
+} from "./shape";
 
 export const CONVERT_REQUEST = "convert";
 export const PROGRESS_REPORT = "progress";
@@ -32,43 +40,41 @@ export type ConvertResponse =
   | { readonly ok: true; readonly url: string }
   | { readonly ok: false; readonly stage: Stage; readonly message: string };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
 function isStage(value: unknown): value is Stage {
   return (STAGES as readonly unknown[]).includes(value);
 }
 
+const REQUEST_SHAPE: Shape = {
+  type: equalTo(CONVERT_REQUEST),
+  jobId: isString,
+  url: isString,
+};
+
+const PROGRESS_SHAPE: Shape = {
+  type: equalTo(PROGRESS_REPORT),
+  jobId: isString,
+  stage: isStage,
+  ratio: isNumber,
+};
+
+// A response is a success with its URL, or a failure with where and why.
+const RESPONSE_SHAPES: readonly Shape[] = [
+  { ok: equalTo(true), url: isString },
+  { ok: equalTo(false), stage: isStage, message: isString },
+];
+
 export function isConvertRequest(message: unknown): message is ConvertRequest {
-  return (
-    isRecord(message) &&
-    message.type === CONVERT_REQUEST &&
-    typeof message.jobId === "string" &&
-    typeof message.url === "string"
-  );
+  return isRecord(message) && fits(message, REQUEST_SHAPE);
 }
 
 export function isProgressReport(message: unknown): message is ProgressReport {
-  return (
-    isRecord(message) &&
-    message.type === PROGRESS_REPORT &&
-    typeof message.jobId === "string" &&
-    isStage(message.stage) &&
-    typeof message.ratio === "number"
-  );
+  return isRecord(message) && fits(message, PROGRESS_SHAPE);
 }
 
 export function isConvertResponse(value: unknown): value is ConvertResponse {
-  if (!isRecord(value)) {
-    return false;
-  }
-  if (value.ok === true) {
-    return typeof value.url === "string";
-  }
-  return (
-    value.ok === false &&
-    isStage(value.stage) &&
-    typeof value.message === "string"
-  );
+  return isRecord(value) && fitsAResponse(value);
+}
+
+function fitsAResponse(value: Record<string, unknown>): boolean {
+  return RESPONSE_SHAPES.some((shape) => fits(value, shape));
 }
